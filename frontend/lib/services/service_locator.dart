@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'services/http_client.dart';
-import 'services/auth_service.dart';
-import 'services/user_service.dart';
-import 'services/payment_service.dart';
-import 'services/transaction_service.dart';
+import 'http_client.dart';
+import 'auth_service.dart';
+import 'user_service.dart';
+import 'payment_service.dart';
+import 'transaction_service.dart';
 
 final getIt = GetIt.instance;
 

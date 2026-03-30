@@ -34,7 +34,7 @@ export const transactionQuerySchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   limit: z.number().int().positive().default(20),
-  offset: z.number().int().non_negative().default(0),
+  offset: z.number().int().nonnegative().default(0),
 });
 
 // Webhook Schema

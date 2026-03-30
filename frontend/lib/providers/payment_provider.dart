@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/user.dart';
 import '../models/payment.dart';
 import '../models/transaction.dart';
 import '../services/payment_service.dart';

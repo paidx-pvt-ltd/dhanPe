@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/transaction_service.dart';
 import '../../models/transaction.dart';
 import '../../services/service_locator.dart';
@@ -104,7 +101,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.history_outline,
+                            Icons.history,
                             size: 64,
                             color: Colors.grey[400],
                           ),

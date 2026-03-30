@@ -88,7 +88,8 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                           )
                         else
                           SizedBox(
-                            size: 80,
+                            width: 80,
+                            height: 80,
                             child: CircularProgressIndicator(
                               strokeWidth: 4,
                               valueColor: AlwaysStoppedAnimation<Color>(

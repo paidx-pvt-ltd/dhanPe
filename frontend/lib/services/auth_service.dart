@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/config.dart';
 import '../core/exceptions.dart';
-import '../models/user.dart';
 
 class AuthService {
   final Dio _dio;

@@ -17,7 +17,7 @@ class TransactionService {
     int offset = 0,
   }) async {
     try {
-      final queryParams = {
+      final queryParams = <String, dynamic>{
         'limit': limit,
         'offset': offset,
       };

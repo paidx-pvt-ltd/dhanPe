@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import '../config/config.dart';
 import '../core/exceptions.dart';
 import '../models/user.dart';
 
