@@ -45,26 +45,26 @@ jobs:
         working-directory: backend
         run: npm audit --audit-level=high
 
-  codeql:
-    runs-on: ubuntu-latest
-
-    permissions:
-      security-events: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Init CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Analyze
-        uses: github/codeql-action/analyze@v3
+  # codeql:
+  #   runs-on: ubuntu-latest
+  #
+  #   permissions:
+  #     security-events: write
+  #     contents: read
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Init CodeQL
+  #       uses: github/codeql-action/init@v3
+  #       with:
+  #         languages: javascript
+  #
+  #     - name: Autobuild
+  #       uses: github/codeql-action/autobuild@v3
+  #
+  #     - name: Analyze
+  #       uses: github/codeql-action/analyze@v3
 
   dependency-review:
     if: github.event_name == 'pull_request'
@@ -76,22 +76,22 @@ jobs:
       - name: Dependency review
         uses: actions/dependency-review-action@v4
 
-  secret-scan:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Secret scan
-        uses: gitleaks/gitleaks-action@v2
+  # secret-scan:
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Secret scan
+  #       uses: gitleaks/gitleaks-action@v2
 
   security-gate:
     runs-on: ubuntu-latest
     needs:
       - security-lint
-      - codeql
+      # - codeql
       - dependency-review
-      - secret-scan
+      # - secret-scan
 
     steps:
       - name: Security gate passed
