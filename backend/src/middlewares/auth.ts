@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { JWTService } from '../utils/jwt';
-import { AuthenticationError, AuthorizationError } from '../utils/errors';
+import { AuthenticationError } from '../utils/errors';
 import { RequestWithUser } from './error';
 
 /**

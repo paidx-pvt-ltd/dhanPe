@@ -5,11 +5,8 @@ import { createPaymentSchema } from '../utils/schemas';
 import { paymentLimiter } from '../middlewares/rateLimit';
 import { PaymentService } from '../services/payment.service';
 import { TransactionService } from '../services/transaction.service';
-import { WebhookService } from '../utils/webhook';
 import { logger } from '../config/logger';
 import { generateIdempotencyKey } from '../utils/helpers';
-import prisma from '../config/database';
-import { InternalServerError } from '../utils/errors';
 
 const router = Router();
 
@@ -85,9 +82,9 @@ router.get(
  * Cashfree webhook endpoint - MUST BE PUBLIC
  * Verify signature and update payment status
  */
-router.post('/webhook', async (req, res, next) => {
+router.post('/webhook', async (req, res, _next) => {
   try {
-    const signature = req.headers['x-cashfree-signature'] as string;
+    const _signature = req.headers['x-cashfree-signature'] as string;
     const payload = req.body;
 
     // Log webhook for debugging
