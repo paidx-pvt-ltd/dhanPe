@@ -21,9 +21,13 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
   @override
   void initState() {
     super.initState();
-    _paymentStatusFuture = context.read<PaymentProvider>().getPaymentStatus(
-      widget.paymentId,
-    );
+    // Delay the async call until after the build phase completes
+    // This prevents setState() during build error
+    _paymentStatusFuture = Future.delayed(Duration.zero, () {
+      return context.read<PaymentProvider>().getPaymentStatus(
+        widget.paymentId,
+      );
+    });
   }
 
   @override

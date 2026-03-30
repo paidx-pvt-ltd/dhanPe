@@ -55,9 +55,6 @@ dependencies:
   uuid: ^4.3.3
   timeago: ^3.6.1
 
-  # Security
-  http_certificate_pinning: ^2.0.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

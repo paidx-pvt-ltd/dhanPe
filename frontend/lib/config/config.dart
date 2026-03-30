@@ -5,7 +5,8 @@ class Config {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static const String baseUrl = 'http://localhost:3000/api';
+  // Use 10.0.2.2 for Android Emulator, localhost for web/iOS
+  static const String baseUrl = 'http://10.0.2.2:3000/api';
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // Payment Configuration

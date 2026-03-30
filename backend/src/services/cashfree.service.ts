@@ -38,6 +38,14 @@ export class CashfreeService {
     },
   });
 
+  // Check if using placeholder credentials (mock mode)
+  private static isMockMode(): boolean {
+    return (
+      config.cashfree.clientId.includes('your_cashfree') ||
+      config.cashfree.clientSecret.includes('your_cashfree')
+    );
+  }
+
   /**
    * Create order in Cashfree
    */
@@ -45,6 +53,21 @@ export class CashfreeService {
     request: CashfreeOrderRequest
   ): Promise<CashfreeOrderResponse> {
     try {
+      // Mock mode for development/testing
+      if (this.isMockMode()) {
+        logger.info('📌 MOCK MODE: Returning test response (use real credentials in .env to enable live)');
+        return {
+          cf_order_id: Math.random().toString(36).substring(7),
+          order_id: request.customer_details.customer_id + '_' + Date.now(),
+          order_token: 'test_token_' + Math.random().toString(36).substring(7),
+          order_status: 'ACTIVE',
+          order_amount: request.order_amount,
+          order_currency: request.order_currency,
+          customer_id: request.customer_details.customer_id,
+          created_at: new Date().toISOString(),
+        };
+      }
+
       const response = await this.client.post<CashfreeOrderResponse>(
         '/orders',
         request
