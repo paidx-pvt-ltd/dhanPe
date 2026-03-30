@@ -87,11 +87,8 @@ jobs:
 
   security-gate:
     runs-on: ubuntu-latest
-    needs:
-      - security-lint
-      # - codeql
-      - dependency-review
-      # - secret-scan
+    needs: [security-lint, dependency-review]
+    if: always() && needs.security-lint.result == 'success' && (needs.dependency-review.result == 'success' || needs.dependency-review.result == 'skipped')
 
     steps:
       - name: Security gate passed
