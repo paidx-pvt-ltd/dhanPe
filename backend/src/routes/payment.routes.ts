@@ -42,40 +42,30 @@ router.post(
  * GET /payments/status/:id
  * Get payment status
  */
-router.get(
-  '/status/:id',
-  authenticate,
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      const payment = await PaymentService.getPaymentStatus(req.params.id, req.userId!);
-      res.json({ success: true, data: payment });
-    } catch (error) {
-      next(error);
-    }
+router.get('/status/:id', authenticate, requireAuth, async (req, res, next) => {
+  try {
+    const payment = await PaymentService.getPaymentStatus(req.params.id, req.userId!);
+    res.json({ success: true, data: payment });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * GET /payments/history
  * Get user's payment history
  */
-router.get(
-  '/history',
-  authenticate,
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-      const offset = parseInt(req.query.offset as string) || 0;
+router.get('/history', authenticate, requireAuth, async (req, res, next) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await PaymentService.getUserPayments(req.userId!, limit, offset);
-      res.json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
+    const result = await PaymentService.getUserPayments(req.userId!, limit, offset);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * POST /payments/webhook
@@ -106,11 +96,7 @@ router.post('/webhook', async (req, res, _next) => {
       const idempotencyKey = generateIdempotencyKey(orderId, payload);
 
       // Update payment
-      const payment = await PaymentService.updatePaymentStatus(
-        orderId,
-        'SUCCESS',
-        payload
-      );
+      const payment = await PaymentService.updatePaymentStatus(orderId, 'SUCCESS', payload);
 
       // Create transaction
       await TransactionService.createTransaction({
@@ -126,7 +112,7 @@ router.post('/webhook', async (req, res, _next) => {
       logger.info(`Payment successful: ${orderId}`);
     } else if (orderStatus === 'FAILED' || orderStatus === 'CANCELLED') {
       // Payment failed
-      const payment = await PaymentService.updatePaymentStatus(
+      const _payment = await PaymentService.updatePaymentStatus(
         orderId,
         orderStatus === 'FAILED' ? 'FAILED' : 'CANCELLED',
         payload

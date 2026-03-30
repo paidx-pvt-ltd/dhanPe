@@ -3,7 +3,8 @@ import { logger } from './logger';
 
 const prisma = new PrismaClient();
 
-prisma.$connect()
+prisma
+  .$connect()
   .then(() => logger.info('Database connected'))
   .catch((error) => {
     logger.error('Database connection failed:', error);

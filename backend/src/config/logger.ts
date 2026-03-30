@@ -8,14 +8,17 @@ const pinoConfig = {
 };
 
 export const logger = isDev
-  ? pino(pinoConfig, pino.transport({
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        ignore: 'pid,hostname',
-        singleLine: false,
-      },
-    }))
+  ? pino(
+      pinoConfig,
+      pino.transport({
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          ignore: 'pid,hostname',
+          singleLine: false,
+        },
+      })
+    )
   : pino(pinoConfig);
 
 export default logger;

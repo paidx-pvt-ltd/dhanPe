@@ -43,7 +43,7 @@ describe('Payment Flow', () => {
     });
 
     const idempotencyKey = `test-${Date.now()}`;
-    const webhookData = { status: 'SUCCESS' };
+    // const webhookData = { status: 'SUCCESS' };
 
     // First webhook
     const tx1 = await TransactionService.createTransaction({

@@ -40,10 +40,7 @@ export class UserService {
   /**
    * Update user profile
    */
-  static async updateProfile(
-    userId: string,
-    data: Partial<UserProfile>
-  ): Promise<UserProfile> {
+  static async updateProfile(userId: string, data: Partial<UserProfile>): Promise<UserProfile> {
     const user = await prisma.user.update({
       where: { id: userId },
       data: {

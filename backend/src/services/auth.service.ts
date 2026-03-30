@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { PasswordService } from '../utils/password';
 import { JWTService, JWTPayload } from '../utils/jwt';
-import { ConflictError, NotFoundError, AuthenticationError } from '../utils/errors';
+import { ConflictError, AuthenticationError } from '../utils/errors';
 import { logger } from '../config/logger';
 
 export interface SignupInput {

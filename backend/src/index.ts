@@ -1,5 +1,6 @@
 import express from 'express';
 import 'express-async-errors';
+import './types'; // Global type extensions for Express Request
 import cors from 'cors';
 import helmet from 'helmet';
 import { config, validateConfig } from './config';

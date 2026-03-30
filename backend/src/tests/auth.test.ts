@@ -4,7 +4,7 @@ import app from '../index';
 import prisma from '../config/database';
 
 describe('Auth Module', () => {
-  let accessToken: string;
+  let _accessToken: string;
   let refreshToken: string;
   const testUser = {
     email: 'test@example.com',
@@ -29,9 +29,7 @@ describe('Auth Module', () => {
 
   describe('Signup', () => {
     it('should register a new user', async () => {
-      const response = await request(app)
-        .post('/api/auth/signup')
-        .send(testUser);
+      const response = await request(app).post('/api/auth/signup').send(testUser);
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
@@ -39,14 +37,12 @@ describe('Auth Module', () => {
       expect(response.body.refreshToken).toBeDefined();
       expect(response.body.user.email).toBe(testUser.email);
 
-      accessToken = response.body.accessToken;
+      _accessToken = response.body.accessToken;
       refreshToken = response.body.refreshToken;
     });
 
     it('should not register duplicate email', async () => {
-      const response = await request(app)
-        .post('/api/auth/signup')
-        .send(testUser);
+      const response = await request(app).post('/api/auth/signup').send(testUser);
 
       expect(response.status).toBe(409);
       expect(response.body.success).toBe(false);
@@ -66,12 +62,10 @@ describe('Auth Module', () => {
 
   describe('Login', () => {
     it('should login user with correct credentials', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: testUser.email,
-          password: testUser.password,
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        email: testUser.email,
+        password: testUser.password,
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -80,12 +74,10 @@ describe('Auth Module', () => {
     });
 
     it('should reject invalid password', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: testUser.email,
-          password: 'WrongPassword',
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        email: testUser.email,
+        password: 'WrongPassword',
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
@@ -94,9 +86,7 @@ describe('Auth Module', () => {
 
   describe('Refresh Token', () => {
     it('should generate new access token', async () => {
-      const response = await request(app)
-        .post('/api/auth/refresh')
-        .send({ refreshToken });
+      const response = await request(app).post('/api/auth/refresh').send({ refreshToken });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);

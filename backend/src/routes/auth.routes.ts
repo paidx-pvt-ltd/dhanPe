@@ -12,54 +12,40 @@ const router = Router();
  * POST /auth/signup
  * Register new user
  */
-router.post(
-  '/signup',
-  authLimiter,
-  validate(signupSchema),
-  async (req, res, next) => {
-    try {
-      const result = await AuthService.signup(req.body);
-      res.status(201).json(result);
-    } catch (error) {
-      next(error);
-    }
+router.post('/signup', authLimiter, validate(signupSchema), async (req, res, next) => {
+  try {
+    const result = await AuthService.signup(req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * POST /auth/login
  * Login user and return tokens
  */
-router.post(
-  '/login',
-  authLimiter,
-  validate(loginSchema),
-  async (req, res, next) => {
-    try {
-      const result = await AuthService.login(req.body);
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
+router.post('/login', authLimiter, validate(loginSchema), async (req, res, next) => {
+  try {
+    const result = await AuthService.login(req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * POST /auth/refresh
  * Refresh access token using refresh token
  */
-router.post(
-  '/refresh',
-  validate(refreshTokenSchema),
-  async (req, res, next) => {
-    try {
-      const result = await AuthService.refreshToken(req.body.refreshToken);
-      res.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
+router.post('/refresh', validate(refreshTokenSchema), async (req, res, next) => {
+  try {
+    const result = await AuthService.refreshToken(req.body.refreshToken);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * POST /auth/logout

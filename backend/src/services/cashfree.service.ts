@@ -49,13 +49,13 @@ export class CashfreeService {
   /**
    * Create order in Cashfree
    */
-  static async createOrder(
-    request: CashfreeOrderRequest
-  ): Promise<CashfreeOrderResponse> {
+  static async createOrder(request: CashfreeOrderRequest): Promise<CashfreeOrderResponse> {
     try {
       // Mock mode for development/testing
       if (this.isMockMode()) {
-        logger.info('📌 MOCK MODE: Returning test response (use real credentials in .env to enable live)');
+        logger.info(
+          '📌 MOCK MODE: Returning test response (use real credentials in .env to enable live)'
+        );
         return {
           cf_order_id: Math.random().toString(36).substring(7),
           order_id: request.customer_details.customer_id + '_' + Date.now(),
@@ -68,10 +68,7 @@ export class CashfreeService {
         };
       }
 
-      const response = await this.client.post<CashfreeOrderResponse>(
-        '/orders',
-        request
-      );
+      const response = await this.client.post<CashfreeOrderResponse>('/orders', request);
 
       logger.info(`Order created in Cashfree: ${response.data.cf_order_id}`);
       return response.data;

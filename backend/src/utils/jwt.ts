@@ -12,18 +12,20 @@ export class JWTService {
    * Generate access token
    */
   static generateAccessToken(payload: JWTPayload): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return jwt.sign(payload, config.jwt.secret, {
       expiresIn: config.jwt.expiry,
-    });
+    } as any);
   }
 
   /**
    * Generate refresh token
    */
   static generateRefreshToken(payload: JWTPayload): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return jwt.sign(payload, config.jwt.refreshSecret, {
       expiresIn: config.jwt.refreshExpiry,
-    });
+    } as any);
   }
 
   /**

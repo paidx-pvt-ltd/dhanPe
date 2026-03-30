@@ -1,8 +1,7 @@
 import prisma from '../config/database';
 import { CashfreeService } from './cashfree.service';
-import { NotFoundError, InternalServerError } from '../utils/errors';
+import { NotFoundError } from '../utils/errors';
 import { logger } from '../config/logger';
-import { generateIdempotencyKey, generateRandomString } from '../utils/helpers';
 
 export interface CreatePaymentInput {
   userId: string;
@@ -129,11 +128,7 @@ export class PaymentService {
   /**
    * Get user payments
    */
-  static async getUserPayments(
-    userId: string,
-    limit: number = 20,
-    offset: number = 0
-  ) {
+  static async getUserPayments(userId: string, limit: number = 20, offset: number = 0) {
     const payments = await prisma.payment.findMany({
       where: { userId },
       select: {
