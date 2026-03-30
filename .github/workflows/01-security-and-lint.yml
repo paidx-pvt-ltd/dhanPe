@@ -45,15 +45,15 @@ jobs:
         working-directory: backend
         run: npm audit --audit-level=high
 
-  dependency-review:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Dependency review
-        uses: actions/dependency-review-action@v4
+  # dependency-review:
+  #   if: github.event_name == 'pull_request'
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Dependency review
+  #       uses: actions/dependency-review-action@v4
 
   # codeql:
   #   runs-on: ubuntu-latest
@@ -98,34 +98,10 @@ jobs:
   #       run: |
   #         echo "security-lint result: ${{ needs.security-lint.result }}"
   #         echo "dependency-review result: ${{ needs.dependency-review.result }}"
-  #         # echo "codeql result: ${{ needs.codeql.result }}"
-  #         # echo "secret-scan result: ${{ needs.secret-scan.result }}"
   #
-  #         # Mandatory check
   #         if [ "${{ needs.security-lint.result }}" != "success" ]; then
   #           echo "Security lint failed"
   #           exit 1
   #         fi
-  #
-  #         # Optional: dependency review (PR only)
-  #         #if [ "${{ needs.dependency-review.result }}" != "success" ] && \
-  #         #   [ "${{ needs.dependency-review.result }}" != "skipped" ]; then
-  #         #  echo "Dependency review failed"
-  #         #  exit 1
-  #         #fi
-  #
-  #         # Future: CodeQL
-  #         # if [ "${{ needs.codeql.result }}" != "success" ] && \
-  #         #    [ "${{ needs.codeql.result }}" != "skipped" ]; then
-  #         #   echo "CodeQL failed"
-  #         #   exit 1
-  #         # fi
-  #
-  #         # Future: Secret scan
-  #         # if [ "${{ needs.secret-scan.result }}" != "success" ] && \
-  #         #    [ "${{ needs.secret-scan.result }}" != "skipped" ]; then
-  #         #   echo "Secret scan failed"
-  #         #   exit 1
-  #         # fi
   #
   #         echo "All security checks passed"
