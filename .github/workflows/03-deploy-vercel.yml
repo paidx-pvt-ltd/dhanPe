@@ -5,13 +5,17 @@ on:
     workflows: ["Test and Build"]
     types:
       - completed
+    branches:
+      - main
+      - develop
+      - staging
 
 permissions:
   contents: read
   deployments: write
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:

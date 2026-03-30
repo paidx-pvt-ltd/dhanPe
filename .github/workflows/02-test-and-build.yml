@@ -5,6 +5,10 @@ on:
     workflows: ["Security and Code Quality"]
     types:
       - completed
+    branches:
+      - main
+      - develop
+      - staging
 
 permissions:
   contents: read
