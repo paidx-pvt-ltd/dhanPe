@@ -2,14 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { logger } from '../config/logger';
 import { AppError } from '../utils/errors';
 
-export interface RequestWithUser extends Request {
-  userId?: string;
-  user?: {
-    id: string;
-    email: string;
-  };
-}
-
 /**
  * Global error handler middleware
  */

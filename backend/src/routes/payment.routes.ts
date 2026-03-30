@@ -5,11 +5,8 @@ import { createPaymentSchema } from '../utils/schemas';
 import { paymentLimiter } from '../middlewares/rateLimit';
 import { PaymentService } from '../services/payment.service';
 import { TransactionService } from '../services/transaction.service';
-import { WebhookService } from '../utils/webhook';
 import { logger } from '../config/logger';
 import { generateIdempotencyKey } from '../utils/helpers';
-import prisma from '../config/database';
-import { InternalServerError } from '../utils/errors';
 
 const router = Router();
 
@@ -45,49 +42,39 @@ router.post(
  * GET /payments/status/:id
  * Get payment status
  */
-router.get(
-  '/status/:id',
-  authenticate,
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      const payment = await PaymentService.getPaymentStatus(req.params.id, req.userId!);
-      res.json({ success: true, data: payment });
-    } catch (error) {
-      next(error);
-    }
+router.get('/status/:id', authenticate, requireAuth, async (req, res, next) => {
+  try {
+    const payment = await PaymentService.getPaymentStatus(req.params.id, req.userId!);
+    res.json({ success: true, data: payment });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * GET /payments/history
  * Get user's payment history
  */
-router.get(
-  '/history',
-  authenticate,
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-      const offset = parseInt(req.query.offset as string) || 0;
+router.get('/history', authenticate, requireAuth, async (req, res, next) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await PaymentService.getUserPayments(req.userId!, limit, offset);
-      res.json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
+    const result = await PaymentService.getUserPayments(req.userId!, limit, offset);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * POST /payments/webhook
  * Cashfree webhook endpoint - MUST BE PUBLIC
  * Verify signature and update payment status
  */
-router.post('/webhook', async (req, res, next) => {
+router.post('/webhook', async (req, res, _next) => {
   try {
-    const signature = req.headers['x-cashfree-signature'] as string;
+    const _signature = req.headers['x-cashfree-signature'] as string;
     const payload = req.body;
 
     // Log webhook for debugging
@@ -109,11 +96,7 @@ router.post('/webhook', async (req, res, next) => {
       const idempotencyKey = generateIdempotencyKey(orderId, payload);
 
       // Update payment
-      const payment = await PaymentService.updatePaymentStatus(
-        orderId,
-        'SUCCESS',
-        payload
-      );
+      const payment = await PaymentService.updatePaymentStatus(orderId, 'SUCCESS', payload);
 
       // Create transaction
       await TransactionService.createTransaction({
@@ -129,7 +112,7 @@ router.post('/webhook', async (req, res, next) => {
       logger.info(`Payment successful: ${orderId}`);
     } else if (orderStatus === 'FAILED' || orderStatus === 'CANCELLED') {
       // Payment failed
-      const payment = await PaymentService.updatePaymentStatus(
+      const _payment = await PaymentService.updatePaymentStatus(
         orderId,
         orderStatus === 'FAILED' ? 'FAILED' : 'CANCELLED',
         payload

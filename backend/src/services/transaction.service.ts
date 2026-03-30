@@ -26,9 +26,7 @@ export class TransactionService {
   /**
    * Create transaction
    */
-  static async createTransaction(
-    input: CreateTransactionInput
-  ): Promise<TransactionResponse> {
+  static async createTransaction(input: CreateTransactionInput): Promise<TransactionResponse> {
     // Check for duplicate (idempotency)
     if (input.idempotencyKey) {
       const existing = await prisma.transaction.findUnique({

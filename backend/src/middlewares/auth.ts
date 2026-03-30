@@ -1,16 +1,11 @@
-import { Response, NextFunction } from 'express';
+import { Response, NextFunction, Request } from 'express';
 import { JWTService } from '../utils/jwt';
-import { AuthenticationError, AuthorizationError } from '../utils/errors';
-import { RequestWithUser } from './error';
+import { AuthenticationError } from '../utils/errors';
 
 /**
  * Authenticate JWT token from Authorization header
  */
-export const authenticate = (
-  req: RequestWithUser,
-  _res: Response,
-  next: NextFunction
-) => {
+export const authenticate = (req: Request, _res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -32,11 +27,7 @@ export const authenticate = (
 /**
  * Optional authentication - doesn't fail if token is missing
  */
-export const optionalAuth = (
-  req: RequestWithUser,
-  _res: Response,
-  next: NextFunction
-) => {
+export const optionalAuth = (req: Request, _res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (authHeader?.startsWith('Bearer ')) {
@@ -59,11 +50,7 @@ export const optionalAuth = (
 /**
  * Require authentication
  */
-export const requireAuth = (
-  req: RequestWithUser,
-  _res: Response,
-  next: NextFunction
-) => {
+export const requireAuth = (req: Request, _res: Response, next: NextFunction) => {
   if (!req.userId || !req.user) {
     throw new AuthenticationError('Authentication required');
   }

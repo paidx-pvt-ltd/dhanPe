@@ -50,10 +50,4 @@ type CreatePaymentRequest = z.infer<typeof createPaymentSchema>;
 type TransactionQuery = z.infer<typeof transactionQuerySchema>;
 type WebhookData = z.infer<typeof webhookSchema>;
 
-export {
-  SignupRequest,
-  LoginRequest,
-  CreatePaymentRequest,
-  TransactionQuery,
-  WebhookData,
-};
+export { SignupRequest, LoginRequest, CreatePaymentRequest, TransactionQuery, WebhookData };

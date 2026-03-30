@@ -1,5 +1,6 @@
 import express from 'express';
 import 'express-async-errors';
+import './types'; // Global type extensions for Express Request
 import cors from 'cors';
 import helmet from 'helmet';
 import { config, validateConfig } from './config';
@@ -12,6 +13,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import paymentRoutes from './routes/payment.routes';
 import transactionRoutes from './routes/transaction.routes';
+import healthRoutes from './routes/health.routes';
 
 // Validate config on startup
 validateConfig();
@@ -38,10 +40,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Health check routes (for monitoring & CI/CD)
+app.use('/health', healthRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);
