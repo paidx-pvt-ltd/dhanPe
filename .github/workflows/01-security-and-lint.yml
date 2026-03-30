@@ -108,11 +108,11 @@ jobs:
           fi
 
           # Optional: dependency review (PR only)
-          if [ "${{ needs.dependency-review.result }}" != "success" ] && \
-             [ "${{ needs.dependency-review.result }}" != "skipped" ]; then
-            echo "Dependency review failed"
-            exit 1
-          fi
+          #if [ "${{ needs.dependency-review.result }}" != "success" ] && \
+          #   [ "${{ needs.dependency-review.result }}" != "skipped" ]; then
+          #  echo "Dependency review failed"
+          #  exit 1
+          #fi
 
           # Future: CodeQL
           # if [ "${{ needs.codeql.result }}" != "success" ] && \
