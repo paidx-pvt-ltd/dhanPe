@@ -1,0 +1,11 @@
+{
+  "project": "dhanpe",
+  "target": "lib/main.dart",
+  "projectId": "dhanpe-payment-app",
+  "databases": {
+    "default": {
+      "path": "lib/firebase.json",
+      "target": "dhanpe-app"
+    }
+  }
+}

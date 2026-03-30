@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  firstName       String?
+  lastName        String?
+  phoneNumber     String?
+  kycStatus       KYCStatus @default(PENDING)
+  kycDocumentUrl  String?
+  balance         Float     @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  isActive        Boolean   @default(true)
+
+  payments        Payment[]
+  transactions    Transaction[]
+  refreshTokens   RefreshToken[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+enum KYCStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model Payment {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  cashfreeOrderId String    @unique
+  amount          Float
+  currency        String    @default("INR")
+  status          PaymentStatus @default(PENDING)
+  
+  paymentMethod   String?
+  paymentData     Json?
+  
+  webhookReceived Boolean   @default(false)
+  webhookData     Json?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  transactions    Transaction[]
+
+  @@index([userId])
+  @@index([cashfreeOrderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+model Transaction {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  paymentId       String?
+  payment         Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  
+  type            TransactionType
+  amount          Float
+  status          TransactionStatus
+  description     String?
+  
+  idempotencyKey  String?   @unique
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([paymentId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model RefreshToken {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  token           String    @unique
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model WebhookLog {
+  id              String    @id @default(cuid())
+  event           String
+  source          String    @default("cashfree")
+  
+  data            Json
+  processed       Boolean   @default(false)
+  error           String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([event])
+  @@index([processed])
+  @@index([createdAt])
+}
