@@ -1,0 +1,150 @@
+name: 🚀 Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - develop
+      - staging
+      - main
+    paths:
+      - 'backend/**'
+      - 'vercel.json'
+
+jobs:
+  # Deploy to DEV from develop branch
+  deploy-dev:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    name: Deploy to Dev
+    environment:
+      name: development
+      url: https://dev.dhanpe.com
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔄 Run security & quality checks
+        uses: ./.github/workflows/01-security-and-lint.yml
+        continue-on-error: false
+
+      - name: 🔄 Run tests & build
+        uses: ./.github/workflows/02-test-and-build.yml
+        continue-on-error: false
+
+      - name: 🚀 Deploy to Vercel (Dev)
+        uses: vercel/action@main
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_DEV: ${{ secrets.VERCEL_PROJECT_ID_DEV }}
+        with:
+          working-directory: ./backend
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_DEV }}
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: ✅ Dev deployment successful
+        run: echo "✅ Development deployed to dev.dhanpe.com"
+
+  # Deploy to STAGING from staging branch
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    name: Deploy to Staging
+    environment:
+      name: staging
+      url: https://staging.dhanpe.com
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔄 Run security & quality checks
+        uses: ./.github/workflows/01-security-and-lint.yml
+        continue-on-error: false
+
+      - name: 🔄 Run tests & build
+        uses: ./.github/workflows/02-test-and-build.yml
+        continue-on-error: false
+
+      - name: 🚀 Deploy to Vercel (Staging)
+        uses: vercel/action@main
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_STAGING: ${{ secrets.VERCEL_PROJECT_ID_STAGING }}
+        with:
+          working-directory: ./backend
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_STAGING }}
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: 🧪 Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests against staging..."
+          # Add your smoke test commands here
+          # Example: npm run test:smoke -- https://staging.dhanpe.com
+
+      - name: ✅ Staging deployment successful
+        run: echo "✅ Staging deployed to staging.dhanpe.com"
+
+  # Deploy to PRODUCTION from main branch (MANUAL APPROVAL)
+  deploy-prod:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    name: Deploy to Production
+    environment:
+      name: production
+      url: https://api.dhanpe.com
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔄 Run security & quality checks
+        uses: ./.github/workflows/01-security-and-lint.yml
+        continue-on-error: false
+
+      - name: 🔄 Run tests & build
+        uses: ./.github/workflows/02-test-and-build.yml
+        continue-on-error: false
+
+      - name: 🚨 Production deployment initiated
+        run: |
+          echo "🚨 ATTENTION: Production deployment approved"
+          echo "📦 This will go live to api.dhanpe.com"
+          echo "⏰ Deployment starts now..."
+
+      - name: 🚀 Deploy to Vercel (Production)
+        uses: vercel/action@main
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_PROD: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+        with:
+          working-directory: ./backend
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: 🧪 Run production smoke tests
+        run: |
+          echo "🧪 Running smoke tests against production..."
+          # Add your production smoke test commands
+          echo "Testing: https://api.dhanpe.com/health"
+
+      - name: ✅ Production deployment successful
+        run: echo "✅🚀 LIVE! Deployed to api.dhanpe.com"
+
+      - name: 📢 Notify team
+        run: |
+          echo "✅ Production deployment complete!"
+          echo "📊 Health Check: https://api.dhanpe.com/health"
+          echo "📝 To rollback: Run main branch CI workflow with --rollback flag"

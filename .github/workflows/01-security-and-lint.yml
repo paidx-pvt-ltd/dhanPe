@@ -1,0 +1,74 @@
+name: 🔒 Security & Code Quality Gates
+
+on:
+  pull_request:
+    branches: [develop, staging, main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
+  push:
+    branches: [develop, staging, main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
+
+jobs:
+  security-and-quality:
+    runs-on: ubuntu-latest
+    name: Security & Quality Checks
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔐 Run security scan (npm audit)
+        working-directory: ./backend
+        run: npm audit --audit-level=moderate
+        continue-on-error: false
+
+      - name: 🔐 Dependency vulnerability check
+        working-directory: ./backend
+        run: npm ls
+        continue-on-error: false
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: 📥 Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: ✨ Prettier format check
+        working-directory: ./backend
+        run: npm run format:check
+        continue-on-error: false
+
+      - name: 🎯 ESLint code quality
+        working-directory: ./backend
+        run: npm run lint
+        continue-on-error: false
+
+      - name: 🔍 Type checking (TypeScript)
+        working-directory: ./backend
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+  # GATE: Fail if any security/quality checks fail
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: security-and-quality
+    if: failure()
+    steps:
+      - name: ❌ Quality gate failed
+        run: |
+          echo "❌ Code must pass security & quality checks before proceeding"
+          echo "   → Fix ESLint errors"
+          echo "   → Run: npm run format"
+          echo "   → Fix TypeScript errors"
+          exit 1
