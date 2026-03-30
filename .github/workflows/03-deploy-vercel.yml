@@ -1,128 +1,55 @@
 name: Deploy to Vercel
 
 on:
-  push:
-    branches:
-      - develop
-      - staging
-      - main
-    paths:
-      - 'backend/**'
-      - 'vercel.json'
+  workflow_run:
+    workflows: ["Test and Build"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy-dev:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    name: Deploy to Dev
+
     environment:
-      name: development
-      url: https://dev.dhanpe.com
+      name: ${{ github.event.workflow_run.head_branch }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # NOTE: These must be actions, not workflows
-      - name: Run security and quality checks
-        uses: ./.github/actions/security-and-lint
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      - name: Run tests and build
-        uses: ./.github/actions/test-and-build
+      - name: Install Vercel CLI
+        run: npm install -g vercel
 
-      - name: Deploy to Vercel (Dev)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DEV }}
+      - name: Pull Vercel environment
         run: |
-          npm install -g vercel
-          vercel deploy --token $VERCEL_TOKEN
-        working-directory: ./backend
+          vercel pull --yes \
+          --environment=${{ github.event.workflow_run.head_branch }} \
+          --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Dev deployment successful
-        run: echo "Development deployed to dev.dhanpe.com"
-
-  deploy-staging:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging'
-    name: Deploy to Staging
-    environment:
-      name: staging
-      url: https://staging.dhanpe.com
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run security and quality checks
-        uses: ./.github/actions/security-and-lint
-
-      - name: Run tests and build
-        uses: ./.github/actions/test-and-build
-
-      - name: Deploy to Vercel (Staging)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_STAGING }}
+      - name: Build project
+        working-directory: backend
         run: |
-          npm install -g vercel
-          vercel deploy --token $VERCEL_TOKEN
-        working-directory: ./backend
+          vercel build --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Run smoke tests
+      - name: Deploy
+        working-directory: backend
         run: |
-          echo "Running smoke tests against staging..."
-          # npm run test:smoke -- https://staging.dhanpe.com
-
-      - name: Staging deployment successful
-        run: echo "Staging deployed to staging.dhanpe.com"
-
-  deploy-prod:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    name: Deploy to Production
-    environment:
-      name: production
-      url: https://api.dhanpe.com
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run security and quality checks
-        uses: ./.github/actions/security-and-lint
-
-      - name: Run tests and build
-        uses: ./.github/actions/test-and-build
-
-      - name: Production deployment initiated
-        run: |
-          echo "Production deployment approved"
-          echo "This will go live to api.dhanpe.com"
-          echo "Deployment starts now..."
-
-      - name: Deploy to Vercel (Production)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
-        run: |
-          npm install -g vercel
-          vercel deploy --prod --token $VERCEL_TOKEN
-        working-directory: ./backend
-
-      - name: Run production smoke tests
-        run: |
-          echo "Running smoke tests against production..."
-
-      - name: Production deployment successful
-        run: |
-          echo "LIVE: Deployed to api.dhanpe.com"
-
-      - name: Notify team
-        run: |
-          echo "Production deployment complete"
-          echo "Health Check: https://api.dhanpe.com/health"
-          echo "To rollback: run workflow with rollback flag"
+          if [ "${{ github.event.workflow_run.head_branch }}" = "main" ]; then
+            vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+          fi
