@@ -7,9 +7,9 @@ class PaymentStatusScreen extends StatefulWidget {
   final String paymentId;
 
   const PaymentStatusScreen({
-    Key? key,
+    super.key,
     required this.paymentId,
-  }) : super(key: key);
+  });
 
   @override
   State<PaymentStatusScreen> createState() => _PaymentStatusScreenState();

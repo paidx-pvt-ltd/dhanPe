@@ -9,7 +9,7 @@ class PaymentProvider extends ChangeNotifier {
 
   Payment? _currentPayment;
   List<Payment> _paymentHistory = [];
-  List<Transaction> _transactions = [];
+  final List<Transaction> _transactions = [];
   bool _isLoading = false;
   String? _error;
 
