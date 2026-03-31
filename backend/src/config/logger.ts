@@ -1,24 +1,18 @@
 import pino from 'pino';
-import { config } from './index';
+import { config } from './index.js';
 
-const isDev = process.env.NODE_ENV !== 'production';
-
-const pinoConfig = {
-  level: config.logging.level,
-};
+const isDev = config.server.env !== 'production';
 
 export const logger = isDev
   ? pino(
-      pinoConfig,
+      { level: config.logging.level },
       pino.transport({
         target: 'pino-pretty',
         options: {
           colorize: true,
+          translateTime: 'SYS:standard',
           ignore: 'pid,hostname',
-          singleLine: false,
         },
       })
     )
-  : pino(pinoConfig);
-
-export default logger;
+  : pino({ level: config.logging.level });

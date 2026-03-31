@@ -6,11 +6,16 @@
   "outputDirectory": "dist",
   "env": [
     "DATABASE_URL",
+    "DIRECT_URL",
     "JWT_SECRET",
     "JWT_REFRESH_SECRET",
     "CASHFREE_CLIENT_ID",
     "CASHFREE_CLIENT_SECRET",
-    "CASHFREE_API_URL",
+    "CASHFREE_WEBHOOK_SECRET",
+    "CASHFREE_API_BASE_URL",
+    "CASHFREE_PAYOUT_BASE_URL",
+    "APP_URL",
+    "CORS_ORIGIN",
     "NODE_ENV"
   ]
 }
