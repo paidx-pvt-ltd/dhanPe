@@ -5,10 +5,6 @@ on:
     workflows: ["Test and Build"]
     types:
       - completed
-    branches:
-      - main
-      - develop
-      - staging
 
 permissions:
   contents: read
@@ -27,6 +23,12 @@ jobs:
       name: ${{ github.event.workflow_run.head_branch }}
 
     steps:
+      - name: Debug trigger
+        run: |
+          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -57,4 +59,3 @@ jobs:
           else
             vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
           fi
-          
