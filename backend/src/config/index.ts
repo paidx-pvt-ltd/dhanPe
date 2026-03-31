@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -7,12 +8,23 @@ const parseNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseOrigins = (value: string | undefined): string[] => {
+  if (!value) {
+    return ['http://localhost:3000'];
+  }
+
+  return value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+};
+
 export const config = {
   server: {
     env: process.env.NODE_ENV ?? 'development',
     port: parseNumber(process.env.PORT, 3000),
     appUrl: process.env.APP_URL ?? 'http://localhost:3000',
-    corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+    corsOrigins: parseOrigins(process.env.CORS_ORIGIN),
   },
   database: {
     url: process.env.DATABASE_URL ?? '',
@@ -73,5 +85,23 @@ export const validateConfig = (): void => {
 
   if (placeholderValues.length > 0) {
     throw new Error('Cashfree credentials must be real values, placeholder values are not allowed');
+  }
+
+  // Fail fast on invalid JWT configuration instead of surfacing 500s on login/signup.
+  try {
+    jwt.sign(
+      { userId: 'config-check', email: 'config-check@example.com' },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiry } as SignOptions
+    );
+
+    jwt.sign(
+      { userId: 'config-check', email: 'config-check@example.com' },
+      config.jwt.refreshSecret,
+      { expiresIn: config.jwt.refreshExpiry } as SignOptions
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown JWT config error';
+    throw new Error(`Invalid JWT configuration: ${message}`);
   }
 };

@@ -22,10 +22,34 @@ const parseWebhookBody = express.raw({
 });
 
 const app = express();
+const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const allowedOrigins = new Set(config.server.corsOrigins);
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Native apps and server-to-server requests usually send no Origin header.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    if (config.server.env !== 'production' && localhostPattern.test(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin not allowed by CORS: ${origin}`));
+  },
+};
 
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: config.server.corsOrigin }));
+app.use(cors(corsOptions));
 app.use(generalLimiter);
 app.use((req, _res, next) => {
   logger.info({ method: req.method, path: req.path }, 'Incoming request');
