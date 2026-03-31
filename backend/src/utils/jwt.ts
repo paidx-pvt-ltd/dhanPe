@@ -1,63 +1,38 @@
-import jwt from 'jsonwebtoken';
-import { config } from '../config';
-import { AuthenticationError } from './errors';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import { config } from '../config/index.js';
+import { AuthenticationError } from '../shared/errors.js';
 
-export interface JWTPayload {
+export interface JwtPayload {
   userId: string;
   email: string;
 }
 
-export class JWTService {
-  /**
-   * Generate access token
-   */
-  static generateAccessToken(payload: JWTPayload): string {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class JwtService {
+  static signAccessToken(payload: JwtPayload): string {
     return jwt.sign(payload, config.jwt.secret, {
       expiresIn: config.jwt.expiry,
-    } as any);
+    } as SignOptions);
   }
 
-  /**
-   * Generate refresh token
-   */
-  static generateRefreshToken(payload: JWTPayload): string {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static signRefreshToken(payload: JwtPayload): string {
     return jwt.sign(payload, config.jwt.refreshSecret, {
       expiresIn: config.jwt.refreshExpiry,
-    } as any);
+    } as SignOptions);
   }
 
-  /**
-   * Verify access token
-   */
-  static verifyAccessToken(token: string): JWTPayload {
+  static verifyAccessToken(token: string): JwtPayload {
     try {
-      return jwt.verify(token, config.jwt.secret) as JWTPayload;
-    } catch (error) {
-      throw new AuthenticationError('Invalid or expired token');
-    }
-  }
-
-  /**
-   * Verify refresh token
-   */
-  static verifyRefreshToken(token: string): JWTPayload {
-    try {
-      return jwt.verify(token, config.jwt.refreshSecret) as JWTPayload;
-    } catch (error) {
-      throw new AuthenticationError('Invalid or expired refresh token');
-    }
-  }
-
-  /**
-   * Decode token without verification (use with caution)
-   */
-  static decodeToken(token: string): JWTPayload | null {
-    try {
-      return jwt.decode(token) as JWTPayload;
+      return jwt.verify(token, config.jwt.secret) as JwtPayload;
     } catch {
-      return null;
+      throw new AuthenticationError('Invalid or expired access token');
+    }
+  }
+
+  static verifyRefreshToken(token: string): JwtPayload {
+    try {
+      return jwt.verify(token, config.jwt.refreshSecret) as JwtPayload;
+    } catch {
+      throw new AuthenticationError('Invalid or expired refresh token');
     }
   }
 }
