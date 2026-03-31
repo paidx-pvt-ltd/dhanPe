@@ -27,20 +27,8 @@ class UserService {
 
   /// Get user balance
   Future<double> getBalance() async {
-    try {
-      final response = await _dio.get('/users/balance');
-
-      if (response.statusCode == 200) {
-        return (response.data['data']['balance'] as num).toDouble();
-      }
-      throw ApiError(
-        type: ApiException.unknownError,
-        message: 'Failed to fetch balance',
-      );
-    } on DioException catch (e) {
-      _handleDioException(e);
-      rethrow;
-    }
+    final profile = await getProfile();
+    return profile.balance;
   }
 
   /// Update user profile

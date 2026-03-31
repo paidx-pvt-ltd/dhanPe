@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../providers/payment_provider.dart';
 
 class PaymentStatusScreen extends StatefulWidget {
@@ -21,32 +21,23 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
   @override
   void initState() {
     super.initState();
-    // Delay the async call until after the build phase completes
-    // This prevents setState() during build error
     _paymentStatusFuture = Future.delayed(Duration.zero, () {
-      return context.read<PaymentProvider>().getPaymentStatus(
-        widget.paymentId,
-      );
+      return context.read<PaymentProvider>().getPaymentStatus(widget.paymentId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
-          title: const Text('Payment Status'),
+          title: const Text('Transfer Status'),
           centerTitle: true,
-          automaticallyImplyLeading: false,
         ),
-        body: FutureBuilder(
+        body: FutureBuilder<void>(
           future: _paymentStatusFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             return Consumer<PaymentProvider>(
@@ -59,11 +50,11 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       children: [
                         const Icon(Icons.error_outline, size: 64, color: Colors.red),
                         const SizedBox(height: 16),
-                        const Text('Payment not found'),
+                        const Text('Transfer not found'),
                         const SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: () => context.go('/dashboard'),
-                          child: const Text('Go to Dashboard'),
+                          child: const Text('Go to dashboard'),
                         ),
                       ],
                     ),
@@ -74,54 +65,34 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 32),
-                        // Status Icon
-                        if (payment.isSuccess)
-                          Icon(
-                            Icons.check_circle,
-                            size: 80,
-                            color: Colors.green[400],
-                          )
-                        else if (payment.isFailed)
-                          Icon(
-                            Icons.cancel,
-                            size: 80,
-                            color: Colors.red[400],
-                          )
-                        else
-                          SizedBox(
-                            width: 80,
-                            height: 80,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 4,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.blue[400]!,
-                              ),
-                            ),
-                          ),
                         const SizedBox(height: 24),
-                        // Status Text
+                        Icon(
+                          payment.isSuccess
+                              ? Icons.check_circle
+                              : payment.isFailed
+                                  ? Icons.cancel
+                                  : Icons.schedule,
+                          size: 80,
+                          color: payment.isSuccess
+                              ? Colors.green
+                              : payment.isFailed
+                                  ? Colors.red
+                                  : Colors.blue,
+                        ),
+                        const SizedBox(height: 20),
                         Text(
                           payment.isSuccess
-                              ? 'Payment Successful'
+                              ? 'Transfer Successful'
                               : payment.isFailed
-                                  ? 'Payment Failed'
-                                  : 'Processing Payment',
-                          style:
-                              Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: payment.isSuccess
-                                        ? Colors.green
-                                        : payment.isFailed
-                                            ? Colors.red
-                                            : Colors.blue,
-                                  ),
+                                  ? 'Transfer Failed'
+                                  : 'Transfer In Progress',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 32),
-                        // Payment Details Card
+                        const SizedBox(height: 28),
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(20),
@@ -129,21 +100,25 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                               children: [
                                 _DetailRow(
                                   label: 'Amount',
-                                  value: '₹${payment.amount.toStringAsFixed(2)}',
+                                  value: 'Rs ${payment.amount.toStringAsFixed(2)}',
+                                ),
+                                const SizedBox(height: 12),
+                                _DetailRow(label: 'Status', value: payment.status),
+                                const SizedBox(height: 12),
+                                _DetailRow(
+                                  label: 'Transaction ID',
+                                  value: payment.id,
                                 ),
                                 const SizedBox(height: 12),
                                 _DetailRow(
-                                  label: 'Status',
-                                  value: payment.status,
+                                  label: 'Order ID',
+                                  value: payment.orderId.isEmpty
+                                      ? 'Pending'
+                                      : payment.orderId,
                                 ),
                                 const SizedBox(height: 12),
                                 _DetailRow(
-                                  label: 'Payment ID',
-                                  value: payment.id.substring(0, 8),
-                                ),
-                                const SizedBox(height: 12),
-                                _DetailRow(
-                                  label: 'Date',
+                                  label: 'Created',
                                   value:
                                       '${payment.createdAt.day}/${payment.createdAt.month}/${payment.createdAt.year}',
                                 ),
@@ -151,37 +126,26 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 32),
-                        // Actions
-                        if (!payment.isSuccess && !payment.isFailed)
-                          Column(
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  context
-                                      .read<PaymentProvider>()
-                                      .refreshPaymentStatus();
-                                },
-                                child: const Text('Refresh Status'),
-                              ),
-                              const SizedBox(height: 12),
-                              OutlinedButton(
-                                onPressed: () => context.go('/dashboard'),
-                                child: const Text('Go to Dashboard'),
-                              ),
-                            ],
-                          )
-                        else
+                        const SizedBox(height: 24),
+                        if (payment.isPending) ...[
                           ElevatedButton(
-                            onPressed: () => context.go('/dashboard'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 48,
-                                vertical: 12,
-                              ),
-                            ),
-                            child: const Text('Done'),
+                            onPressed: () {
+                              context.read<PaymentProvider>().refreshPaymentStatus();
+                            },
+                            child: const Text('Refresh status'),
                           ),
+                          const SizedBox(height: 12),
+                        ],
+                        OutlinedButton(
+                          onPressed: () {
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/dashboard');
+                            }
+                          },
+                          child: const Text('Back'),
+                        ),
                       ],
                     ),
                   ),
@@ -190,7 +154,6 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
             );
           },
         ),
-      ),
     );
   }
 }
@@ -209,16 +172,16 @@ class _DetailRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style:
-              Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-        ),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        Text(label),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
         ),
       ],
     );

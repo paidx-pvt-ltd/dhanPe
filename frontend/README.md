@@ -204,8 +204,6 @@ flutter build ios --release
 
 - Check app logs: `flutter logs`
 - Monitor network: Fiddler/Charles proxy
-- Firebase Analytics for user tracking
-- Firebase Crashlytics for error reporting
 
 ## Support
 

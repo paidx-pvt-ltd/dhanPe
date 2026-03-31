@@ -10,15 +10,19 @@ class AuthProvider extends ChangeNotifier {
   String? _accessToken;
   String? _refreshToken;
   bool _isLoading = false;
+  bool _isReady = false;
   String? _error;
 
-  AuthProvider(this._authService);
+  AuthProvider(this._authService) {
+    checkAuthentication();
+  }
 
   // Getters
   User? get user => _user;
   String? get accessToken => _accessToken;
   bool get isAuthenticated => _accessToken != null;
   bool get isLoading => _isLoading;
+  bool get isReady => _isReady;
   String? get error => _error;
 
   /// Check if user is authenticated and restore session
@@ -27,14 +31,30 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final token = await _authService.getAccessToken();
-      if (token != null) {
-        _accessToken = token;
+      final accessToken = await _authService.getAccessToken();
+      final refreshToken = await _authService.getRefreshToken();
+
+      if (accessToken == null || refreshToken == null) {
+        await _authService.clearSession();
+        _accessToken = null;
+        _refreshToken = null;
+        _user = null;
+      } else {
+        final result = await _authService.refreshToken();
+        _accessToken = result['accessToken'];
+        _refreshToken = result['refreshToken'];
+        _user = User.fromJson(result['user']);
       }
+      _error = null;
     } catch (e) {
-      _error = 'Failed to restore session';
+      await _authService.clearSession();
+      _accessToken = null;
+      _refreshToken = null;
+      _user = null;
+      _error = null;
     } finally {
       _isLoading = false;
+      _isReady = true;
       notifyListeners();
     }
   }

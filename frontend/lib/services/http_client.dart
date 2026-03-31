@@ -7,17 +7,22 @@ class HttpClient {
   final FlutterSecureStorage _storage;
 
   HttpClient(this._storage) {
-    _dio = Dio(BaseOptions(
-      baseUrl: Config.baseUrl,
-      connectTimeout: Config.apiTimeout,
-      receiveTimeout: Config.apiTimeout,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ));
+    if (!Config.debugMode && !Config.isSecureBackend) {
+      throw StateError('Release builds must use an HTTPS backend URL.');
+    }
 
-    // Add interceptors
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: Config.baseUrl,
+        connectTimeout: Config.apiTimeout,
+        receiveTimeout: Config.apiTimeout,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: _onRequest,
@@ -37,32 +42,32 @@ class HttpClient {
     }
 
     if (Config.enableLogging) {
-      print('📤 ${options.method} ${options.path}');
-      print('Headers: ${options.headers}');
+      final safeHeaders = Map<String, dynamic>.from(options.headers);
+      if (safeHeaders.containsKey('Authorization')) {
+        safeHeaders['Authorization'] = 'Bearer [redacted]';
+      }
+
+      print('API ${options.method} ${options.path}');
+      print('Headers: $safeHeaders');
     }
 
-    return handler.next(options);
+    handler.next(options);
   }
 
   Future<void> _onError(
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    // Handle 401 - token might be expired
-    if (err.response?.statusCode == 401) {
-      if (Config.enableLogging) {
-        print('🔄 Token expired, attempting refresh...');
-      }
-      // Token refresh logic would go here
-      // For now, just continue with the error
+    if (err.response?.statusCode == 401 && Config.enableLogging) {
+      print('Token expired, attempting refresh...');
     }
 
     if (Config.enableLogging) {
-      print('❌ Error: ${err.message}');
+      print('Error: ${err.message}');
       print('Response: ${err.response?.data}');
     }
 
-    return handler.next(err);
+    handler.next(err);
   }
 
   Dio getDio() => _dio;

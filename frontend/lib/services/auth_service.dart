@@ -107,11 +107,7 @@ class AuthService {
 
   /// Logout user
   Future<void> logout() async {
-    try {
-      await _dio.post('/auth/logout');
-    } finally {
-      await _clearTokens();
-    }
+    await _clearTokens();
   }
 
   /// Get stored access token
@@ -122,6 +118,10 @@ class AuthService {
   /// Get stored refresh token
   Future<String?> getRefreshToken() {
     return _storage.read(key: Config.refreshTokenKey);
+  }
+
+  Future<void> clearSession() {
+    return _clearTokens();
   }
 
   /// Check if user is authenticated
