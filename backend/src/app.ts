@@ -32,6 +32,19 @@ app.use((req, _res, next) => {
   next();
 });
 
+app.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'DhanPe backend is running',
+    endpoints: {
+      health: '/health',
+      readiness: '/health/ready',
+      apiHealth: '/api/healthz',
+      docs: '/docs/openapi.json',
+    },
+  });
+});
+
 app.get('/docs/openapi.json', (_req, res) => {
   res.json(openApiDocument);
 });
