@@ -34,7 +34,10 @@ export class PayoutService {
       throw new NotFoundError('Payout');
     }
 
-    if (payoutRecord.status === PayoutStatus.SUCCESS || payoutRecord.status === PayoutStatus.PROCESSING) {
+    if (
+      payoutRecord.status === PayoutStatus.SUCCESS ||
+      payoutRecord.status === PayoutStatus.PROCESSING
+    ) {
       return;
     }
 
@@ -44,8 +47,14 @@ export class PayoutService {
     }
 
     await this.db.$transaction(async (tx) => {
-      await this.payoutRepository.updateStatus(tx, payoutRecord.id, { status: PayoutStatus.PROCESSING });
-      await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, PayoutStatus.PROCESSING);
+      await this.payoutRepository.updateStatus(tx, payoutRecord.id, {
+        status: PayoutStatus.PROCESSING,
+      });
+      await this.payoutRepository.updateTransactionPayoutStatus(
+        tx,
+        transactionId,
+        PayoutStatus.PROCESSING
+      );
     });
 
     try {
@@ -65,7 +74,11 @@ export class PayoutService {
           status: PayoutStatus.SUCCESS,
           providerRef: payoutResponse.reference_id,
         });
-        await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, PayoutStatus.SUCCESS);
+        await this.payoutRepository.updateTransactionPayoutStatus(
+          tx,
+          transactionId,
+          PayoutStatus.SUCCESS
+        );
         await this.ledgerService.recordEntry(tx, {
           userId: payoutRecord.transaction.userId,
           transactionId,
@@ -81,7 +94,11 @@ export class PayoutService {
           status: PayoutStatus.FAILED,
           failureReason: error instanceof Error ? error.message : 'Unknown payout error',
         });
-        await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, PayoutStatus.FAILED);
+        await this.payoutRepository.updateTransactionPayoutStatus(
+          tx,
+          transactionId,
+          PayoutStatus.FAILED
+        );
       });
     }
   }

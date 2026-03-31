@@ -8,7 +8,10 @@ export class WebhookController {
 
   cashfree = async (req: Request, res: Response): Promise<void> => {
     const rawBody = req.rawBody ?? '{}';
-    const signature = req.header(config.cashfree.webhookSignatureHeader) ?? req.header('x-cashfree-signature') ?? undefined;
+    const signature =
+      req.header(config.cashfree.webhookSignatureHeader) ??
+      req.header('x-cashfree-signature') ??
+      undefined;
     const timestamp = req.header(config.cashfree.webhookTimestampHeader) ?? undefined;
 
     this.webhookService.verifySignature(rawBody, signature, timestamp);

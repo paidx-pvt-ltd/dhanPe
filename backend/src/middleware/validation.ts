@@ -14,11 +14,23 @@ export const validate =
     }
 
     if (source === 'body') {
-      Object.defineProperty(req, 'body', { value: result.data, writable: true, configurable: true });
+      Object.defineProperty(req, 'body', {
+        value: result.data,
+        writable: true,
+        configurable: true,
+      });
     } else if (source === 'query') {
-      Object.defineProperty(req, 'query', { value: result.data, writable: true, configurable: true });
+      Object.defineProperty(req, 'query', {
+        value: result.data,
+        writable: true,
+        configurable: true,
+      });
     } else {
-      Object.defineProperty(req, 'params', { value: result.data, writable: true, configurable: true });
+      Object.defineProperty(req, 'params', {
+        value: result.data,
+        writable: true,
+        configurable: true,
+      });
     }
 
     next();

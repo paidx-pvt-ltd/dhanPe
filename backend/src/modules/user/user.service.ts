@@ -23,7 +23,10 @@ export class UserService {
     };
   }
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phoneNumber?: string }) {
+  async updateProfile(
+    userId: string,
+    data: { firstName?: string; lastName?: string; phoneNumber?: string }
+  ) {
     const user = await this.userRepository.updateProfile(userId, data);
     return {
       id: user.id,

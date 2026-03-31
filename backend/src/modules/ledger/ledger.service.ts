@@ -26,7 +26,9 @@ export class LedgerService {
 
     const amount = toDecimal(input.amount);
     const nextBalance =
-      input.type === LedgerEntryType.CREDIT ? user.balance.plus(amount) : user.balance.minus(amount);
+      input.type === LedgerEntryType.CREDIT
+        ? user.balance.plus(amount)
+        : user.balance.minus(amount);
 
     if (nextBalance.isNegative()) {
       throw new ValidationError('Insufficient ledger balance for debit');

@@ -43,7 +43,10 @@ export class CashfreeClient {
 
   async createPayout(payload: CashfreePayoutRequest): Promise<CashfreePayoutResponse> {
     try {
-      const { data } = await this.payoutClient.post<CashfreePayoutResponse>('/payout/transfers', payload);
+      const { data } = await this.payoutClient.post<CashfreePayoutResponse>(
+        '/payout/transfers',
+        payload
+      );
       return data;
     } catch (error) {
       throw new ExternalServiceError('Failed to create Cashfree payout', error);

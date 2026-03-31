@@ -18,7 +18,11 @@ export class WebhookService {
     private readonly db: PrismaClient
   ) {}
 
-  verifySignature(rawBody: string, signature: string | undefined, timestamp: string | undefined): void {
+  verifySignature(
+    rawBody: string,
+    signature: string | undefined,
+    timestamp: string | undefined
+  ): void {
     if (!config.cashfree.webhookSecret) {
       throw new ValidationError('Cashfree webhook secret is not configured');
     }
@@ -37,7 +41,9 @@ export class WebhookService {
 
   async processCashfreeWebhook(rawBody: string, payload: CashfreeWebhookDto): Promise<void> {
     const parsedPayload = JSON.parse(rawBody) as Prisma.JsonObject;
-    const eventId = payload.cf_payment_id ?? `${payload.order_id}:${payload.payment_status ?? payload.order_status ?? 'unknown'}`;
+    const eventId =
+      payload.cf_payment_id ??
+      `${payload.order_id}:${payload.payment_status ?? payload.order_status ?? 'unknown'}`;
     const existingEvent = await this.webhookRepository.findEventByEventId(eventId);
     if (existingEvent?.processed) {
       return;
@@ -72,7 +78,9 @@ export class WebhookService {
     const paymentStatus = payload.payment_status ?? payload.order_status ?? 'UNKNOWN';
     if (['PAID', 'SUCCESS', 'COMPLETED', 'SETTLED'].includes(paymentStatus)) {
       if (transaction.status === TransactionStatus.PAID) {
-        await this.db.$transaction((tx) => this.webhookRepository.markEventProcessed(tx, event.id, true));
+        await this.db.$transaction((tx) =>
+          this.webhookRepository.markEventProcessed(tx, event.id, true)
+        );
         return;
       }
 

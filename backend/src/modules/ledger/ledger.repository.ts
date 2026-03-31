@@ -11,11 +11,7 @@ export class LedgerRepository {
     });
   }
 
-  updateUserBalance(
-    tx: TxLike,
-    userId: string,
-    nextBalance: Prisma.Decimal
-  ): Promise<User> {
+  updateUserBalance(tx: TxLike, userId: string, nextBalance: Prisma.Decimal): Promise<User> {
     return tx.user.update({
       where: { id: userId },
       data: { balance: nextBalance },
