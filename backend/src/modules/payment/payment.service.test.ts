@@ -58,7 +58,7 @@ describe('PaymentService', () => {
       order_status: 'ACTIVE',
     });
 
-    const result = await service.createTransfer(
+    const result = (await service.createTransfer(
       'user_1',
       {
         amount: 5000,
@@ -70,7 +70,13 @@ describe('PaymentService', () => {
         },
       },
       'idem-123'
-    );
+    )) as {
+      transactionId: string;
+      orderId: string;
+      orderToken: string;
+      amount: number;
+      status: TransactionStatus;
+    };
 
     expect(riskService.evaluateTransfer).toHaveBeenCalledWith('user_1', 5000);
     expect(paymentRepository.createTransaction).toHaveBeenCalledWith(
@@ -90,13 +96,11 @@ describe('PaymentService', () => {
         providerOrderId: 'cf_order_1',
       })
     );
-    expect(result).toEqual({
-      transactionId: 'txn_1',
-      orderId: expect.any(String),
-      orderToken: 'token_123',
-      amount: 5000,
-      status: TransactionStatus.INITIATED,
-    });
+    expect(result.transactionId).toBe('txn_1');
+    expect(result.orderId).toEqual(expect.any(String));
+    expect(result.orderToken).toBe('token_123');
+    expect(result.amount).toBe(5000);
+    expect(result.status).toBe(TransactionStatus.INITIATED);
   });
 
   it('returns the stored idempotent response when the same request is replayed', async () => {
@@ -128,7 +132,7 @@ describe('PaymentService', () => {
       },
     });
 
-    const result = await service.createTransfer(
+    const result = (await service.createTransfer(
       'user_1',
       {
         amount: 5000,
@@ -140,7 +144,13 @@ describe('PaymentService', () => {
         },
       },
       'idem-123'
-    );
+    )) as {
+      transactionId: string;
+      orderId: string;
+      orderToken: string;
+      amount: number;
+      status: TransactionStatus;
+    };
 
     expect(result).toEqual({
       transactionId: 'txn_existing',

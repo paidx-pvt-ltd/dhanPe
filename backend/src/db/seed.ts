@@ -2,7 +2,7 @@ import { KYCStatus } from '@prisma/client';
 import { prisma } from './prisma.js';
 import { PasswordService } from '../utils/password.js';
 
-const main = async (): Promise<void> => {
+const seed = async (): Promise<void> => {
   const email = process.env.SEED_USER_EMAIL ?? 'fintech-demo@example.com';
   const password = process.env.SEED_USER_PASSWORD ?? 'SecurePassword123';
 
@@ -24,12 +24,15 @@ const main = async (): Promise<void> => {
   });
 };
 
-void main()
-  .catch(async (error) => {
+const run = async (): Promise<void> => {
+  try {
+    await seed();
+  } catch (error) {
     console.error(error);
+    process.exitCode = 1;
+  } finally {
     await prisma.$disconnect();
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  }
+};
+
+void run();

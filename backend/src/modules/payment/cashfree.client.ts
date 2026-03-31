@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '../../config/index.js';
-import { logger } from '../../config/logger.js';
 import { ExternalServiceError } from '../../shared/errors.js';
 import {
   CashfreeOrderRequest,

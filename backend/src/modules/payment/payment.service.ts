@@ -7,7 +7,6 @@ import {
   TransactionStatus,
 } from '@prisma/client';
 import { config } from '../../config/index.js';
-import { prisma } from '../../db/prisma.js';
 import { ValidationError, NotFoundError } from '../../shared/errors.js';
 import { sha256 } from '../../utils/hash.js';
 import { RiskService } from '../risk/risk.service.js';

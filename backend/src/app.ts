@@ -2,7 +2,6 @@ import express from 'express';
 import 'express-async-errors';
 import cors from 'cors';
 import helmet from 'helmet';
-import { Prisma } from '@prisma/client';
 import { config } from './config/index.js';
 import { logger } from './config/logger.js';
 import { generalLimiter } from './middleware/rate-limit.js';
@@ -53,20 +52,12 @@ app.use('/api/transfer', paymentRoutes);
 app.use('/transaction', transactionRoutes);
 app.use('/api/transaction', transactionRoutes);
 
-app.get('/healthz', async (_req, res) => {
-  try {
-    res.json({ status: 'ok', uptime: process.uptime() });
-  } catch {
-    res.status(503).json({ status: 'degraded' });
-  }
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-app.get('/api/healthz', async (_req, res) => {
-  try {
-    res.json({ status: 'ok', uptime: process.uptime() });
-  } catch {
-    res.status(503).json({ status: 'degraded' });
-  }
+app.get('/api/healthz', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
 });
 
 app.use(notFoundHandler);

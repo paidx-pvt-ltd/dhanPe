@@ -5,7 +5,8 @@ import { ValidationError } from '../shared/errors.js';
 export const validate =
   (schema: ZodTypeAny, source: 'body' | 'query' | 'params' = 'body') =>
   (req: Request, _res: Response, next: NextFunction): void => {
-    const payload = source === 'body' ? req.body : source === 'query' ? req.query : req.params;
+    const payload: unknown =
+      source === 'body' ? req.body : source === 'query' ? req.query : req.params;
     const result = schema.safeParse(payload);
 
     if (!result.success) {
@@ -13,11 +14,11 @@ export const validate =
     }
 
     if (source === 'body') {
-      req.body = result.data;
+      Object.defineProperty(req, 'body', { value: result.data, writable: true, configurable: true });
     } else if (source === 'query') {
-      req.query = result.data;
+      Object.defineProperty(req, 'query', { value: result.data, writable: true, configurable: true });
     } else {
-      req.params = result.data;
+      Object.defineProperty(req, 'params', { value: result.data, writable: true, configurable: true });
     }
 
     next();

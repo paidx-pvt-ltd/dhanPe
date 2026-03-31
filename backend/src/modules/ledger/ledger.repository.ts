@@ -1,4 +1,4 @@
-import { Ledger, LedgerEntryType, Prisma, PrismaClient, PrismaPromise, User } from '@prisma/client';
+import { Ledger, LedgerEntryType, Prisma, PrismaClient, User } from '@prisma/client';
 
 type TxLike = PrismaClient | Prisma.TransactionClient;
 

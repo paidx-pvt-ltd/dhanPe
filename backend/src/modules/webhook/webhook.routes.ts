@@ -8,6 +8,7 @@ import { PayoutService } from '../payout/payout.service.js';
 import { WebhookRepository } from './webhook.repository.js';
 import { WebhookService } from './webhook.service.js';
 import { WebhookController } from './webhook.controller.js';
+import { asHandler } from '../../shared/http.js';
 
 const ledgerRepository = new LedgerRepository(prisma);
 const ledgerService = new LedgerService(ledgerRepository, prisma);
@@ -26,4 +27,4 @@ const webhookController = new WebhookController(webhookService);
 
 export const webhookRoutes = Router();
 
-webhookRoutes.post('/', webhookController.cashfree);
+webhookRoutes.post('/', asHandler(webhookController.cashfree));

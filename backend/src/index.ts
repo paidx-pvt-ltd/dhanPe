@@ -14,14 +14,19 @@ const start = async (): Promise<void> => {
 
   const shutdown = async (): Promise<void> => {
     logger.info('Shutting down');
-    server.close(async () => {
-      await disconnectDatabase();
-      process.exit(0);
+    server.close(() => {
+      void disconnectDatabase().finally(() => {
+        process.exit(0);
+      });
     });
   };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', () => {
+    void shutdown();
+  });
+  process.on('SIGTERM', () => {
+    void shutdown();
+  });
 };
 
 void start();

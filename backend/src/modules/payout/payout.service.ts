@@ -1,6 +1,5 @@
 import { LedgerEntryType, PayoutStatus, PrismaClient } from '@prisma/client';
 import { logger } from '../../config/logger.js';
-import { prisma } from '../../db/prisma.js';
 import { NotFoundError, ValidationError } from '../../shared/errors.js';
 import { InMemoryQueue } from '../../shared/in-memory-queue.js';
 import { toNumber } from '../../utils/decimal.js';

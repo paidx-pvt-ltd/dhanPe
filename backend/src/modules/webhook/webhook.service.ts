@@ -1,6 +1,5 @@
 import { LedgerEntryType, Prisma, PrismaClient, TransactionStatus } from '@prisma/client';
 import { config } from '../../config/index.js';
-import { prisma } from '../../db/prisma.js';
 import { ValidationError, NotFoundError } from '../../shared/errors.js';
 import { createHmac, safeEqual } from '../../utils/hash.js';
 import { toNumber } from '../../utils/decimal.js';
@@ -37,6 +36,7 @@ export class WebhookService {
   }
 
   async processCashfreeWebhook(rawBody: string, payload: CashfreeWebhookDto): Promise<void> {
+    const parsedPayload = JSON.parse(rawBody) as Prisma.JsonObject;
     const eventId = payload.cf_payment_id ?? `${payload.order_id}:${payload.payment_status ?? payload.order_status ?? 'unknown'}`;
     const existingEvent = await this.webhookRepository.findEventByEventId(eventId);
     if (existingEvent?.processed) {
@@ -50,7 +50,7 @@ export class WebhookService {
         eventType: payload.type ?? 'payment',
         eventId,
         orderId: payload.order_id,
-        payload: JSON.parse(rawBody),
+        payload: parsedPayload,
       }));
 
     const transaction = await this.webhookRepository.findTransactionByOrderId(payload.order_id);
@@ -77,7 +77,12 @@ export class WebhookService {
       }
 
       await this.db.$transaction(async (tx) => {
-        await this.webhookRepository.updateTransactionPaid(tx, transaction.id, payload.cf_payment_id, JSON.parse(rawBody));
+        await this.webhookRepository.updateTransactionPaid(
+          tx,
+          transaction.id,
+          payload.cf_payment_id,
+          parsedPayload
+        );
         await this.ledgerService.recordEntry(tx, {
           userId: transaction.userId,
           transactionId: transaction.id,
@@ -97,7 +102,7 @@ export class WebhookService {
     }
 
     await this.db.$transaction(async (tx) => {
-      await this.webhookRepository.updateTransactionFailed(tx, transaction.id, JSON.parse(rawBody));
+      await this.webhookRepository.updateTransactionFailed(tx, transaction.id, parsedPayload);
       await this.webhookRepository.markEventProcessed(tx, event.id, true);
     });
   }

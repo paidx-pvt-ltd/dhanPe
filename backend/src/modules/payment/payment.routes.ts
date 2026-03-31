@@ -10,6 +10,7 @@ import { PaymentRepository } from './payment.repository.js';
 import { PaymentService } from './payment.service.js';
 import { PaymentController } from './payment.controller.js';
 import { createTransferSchema } from './payment.schemas.js';
+import { asHandler } from '../../shared/http.js';
 
 const paymentRepository = new PaymentRepository(prisma);
 const riskRepository = new RiskRepository(prisma);
@@ -20,4 +21,10 @@ const paymentController = new PaymentController(paymentService);
 
 export const paymentRoutes = Router();
 
-paymentRoutes.post('/', authenticate, transferLimiter, validate(createTransferSchema), paymentController.createTransfer);
+paymentRoutes.post(
+  '/',
+  authenticate,
+  transferLimiter,
+  validate(createTransferSchema),
+  asHandler(paymentController.createTransfer)
+);
