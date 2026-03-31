@@ -89,11 +89,9 @@ export const validateConfig = (): void => {
 
   // Fail fast on invalid JWT configuration instead of surfacing 500s on login/signup.
   try {
-    jwt.sign(
-      { userId: 'config-check', email: 'config-check@example.com' },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiry } as SignOptions
-    );
+    jwt.sign({ userId: 'config-check', email: 'config-check@example.com' }, config.jwt.secret, {
+      expiresIn: config.jwt.expiry,
+    } as SignOptions);
 
     jwt.sign(
       { userId: 'config-check', email: 'config-check@example.com' },
