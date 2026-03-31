@@ -6,7 +6,7 @@ import '../../providers/user_provider.dart';
 import '../../providers/payment_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/payment_provider.dart';
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({Key? key}) : super(key: key);
+  const PaymentScreen({super.key});
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
