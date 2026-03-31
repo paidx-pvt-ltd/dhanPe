@@ -1,7 +1,6 @@
 -- Update enums
 ALTER TYPE "TransactionStatus" RENAME TO "TransactionStatus_old";
 CREATE TYPE "TransactionStatus" AS ENUM ('INITIATED', 'PAID', 'FAILED');
-ALTER TYPE "KYCStatus" RENAME VALUE 'PENDING' TO 'PENDING';
 
 CREATE TYPE "LedgerEntryType" AS ENUM ('DEBIT', 'CREDIT');
 CREATE TYPE "PayoutStatus" AS ENUM ('PENDING', 'PROCESSING', 'SUCCESS', 'FAILED');
