@@ -11,6 +11,7 @@ import 'screens/auth/signup_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/payment/payment_screen.dart';
 import 'screens/payment/payment_status_screen.dart';
+import 'screens/profile/profile_screen.dart';
 import 'screens/transactions/transactions_screen.dart';
 
 void main() async {
@@ -36,11 +37,13 @@ class MyApp extends StatelessWidget {
           create: (_) => PaymentProvider(getIt()),
         ),
       ],
-      child: MaterialApp.router(
-        title: Config.appName,
-        theme: _buildTheme(),
-        routerConfig: _buildRouter(context),
-        debugShowCheckedModeBanner: false,
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) => MaterialApp.router(
+          title: Config.appName,
+          theme: _buildTheme(),
+          routerConfig: _buildRouter(authProvider),
+          debugShowCheckedModeBanner: false,
+        ),
       ),
     );
   }
@@ -72,10 +75,15 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  GoRouter _buildRouter(BuildContext context) {
+  GoRouter _buildRouter(AuthProvider authProvider) {
     return GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/splash',
+      refreshListenable: authProvider,
       routes: [
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const _SplashScreen(),
+        ),
         GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
@@ -102,17 +110,29 @@ class MyApp extends StatelessWidget {
           path: '/transactions',
           builder: (context, state) => const TransactionsScreen(),
         ),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) => const ProfileScreen(),
+        ),
       ],
       redirect: (context, state) {
-        final authProvider = context.read<AuthProvider>();
+        final location = state.matchedLocation;
+        final isAuthRoute = location == '/login' || location == '/signup';
+        final isSplash = location == '/splash';
 
-        // If not authenticated, redirect to login
-        if (!authProvider.isAuthenticated && state.matchedLocation != '/login' && state.matchedLocation != '/signup') {
+        if (!authProvider.isReady) {
+          return isSplash ? null : '/splash';
+        }
+
+        if (isSplash) {
+          return authProvider.isAuthenticated ? '/dashboard' : '/login';
+        }
+
+        if (!authProvider.isAuthenticated && !isAuthRoute) {
           return '/login';
         }
 
-        // If authenticated and trying to access auth pages, redirect to dashboard
-        if (authProvider.isAuthenticated && (state.matchedLocation == '/login' || state.matchedLocation == '/signup')) {
+        if (authProvider.isAuthenticated && isAuthRoute) {
           return '/dashboard';
         }
 
@@ -122,6 +142,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-extension on BuildContext {
-  T get<T>() => read<T>();
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
 }

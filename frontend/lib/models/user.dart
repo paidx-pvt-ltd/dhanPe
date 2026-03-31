@@ -20,6 +20,9 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    final createdAtValue =
+        json['createdAt'] as String? ?? DateTime.now().toIso8601String();
+
     return User(
       id: json['id'] as String,
       email: json['email'] as String,
@@ -28,7 +31,7 @@ class User {
       phoneNumber: json['phoneNumber'] as String?,
       kycStatus: json['kycStatus'] as String? ?? 'PENDING',
       balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(createdAtValue),
     );
   }
 

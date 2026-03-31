@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/user_provider.dart';
 import '../../providers/payment_provider.dart';
+import '../../providers/user_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,18 +18,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserProvider>().loadProfile();
-      context.read<PaymentProvider>().loadPaymentHistory();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final payment = context.watch<PaymentProvider>().currentPayment;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('DhanPe'),
         centerTitle: true,
-        elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push('/profile'),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _showLogoutDialog(context),
@@ -38,90 +42,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async {
-            await context.read<UserProvider>().loadProfile();
-            await context.read<PaymentProvider>().loadPaymentHistory();
-          },
-          child: SingleChildScrollView(
+          onRefresh: () => context.read<UserProvider>().loadProfile(),
+          child: ListView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Balance Card
-                Consumer<UserProvider>(
-                  builder: (context, userProvider, _) {
-                    if (userProvider.isLoading) {
-                      return const _BalanceCardLoader();
-                    }
-                    return _BalanceCard(
-                      balance: userProvider.balance,
-                      userName:
-                          '${userProvider.user?.firstName} ${userProvider.user?.lastName}',
-                    );
-                  },
-                ),
+            children: [
+              Consumer<UserProvider>(
+                builder: (context, userProvider, _) {
+                  if (userProvider.isLoading) {
+                    return const _OverviewLoader();
+                  }
+
+                  return _OverviewCard(
+                    name:
+                        '${userProvider.user?.firstName ?? ''} ${userProvider.user?.lastName ?? ''}'
+                            .trim(),
+                    email: userProvider.user?.email ?? '',
+                    balance: userProvider.balance,
+                    kycStatus: userProvider.user?.kycStatus ?? 'PENDING',
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Backend Features',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _FeatureCard(
+                title: 'Create transfer',
+                subtitle:
+                    'Uses the active backend environment with bank account details.',
+                icon: Icons.currency_exchange,
+                onTap: () => context.push('/payment'),
+              ),
+              const SizedBox(height: 12),
+              _FeatureCard(
+                title: 'Track transfer lifecycle',
+                subtitle:
+                    'Look up a transaction by ID and view status, payout state, and ledger entries.',
+                icon: Icons.receipt_long,
+                onTap: () => context.push('/transactions'),
+              ),
+              const SizedBox(height: 12),
+              _FeatureCard(
+                title: 'Update profile',
+                subtitle:
+                    'Edit the profile fields the backend currently supports.',
+                icon: Icons.manage_accounts,
+                onTap: () => context.push('/profile'),
+              ),
+              if (payment != null) ...[
                 const SizedBox(height: 24),
-                
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.payment),
-                        label: const Text('Pay'),
-                        onPressed: () => context.go('/payment'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.history),
-                        label: const Text('History'),
-                        onPressed: () => context.go('/transactions'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                
-                // Recent Transactions
                 Text(
-                  'Recent Transactions',
+                  'Latest Transfer',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 12),
-                Consumer<PaymentProvider>(
-                  builder: (context, paymentProvider, _) {
-                    if (paymentProvider.isLoading) {
-                      return const _TransactionListLoader();
-                    }
-                    if (paymentProvider.paymentHistory.isEmpty) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32),
-                          child: Text(
-                            'No transactions yet',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ),
-                      );
-                    }
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: paymentProvider.paymentHistory.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final payment = paymentProvider.paymentHistory[index];
-                        return _TransactionTile(payment: payment);
-                      },
-                    );
-                  },
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      payment.isSuccess
+                          ? Icons.check_circle
+                          : payment.isFailed
+                              ? Icons.cancel
+                              : Icons.schedule,
+                    ),
+                    title: Text('Order ${payment.orderId}'),
+                    subtitle: Text(payment.status),
+                    trailing: Text('Rs ${payment.amount.toStringAsFixed(2)}'),
+                    onTap: () => context.push('/payment-status/${payment.id}'),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -140,9 +137,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              context.read<AuthProvider>().logout();
+              await context.read<AuthProvider>().logout();
+              if (!context.mounted) return;
               context.go('/login');
             },
             child: const Text('Logout'),
@@ -153,45 +151,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _BalanceCard extends StatelessWidget {
+class _OverviewCard extends StatelessWidget {
+  final String name;
+  final String email;
   final double balance;
-  final String userName;
+  final String kycStatus;
 
-  const _BalanceCard({
+  const _OverviewCard({
+    required this.name,
+    required this.email,
     required this.balance,
-    required this.userName,
+    required this.kycStatus,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Balance',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '₹${balance.toStringAsFixed(2)}',
+              name.isEmpty ? 'Welcome' : name,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
+            Text(email),
+            const SizedBox(height: 20),
             Text(
-              'User: $userName',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
+              'Balance',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Rs ${balance.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
             ),
+            const SizedBox(height: 12),
+            Text('KYC: $kycStatus'),
           ],
         ),
       ),
@@ -199,77 +201,47 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-class _BalanceCardLoader extends StatelessWidget {
-  const _BalanceCardLoader();
+class _FeatureCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _FeatureCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 24,
-              width: 80,
-              color: Colors.grey[300],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 32,
-              width: 150,
-              color: Colors.grey[300],
-            ),
-          ],
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(subtitle),
         ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }
 }
 
-class _TransactionListLoader extends StatelessWidget {
-  const _TransactionListLoader();
+class _OverviewLoader extends StatelessWidget {
+  const _OverviewLoader();
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: 3,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, __) => Container(
-        height: 60,
-        color: Colors.grey[300],
+    return const Card(
+      child: SizedBox(
+        height: 160,
+        child: Center(child: CircularProgressIndicator()),
       ),
-    );
-  }
-}
-
-class _TransactionTile extends StatelessWidget {
-  final dynamic payment;
-
-  const _TransactionTile({required this.payment});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        Icons.payment,
-        color: payment.isSuccess ? Colors.green : Colors.orange,
-      ),
-      title: Text('Payment of ₹${payment.amount.toStringAsFixed(2)}'),
-      subtitle: Text(payment.status),
-      trailing: Text(
-        payment.isSuccess ? '✓' : '...',
-        style: TextStyle(
-          color: payment.isSuccess ? Colors.green : Colors.orange,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      onTap: () => context.go('/payment-status/${payment.id}'),
     );
   }
 }

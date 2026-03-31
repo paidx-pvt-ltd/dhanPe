@@ -5,8 +5,33 @@ class Config {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  // Use 10.0.2.2 for Android Emulator, localhost for web/iOS
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String _localWebBaseUrl = 'http://localhost:3000/api';
+  static const String _localAndroidEmulatorBaseUrl = 'http://10.0.2.2:3000/api';
+  static const String _defaultProductionBaseUrl =
+      'https://project-szw1p.vercel.app/api';
+  static const String _baseUrlOverride = String.fromEnvironment(
+    'DHANPE_API_BASE_URL',
+    defaultValue: '',
+  );
+
+  static String get baseUrl {
+    if (_baseUrlOverride.isNotEmpty) {
+      return _baseUrlOverride;
+    }
+
+    if (kDebugMode) {
+      if (kIsWeb) {
+        return _localWebBaseUrl;
+      }
+
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return _localAndroidEmulatorBaseUrl;
+      }
+    }
+
+    return _defaultProductionBaseUrl;
+  }
+
   static const Duration apiTimeout = Duration(seconds: 30);
 
   // Payment Configuration
@@ -26,5 +51,6 @@ class Config {
 
   // Logging
   static bool get debugMode => kDebugMode;
-  static bool get enableLogging => true;
+  static bool get enableLogging => kDebugMode;
+  static bool get isSecureBackend => baseUrl.startsWith('https://');
 }

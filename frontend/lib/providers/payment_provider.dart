@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/payment.dart';
-import '../models/transaction.dart';
 import '../services/payment_service.dart';
 import '../core/exceptions.dart';
 
@@ -8,8 +7,6 @@ class PaymentProvider extends ChangeNotifier {
   final PaymentService _paymentService;
 
   Payment? _currentPayment;
-  List<Payment> _paymentHistory = [];
-  final List<Transaction> _transactions = [];
   bool _isLoading = false;
   String? _error;
 
@@ -17,14 +14,16 @@ class PaymentProvider extends ChangeNotifier {
 
   // Getters
   Payment? get currentPayment => _currentPayment;
-  List<Payment> get paymentHistory => _paymentHistory;
-  List<Transaction> get transactions => _transactions;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   /// Create payment order
   Future<void> createPayment({
     required double amount,
+    required String accountHolderName,
+    required String accountNumber,
+    required String ifsc,
+    String? bankName,
     String? description,
   }) async {
     _isLoading = true;
@@ -34,6 +33,10 @@ class PaymentProvider extends ChangeNotifier {
     try {
       _currentPayment = await _paymentService.createPayment(
         amount: amount,
+        accountHolderName: accountHolderName,
+        accountNumber: accountNumber,
+        ifsc: ifsc,
+        bankName: bankName,
         description: description,
       );
     } on PaymentException catch (e) {
@@ -68,28 +71,6 @@ class PaymentProvider extends ChangeNotifier {
   Future<void> refreshPaymentStatus() async {
     if (_currentPayment == null) return;
     await getPaymentStatus(_currentPayment!.id);
-  }
-
-  /// Load payment history
-  Future<void> loadPaymentHistory({int limit = 20, int offset = 0}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final result = await _paymentService.getPaymentHistory(
-        limit: limit,
-        offset: offset,
-      );
-      _paymentHistory = result['payments'] as List<Payment>;
-    } on PaymentException catch (e) {
-      _error = e.message;
-    } catch (e) {
-      _error = 'Failed to load payment history';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 
   void clearError() {

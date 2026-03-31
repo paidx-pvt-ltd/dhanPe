@@ -201,7 +201,13 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     const Text('Already have an account? '),
                     TextButton(
-                      onPressed: () => context.go('/login'),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/login');
+                        }
+                      },
                       child: const Text('Login'),
                     ),
                   ],

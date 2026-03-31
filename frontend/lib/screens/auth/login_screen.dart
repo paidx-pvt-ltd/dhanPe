@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text("Don't have an account? "),
                     TextButton(
-                      onPressed: () => context.go('/signup'),
+                      onPressed: () => context.push('/signup'),
                       child: const Text('Sign Up'),
                     ),
                   ],

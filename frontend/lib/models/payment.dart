@@ -3,7 +3,7 @@ class Payment {
   final String orderId;
   final String orderToken;
   final double amount;
-  final String status; // PENDING, SUCCESS, FAILED, CANCELLED
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -18,14 +18,20 @@ class Payment {
   });
 
   factory Payment.fromJson(Map<String, dynamic> json) {
+    final createdAtValue =
+        json['createdAt'] as String? ?? DateTime.now().toIso8601String();
+    final updatedAtValue = json['updatedAt'] as String? ?? createdAtValue;
+
     return Payment(
-      id: json['id'] as String,
-      orderId: json['orderId'] as String? ?? json['cashfreeOrderId'] as String,
+      id: json['transactionId'] as String? ?? json['id'] as String,
+      orderId: json['orderId'] as String? ??
+          json['cashfreeOrderId'] as String? ??
+          '',
       orderToken: json['orderToken'] as String? ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
-      status: json['status'] as String? ?? 'PENDING',
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String? ?? json['createdAt'] as String),
+      status: json['status'] as String? ?? 'INITIATED',
+      createdAt: DateTime.parse(createdAtValue),
+      updatedAt: DateTime.parse(updatedAtValue),
     );
   }
 
@@ -41,8 +47,8 @@ class Payment {
     };
   }
 
-  bool get isSuccess => status == 'SUCCESS';
+  bool get isSuccess => status == 'SUCCESS' || status == 'PAID';
   bool get isFailed => status == 'FAILED';
-  bool get isPending => status == 'PENDING';
+  bool get isPending => status == 'PENDING' || status == 'INITIATED' || status == 'PROCESSING';
   bool get isCancelled => status == 'CANCELLED';
 }
