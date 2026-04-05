@@ -49,6 +49,7 @@ frontend/ios/Flutter/GeneratedPluginRegistrant.*
 frontend/ios/Runner/GeneratedPluginRegistrant.*
 frontend/ios/xcuserdata/
 frontend/android/.gradle/
+frontend/android/.kotlin/
 frontend/android/local.properties
 frontend/android/app/debug/
 frontend/android/app/profile/

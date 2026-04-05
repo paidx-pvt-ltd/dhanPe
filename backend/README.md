@@ -1,195 +1,116 @@
 # DhanPe Backend
 
-A secure, production-ready payment backend built with Node.js, TypeScript, and Express.
+Express + TypeScript API for auth, user profile/KYC, transfer creation, transaction lifecycle, and Cashfree webhook handling.
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- npm or yarn
-
-### Installation
-
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-2. **Setup environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Create PostgreSQL database**
-   ```bash
-   createdb dhanpe
-   ```
-
-4. **Run migrations**
-   ```bash
-   npm run db:migrate
-   ```
-
-5. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-The server will start on `http://localhost:3000`
-
-## Environment Variables
-
-```env
-NODE_ENV=development
-PORT=3000
-DATABASE_URL=postgresql://user:pass@localhost/dhanpe
-JWT_SECRET=your-secret-key
-JWT_EXPIRY=1h
-JWT_REFRESH_SECRET=your-refresh-secret
-JWT_REFRESH_EXPIRY=7d
-CASHFREE_CLIENT_ID=your-client-id
-CASHFREE_CLIENT_SECRET=your-client-secret
-WEBHOOK_SECRET=your-webhook-secret
-CORS_ORIGIN=http://localhost:3000
+```bash
+cd backend
+npm install
+cp .env.development .env
+npm run db:generate
+npm run db:migrate
+npm run dev
 ```
 
-## API Endpoints
+The API runs on `http://localhost:3000` by default.
 
-### Authentication
-- `POST /api/auth/signup` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/refresh` - Refresh access token
-- `POST /api/auth/logout` - Logout user
+## Required Environment Variables
 
-### Users
-- `GET /api/users/profile` - Get user profile
-- `PATCH /api/users/profile` - Update profile
-- `GET /api/users/balance` - Get user balance
+Required:
 
-### Payments
-- `POST /api/payments/create-order` - Create payment order
-- `GET /api/payments/status/:id` - Get payment status
-- `GET /api/payments/history` - Get payment history
-- `POST /api/payments/webhook` - Cashfree webhook (public)
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `JWT_REFRESH_SECRET`
+- `CASHFREE_CLIENT_ID`
+- `CASHFREE_CLIENT_SECRET`
+- `CASHFREE_WEBHOOK_SECRET`
 
-### Transactions
-- `GET /api/transactions` - List transactions
-- `GET /api/transactions/:id` - Get transaction details
+Also parsed by config:
 
-## Security Features
+- `NODE_ENV`
+- `PORT`
+- `APP_URL`
+- `CORS_ORIGIN`
+- `DIRECT_URL`
+- `JWT_EXPIRY`
+- `JWT_REFRESH_EXPIRY`
+- `CASHFREE_API_BASE_URL`
+- `CASHFREE_PAYOUT_BASE_URL`
+- `CASHFREE_WEBHOOK_SIGNATURE_HEADER`
+- `CASHFREE_WEBHOOK_TIMESTAMP_HEADER`
+- `RISK_MAX_TRANSACTION_AMOUNT`
+- `RISK_MAX_DAILY_VOLUME`
+- `RISK_VELOCITY_WINDOW_MINUTES`
+- `RISK_VELOCITY_MAX_TRANSACTIONS`
+- `LOG_LEVEL`
+- `PAYOUT_QUEUE_CONCURRENCY`
+- `SEED_USER_EMAIL`
+- `SEED_USER_PASSWORD`
 
-✅ **HTTPS Ready** - Helmet for security headers
-✅ **JWT Authentication** - Access & refresh tokens
-✅ **Password Hashing** - bcrypt with 10 salt rounds
-✅ **Rate Limiting** - Per-endpoint rate limits
-✅ **Input Validation** - Zod schema validation
-✅ **Webhook Signature Verification** - Verify Cashfree webhooks
-✅ **Idempotency** - Duplicate webhook protection
-✅ **CORS** - Configurable origin protection
-✅ **SQL Injection Prevention** - Prisma ORM
+Use `backend/.env.development` as the local template. Production secrets should come from the host environment, not git.
 
-## Database Schema
+## Current Routes
 
-### Users
-- id, email, passwordHash, firstName, lastName, phoneNumber
-- kycStatus, kycDocumentUrl, balance
-- created/updated timestamps
+Primary API routes:
 
-### Payments
-- id, userId, cashfreeOrderId, amount, status
-- webhookReceived, webhookData
-- Statuses: PENDING, SUCCESS, FAILED, CANCELLED
+- `GET /`
+- `GET /health`
+- `GET /health/ready`
+- `GET /healthz`
+- `GET /api/healthz`
+- `GET /docs/openapi.json`
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `GET /api/users/profile`
+- `PATCH /api/users/profile`
+- `POST /api/users/kyc/complete`
+- `POST /api/transfer`
+- `GET /api/transaction/:id`
+- `POST /api/webhook/cashfree`
 
-### Transactions
-- id, userId, paymentId, type, amount, status
-- idempotencyKey (for webhook deduplication)
-- Types: DEBIT, CREDIT, REFUND
+Notes:
 
-### RefreshTokens
-- token, expiresAt, revokedAt
+- Base and `/api/*` variants exist for several route groups; prefer `/api/*`.
+- Transfer creation is `POST /api/transfer`.
+- Transaction lookup is `GET /api/transaction/:id`.
+- Cashfree webhook is `POST /api/webhook/cashfree`.
 
-### WebhookLogs
-- event, source, data, processed, error
+## Current Transfer Flow
 
-## Testing
+1. Authenticated user updates or confirms profile data.
+2. Frontend completes the in-app identity step through `POST /api/users/kyc/complete`.
+3. Frontend creates a transfer with `POST /api/transfer`.
+4. Backend creates an initiated transaction and a Cashfree order.
+5. Frontend checks transfer state with `GET /api/transaction/:id`.
+6. Cashfree webhook updates the backend through `POST /api/webhook/cashfree`.
+
+## Validation
 
 ```bash
-# Run all tests
+npm run lint
 npm test
+```
 
-# Run with coverage
-npm run test:coverage
+Targeted checks used for the new transfer/KYC flow:
 
-# Watch mode
-npm test -- --watch
+```bash
+npm test -- --run src/modules/payment/payment.service.test.ts src/modules/user/user.service.test.ts
 ```
 
 ## Scripts
 
 ```bash
-npm run dev          # Start dev server with watch
-npm run build        # Build TypeScript to JS
-npm start            # Run compiled server
-npm run lint         # Run ESLint
-npm run format       # Format with Prettier
-npm test             # Run tests
-npm run db:migrate   # Run database migrations
-npm run db:generate  # Generate Prisma client
+npm run dev
+npm run build
+npm start
+npm run lint
+npm run format
+npm test
+npm run test:coverage
+npm run db:migrate
+npm run db:generate
+npm run db:seed
 ```
-
-## Payment Flow
-
-1. **Frontend** calls `/api/payments/create-order`
-2. **Backend** creates order in Cashfree
-3. **Frontend** shows Cashfree checkout
-4. **User** completes payment
-5. **Cashfree** calls webhook `/api/payments/webhook`
-6. **Backend** verifies and updates payment status
-7. **Backend** creates transaction record
-8. **Frontend** polls `/api/payments/status/:id`
-
-## Error Handling
-
-All errors follow this format:
-
-```json
-{
-  "success": false,
-  "message": "Error message",
-  "code": "ERROR_CODE"
-}
-```
-
-## Logging
-
-Uses Pino for structured logging. Configure level in `.env`:
-
-```env
-LOG_LEVEL=info  # debug, info, warn, error
-```
-
-## Production Deployment
-
-1. Build the app: `npm run build`
-2. Install production dependencies: `npm ci --production`
-3. Set secure environment variables in your hosting platform
-4. Run: `npm start`
-5. Use process manager (PM2, systemd) for auto-restart
-6. Enable HTTPS via reverse proxy (nginx, CloudFront)
-7. Monitor logs and errors
-
-## Development
-
-- **Hot reload**: `npm run dev` watches source files
-- **Linting**: `npm run lint` before committing
-- **Type checking**: TypeScript strict mode enabled
-- **Formatting**: `npm run format` for consistency
-
-## Support
-
-For issues or questions, check:
-- Database migrations: `prisma/migrations/`
-- Schema: `prisma/schema.prisma`
-- Examples: `src/tests/`
