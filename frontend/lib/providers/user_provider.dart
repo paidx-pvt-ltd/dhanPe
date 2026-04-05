@@ -74,6 +74,27 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> completeKyc() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _user = await _userService.completeKyc();
+      _balance = _user?.balance ?? 0;
+      return true;
+    } on ApiError catch (e) {
+      _error = e.message;
+      return false;
+    } catch (e) {
+      _error = 'Failed to complete identity check';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();
