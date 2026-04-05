@@ -12,6 +12,7 @@ This repository is set up for local development first. Production values should 
 
 - Auth endpoints for signup, login, refresh, and logout
 - Transfer creation through Cashfree-backed backend routes
+- In-app KYC completion before transfer confirmation
 - Cashfree webhook ingestion and transaction lifecycle tracking
 - PostgreSQL with Prisma migrations
 - Flutter app configured for local and deployed backend targets
@@ -55,6 +56,12 @@ For a non-default backend, pass a compile-time override:
 flutter run --dart-define=DHANPE_API_BASE_URL=http://localhost:3000/api
 ```
 
+Current frontend target defaults:
+
+- Web debug uses the production backend
+- Android emulator debug uses `http://10.0.2.2:3000/api`
+- `DHANPE_API_BASE_URL` overrides both
+
 ## Environment Files
 
 Backend example envs live here:
@@ -84,6 +91,7 @@ Primary routes exposed by the app today:
 - `POST /api/auth/logout`
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
+- `POST /api/users/kyc/complete`
 - `POST /api/transfer`
 - `GET /api/transaction/:id`
 - `POST /api/webhook/cashfree`

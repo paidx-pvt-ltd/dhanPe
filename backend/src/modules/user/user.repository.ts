@@ -20,4 +20,11 @@ export class UserRepository {
       data,
     });
   }
+
+  updateKycStatus(id: string, kycStatus: User['kycStatus']): Promise<User> {
+    return this.db.user.update({
+      where: { id },
+      data: { kycStatus },
+    });
+  }
 }

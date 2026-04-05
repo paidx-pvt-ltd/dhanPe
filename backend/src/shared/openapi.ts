@@ -21,5 +21,18 @@ export const openApiDocument = {
         summary: 'Get transaction lifecycle',
       },
     },
+    '/users/profile': {
+      get: {
+        summary: 'Get authenticated user profile',
+      },
+      patch: {
+        summary: 'Update authenticated user profile',
+      },
+    },
+    '/users/kyc/complete': {
+      post: {
+        summary: 'Mark the authenticated user KYC flow as completed',
+      },
+    },
   },
 };
