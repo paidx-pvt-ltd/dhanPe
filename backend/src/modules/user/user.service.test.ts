@@ -29,10 +29,7 @@ describe('UserService', () => {
 
     const result = await service.completeKyc('user_1');
 
-    expect(userRepository.updateKycStatus).toHaveBeenCalledWith(
-      'user_1',
-      KYCStatus.APPROVED
-    );
+    expect(userRepository.updateKycStatus).toHaveBeenCalledWith('user_1', KYCStatus.APPROVED);
     expect(result).toMatchObject({
       id: 'user_1',
       kycStatus: KYCStatus.APPROVED,
