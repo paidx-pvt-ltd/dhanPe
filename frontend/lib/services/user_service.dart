@@ -60,6 +60,23 @@ class UserService {
     }
   }
 
+  Future<User> completeKyc() async {
+    try {
+      final response = await _dio.post('/users/kyc/complete');
+
+      if (response.statusCode == 200) {
+        return User.fromJson(response.data['data']);
+      }
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Failed to complete identity check',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
   /// Handle DioException
   void _handleDioException(DioException e) {
     if (e.response?.statusCode == 404) {
@@ -72,10 +89,16 @@ class UserService {
         type: ApiException.unauthorizedError,
         message: 'Unauthorized',
       );
+    } else if (e.response?.statusCode == 400) {
+      throw ApiError(
+        type: ApiException.validationError,
+        message: e.response?.data['error']?['message']?.toString() ?? 'Invalid request',
+      );
     } else {
       throw ApiError(
         type: ApiException.networkError,
-        message: e.message ?? 'Network error',
+        message:
+            e.response?.data['error']?['message']?.toString() ?? e.message ?? 'Network error',
       );
     }
   }

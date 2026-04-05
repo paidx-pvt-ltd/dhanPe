@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'config/config.dart';
+import 'core/app_theme.dart';
 import 'services/service_locator.dart';
 import 'providers/auth_provider.dart';
 import 'providers/user_provider.dart';
@@ -27,49 +28,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(getIt()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(getIt()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => PaymentProvider(getIt()),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthProvider(getIt())),
+        ChangeNotifierProvider(create: (_) => UserProvider(getIt())),
+        ChangeNotifierProvider(create: (_) => PaymentProvider(getIt())),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) => MaterialApp.router(
           title: Config.appName,
-          theme: _buildTheme(),
+          theme: AppTheme.buildTheme(),
           routerConfig: _buildRouter(authProvider),
           debugShowCheckedModeBanner: false,
-        ),
-      ),
-    );
-  }
-
-  ThemeData _buildTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF2196F3),
-        brightness: Brightness.light,
-      ),
-      fontFamily: 'Poppins',
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        labelStyle: const TextStyle(color: Color(0x000ff666)),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
@@ -102,9 +70,8 @@ class MyApp extends StatelessWidget {
         ),
         GoRoute(
           path: '/payment-status/:id',
-          builder: (context, state) => PaymentStatusScreen(
-            paymentId: state.pathParameters['id']!,
-          ),
+          builder: (context, state) =>
+              PaymentStatusScreen(paymentId: state.pathParameters['id']!),
         ),
         GoRoute(
           path: '/transactions',
@@ -147,10 +114,6 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

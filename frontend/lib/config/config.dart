@@ -5,7 +5,6 @@ class Config {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static const String _localWebBaseUrl = 'http://localhost:3000/api';
   static const String _localAndroidEmulatorBaseUrl = 'http://10.0.2.2:3000/api';
   static const String _defaultProductionBaseUrl =
       'https://project-szw1p.vercel.app/api';
@@ -21,7 +20,7 @@ class Config {
 
     if (kDebugMode) {
       if (kIsWeb) {
-        return _localWebBaseUrl;
+        return _defaultProductionBaseUrl;
       }
 
       if (defaultTargetPlatform == TargetPlatform.android) {
