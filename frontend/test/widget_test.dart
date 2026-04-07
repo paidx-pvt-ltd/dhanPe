@@ -1,30 +1,62 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:dhanpe/core/exceptions.dart';
 import 'package:dhanpe/main.dart';
+import 'package:dhanpe/services/auth_service.dart';
+import 'package:dhanpe/services/payment_service.dart';
+import 'package:dhanpe/services/service_locator.dart';
+import 'package:dhanpe/services/transaction_service.dart';
+import 'package:dhanpe/services/user_service.dart';
+
+class _FakeAuthService extends AuthService {
+  _FakeAuthService() : super(Dio(), const FlutterSecureStorage());
+
+  @override
+  Future<String?> getAccessToken() async => null;
+
+  @override
+  Future<String?> getRefreshToken() async => null;
+
+  @override
+  Future<void> clearSession() async {}
+
+  @override
+  Future<Map<String, dynamic>> refreshToken() async {
+    throw AuthException('No session');
+  }
+
+  @override
+  Future<void> logout() async {}
+}
+
+class _FakeUserService extends UserService {
+  _FakeUserService() : super(Dio());
+}
+
+class _FakePaymentService extends PaymentService {
+  _FakePaymentService() : super(Dio());
+}
+
+class _FakeTransactionService extends TransactionService {
+  _FakeTransactionService() : super(Dio());
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  setUp(() async {
+    await getIt.reset();
+    getIt.registerSingleton<AuthService>(_FakeAuthService());
+    getIt.registerSingleton<UserService>(_FakeUserService());
+    getIt.registerSingleton<PaymentService>(_FakePaymentService());
+    getIt.registerSingleton<TransactionService>(_FakeTransactionService());
+  });
+
+  testWidgets('unauthenticated app lands on the login screen', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Welcome to DhanPe'), findsOneWidget);
+    expect(find.text('Login'), findsWidgets);
   });
 }

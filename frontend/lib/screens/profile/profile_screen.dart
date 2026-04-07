@@ -61,6 +61,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _verifyIdentity() async {
+    final provider = context.read<UserProvider>();
+    final approved = await provider.verifyIdentity();
+
+    if (!mounted) return;
+
+    final message = approved
+        ? 'Identity verification approved.'
+        : provider.error ?? 'Identity verification was not completed.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,6 +141,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: userProvider.isLoading ? null : _verifyIdentity,
+                      icon: const Icon(Icons.verified_user_outlined),
+                      label: Text(
+                        (user?.kycStatus ?? 'PENDING') == 'APPROVED'
+                            ? 'Re-run identity verification'
+                            : 'Verify identity with Didit',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: userProvider.isLoading ? null : _saveProfile,
                       child: userProvider.isLoading

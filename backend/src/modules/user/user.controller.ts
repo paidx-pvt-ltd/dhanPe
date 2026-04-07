@@ -17,9 +17,4 @@ export class UserController {
     const profile = await this.userService.updateProfile(req.userId!, req.body);
     res.json({ success: true, data: profile });
   };
-
-  completeKyc = async (req: Request, res: Response): Promise<void> => {
-    const profile = await this.userService.completeKyc(req.userId!);
-    res.json({ success: true, data: profile });
-  };
 }

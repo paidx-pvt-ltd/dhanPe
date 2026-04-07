@@ -10,9 +10,9 @@ This repository is set up for local development first. Production values should 
 
 ## What Exists Today
 
-- Auth endpoints for signup, login, refresh, and logout
+- Auth endpoints for signup, login, and refresh
 - Transfer creation through Cashfree-backed backend routes
-- In-app KYC completion before transfer confirmation
+- Didit native identity verification before transfer confirmation
 - Cashfree webhook ingestion and transaction lifecycle tracking
 - PostgreSQL with Prisma migrations
 - Flutter app configured for local and deployed backend targets
@@ -88,13 +88,14 @@ Primary routes exposed by the app today:
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
-- `POST /api/auth/logout`
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
-- `POST /api/users/kyc/complete`
+- `POST /api/users/kyc/session`
+- `POST /api/users/kyc/session/:sessionId/sync`
 - `POST /api/transfer`
 - `GET /api/transaction/:id`
 - `POST /api/webhook/cashfree`
+- `POST /api/webhook/didit`
 
 ## Contributor Docs
 

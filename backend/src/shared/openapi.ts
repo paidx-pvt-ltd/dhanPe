@@ -29,9 +29,19 @@ export const openApiDocument = {
         summary: 'Update authenticated user profile',
       },
     },
-    '/users/kyc/complete': {
+    '/users/kyc/session': {
       post: {
-        summary: 'Mark the authenticated user KYC flow as completed',
+        summary: 'Create a Didit verification session for the authenticated user',
+      },
+    },
+    '/users/kyc/session/{sessionId}/sync': {
+      post: {
+        summary: 'Fetch the latest Didit session status and sync the authenticated user KYC status',
+      },
+    },
+    '/webhook/didit': {
+      post: {
+        summary: 'Didit verification webhook',
       },
     },
   },

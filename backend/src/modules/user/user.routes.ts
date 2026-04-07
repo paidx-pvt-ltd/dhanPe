@@ -21,4 +21,3 @@ userRoutes.patch(
   validate(updateProfileSchema),
   asHandler(controller.updateProfile)
 );
-userRoutes.post('/kyc/complete', authenticate, asHandler(controller.completeKyc));

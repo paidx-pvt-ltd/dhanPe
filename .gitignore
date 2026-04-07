@@ -12,6 +12,7 @@
 *~
 .DS_Store
 *.iml
+.tmp-vercel-project-szw1p
 
 # Backend (Node.js)
 backend/node_modules/

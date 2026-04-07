@@ -634,7 +634,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    final completed = await context.read<UserProvider>().completeKyc();
+    final completed = await context.read<UserProvider>().verifyIdentity();
     if (!mounted) {
       return;
     }

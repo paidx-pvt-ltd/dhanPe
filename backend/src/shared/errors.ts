@@ -50,3 +50,9 @@ export class ExternalServiceError extends AppError {
     super(502, message, 'EXTERNAL_SERVICE_ERROR', details);
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string, details?: unknown) {
+    super(503, message, 'SERVICE_UNAVAILABLE', details);
+  }
+}

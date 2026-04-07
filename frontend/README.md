@@ -10,6 +10,8 @@ flutter pub get
 flutter run
 ```
 
+This app now uses the Didit native Flutter SDK for identity verification, so use Flutter 3.3+ with Dart 3.11+.
+
 ## Backend Target Selection
 
 The app uses compile-time configuration from [config.dart](d:/Personal%20Data/dhanPe-local/dhanPe/frontend/lib/config/config.dart).
@@ -30,9 +32,11 @@ flutter run --dart-define=DHANPE_API_BASE_URL=http://localhost:3000/api
 
 1. Login or signup through `/api/auth/*`
 2. Load profile with `/api/users/profile`
-3. Complete in-app identity step through `/api/users/kyc/complete`
-4. Create transfer through `/api/transfer`
-5. View transfer state through `/api/transaction/:id`
+3. Request a Didit session through `/api/users/kyc/session`
+4. Complete native identity verification in the Didit SDK
+5. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
+6. Create transfer through `/api/transfer`
+7. View transfer state through `/api/transaction/:id`
 
 ## Structure
 
@@ -66,3 +70,8 @@ Current known analyzer warnings outside the new UI flow:
 
 - `lib/providers/auth_provider.dart`: unused `_refreshToken`
 - `lib/services/http_client.dart`: debug `print` calls
+
+## Native Setup Notes
+
+- Android: the Didit packaging override lives in [android/app/build.gradle.kts](/d:/Personal%20Data/dhanPe-local/dhanPe/frontend/android/app/build.gradle.kts).
+- iOS: this repository currently does not contain a `frontend/ios/` target, so the Didit Podfile change can only be applied after adding the iOS platform to the Flutter project.
