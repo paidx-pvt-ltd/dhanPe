@@ -12,6 +12,8 @@ import { paymentRoutes } from './modules/payment/payment.routes.js';
 import { transactionRoutes } from './modules/transaction/transaction.routes.js';
 import { webhookRoutes } from './modules/webhook/webhook.routes.js';
 import { healthRoutes } from './modules/health/health.routes.js';
+import { diditRoutes } from './modules/didit/didit.routes.js';
+import { diditWebhookRoutes } from './modules/didit/didit-webhook.routes.js';
 import { openApiDocument } from './shared/openapi.js';
 
 const parseWebhookBody = express.raw({
@@ -79,11 +81,15 @@ app.use('/api/webhook/cashfree', parseWebhookBody, webhookRoutes);
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use('/webhook/didit', diditWebhookRoutes);
+app.use('/api/webhook/didit', diditWebhookRoutes);
 
 app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/api/users', userRoutes);
+app.use('/users/kyc', diditRoutes);
+app.use('/api/users/kyc', diditRoutes);
 app.use('/transfer', paymentRoutes);
 app.use('/api/transfer', paymentRoutes);
 app.use('/transaction', transactionRoutes);

@@ -53,6 +53,10 @@ export class AuthService {
     email: string;
     firstName: string | null;
     lastName: string | null;
+    phoneNumber?: string | null;
+    kycStatus?: string;
+    balance?: { toString(): string } | number | string;
+    createdAt?: Date;
   }) {
     const payload = {
       userId: user.id,
@@ -68,6 +72,10 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phoneNumber: user.phoneNumber ?? null,
+        kycStatus: user.kycStatus ?? 'PENDING',
+        balance: Number(user.balance ?? 0),
+        createdAt: user.createdAt ?? new Date(),
       },
     };
   }

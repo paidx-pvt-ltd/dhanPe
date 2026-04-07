@@ -48,6 +48,12 @@ export const config = {
       process.env.CASHFREE_API_BASE_URL ??
       'https://sandbox.cashfree.com',
   },
+  didit: {
+    apiKey: process.env.DIDIT_API_KEY ?? '',
+    workflowId: process.env.DIDIT_WORKFLOW_ID ?? '',
+    baseUrl: process.env.DIDIT_API_BASE_URL ?? 'https://verification.didit.me/v3',
+    webhookSecret: process.env.DIDIT_WEBHOOK_SECRET ?? '',
+  },
   risk: {
     maxTransactionAmount: parseNumber(process.env.RISK_MAX_TRANSACTION_AMOUNT, 50000),
     maxDailyVolume: parseNumber(process.env.RISK_MAX_DAILY_VOLUME, 100000),
@@ -85,6 +91,10 @@ export const validateConfig = (): void => {
 
   if (placeholderValues.length > 0) {
     throw new Error('Cashfree credentials must be real values, placeholder values are not allowed');
+  }
+
+  if (process.env.DIDIT_API_KEY?.includes('your_didit')) {
+    throw new Error('Didit credentials must be real values, placeholder values are not allowed');
   }
 
   // Fail fast on invalid JWT configuration instead of surfacing 500s on login/signup.

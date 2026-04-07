@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../core/exceptions.dart';
+import '../models/kyc_session.dart';
 import '../models/user.dart';
 
 class UserService {
@@ -60,16 +61,33 @@ class UserService {
     }
   }
 
-  Future<User> completeKyc() async {
+  Future<KycSession> createKycSession() async {
     try {
-      final response = await _dio.post('/users/kyc/complete');
+      final response = await _dio.post('/users/kyc/session');
 
-      if (response.statusCode == 200) {
-        return User.fromJson(response.data['data']);
+      if (response.statusCode == 201) {
+        return KycSession.fromJson(response.data['data']);
       }
       throw ApiError(
         type: ApiException.unknownError,
-        message: 'Failed to complete identity check',
+        message: 'Failed to create verification session',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<User> syncKycSession(String sessionId) async {
+    try {
+      final response = await _dio.post('/users/kyc/session/$sessionId/sync');
+
+      if (response.statusCode == 200) {
+        return User.fromJson(response.data['data']['profile']);
+      }
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Failed to sync identity verification status',
       );
     } on DioException catch (e) {
       _handleDioException(e);

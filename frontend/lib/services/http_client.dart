@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/config.dart';
 
@@ -47,8 +48,8 @@ class HttpClient {
         safeHeaders['Authorization'] = 'Bearer [redacted]';
       }
 
-      print('API ${options.method} ${options.path}');
-      print('Headers: $safeHeaders');
+      debugPrint('API ${options.method} ${options.path}');
+      debugPrint('Headers: $safeHeaders');
     }
 
     handler.next(options);
@@ -59,12 +60,12 @@ class HttpClient {
     ErrorInterceptorHandler handler,
   ) async {
     if (err.response?.statusCode == 401 && Config.enableLogging) {
-      print('Token expired, attempting refresh...');
+      debugPrint('Token expired, attempting refresh...');
     }
 
     if (Config.enableLogging) {
-      print('Error: ${err.message}');
-      print('Response: ${err.response?.data}');
+      debugPrint('Error: ${err.message}');
+      debugPrint('Response: ${err.response?.data}');
     }
 
     handler.next(err);

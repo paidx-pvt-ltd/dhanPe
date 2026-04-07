@@ -5,12 +5,28 @@ class Config {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static const String _localAndroidEmulatorBaseUrl = 'http://10.0.2.2:3000/api';
-  static const String _defaultProductionBaseUrl =
-      'https://project-szw1p.vercel.app/api';
+  static const String _defaultLocalBaseUrl = 'http://127.0.0.1:3000/api';
+  static const String _defaultAndroidEmulatorBaseUrl = 'http://10.0.2.2:3000/api';
+  static const String _defaultProductionBaseUrl = 'https://project-szw1p.vercel.app/api';
   static const String _baseUrlOverride = String.fromEnvironment(
     'DHANPE_API_BASE_URL',
     defaultValue: '',
+  );
+  static const String _apiEnvironment = String.fromEnvironment(
+    'DHANPE_API_ENV',
+    defaultValue: 'production',
+  );
+  static const String _localBaseUrl = String.fromEnvironment(
+    'DHANPE_LOCAL_API_BASE_URL',
+    defaultValue: _defaultLocalBaseUrl,
+  );
+  static const String _androidEmulatorBaseUrl = String.fromEnvironment(
+    'DHANPE_ANDROID_EMULATOR_API_BASE_URL',
+    defaultValue: _defaultAndroidEmulatorBaseUrl,
+  );
+  static const String _productionBaseUrl = String.fromEnvironment(
+    'DHANPE_PRODUCTION_API_BASE_URL',
+    defaultValue: _defaultProductionBaseUrl,
   );
 
   static String get baseUrl {
@@ -18,17 +34,35 @@ class Config {
       return _baseUrlOverride;
     }
 
-    if (kDebugMode) {
-      if (kIsWeb) {
-        return _defaultProductionBaseUrl;
-      }
+    switch (_apiEnvironment.toLowerCase()) {
+      case 'local':
+        return _localBaseUrl;
+      case 'emulator':
+      case 'android-emulator':
+        return _androidEmulatorBaseUrl;
+      case 'production':
+      case 'prod':
+        return _productionBaseUrl;
+      case 'auto':
+      default:
+        return _resolveAutoBaseUrl();
+    }
+  }
 
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        return _localAndroidEmulatorBaseUrl;
-      }
+  static String _resolveAutoBaseUrl() {
+    if (!kDebugMode) {
+      return _productionBaseUrl;
     }
 
-    return _defaultProductionBaseUrl;
+    if (kIsWeb) {
+      return _productionBaseUrl;
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return _androidEmulatorBaseUrl;
+    }
+
+    return _productionBaseUrl;
   }
 
   static const Duration apiTimeout = Duration(seconds: 30);

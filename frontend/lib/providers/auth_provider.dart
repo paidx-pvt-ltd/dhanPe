@@ -8,7 +8,6 @@ class AuthProvider extends ChangeNotifier {
 
   User? _user;
   String? _accessToken;
-  String? _refreshToken;
   bool _isLoading = false;
   bool _isReady = false;
   String? _error;
@@ -37,19 +36,16 @@ class AuthProvider extends ChangeNotifier {
       if (accessToken == null || refreshToken == null) {
         await _authService.clearSession();
         _accessToken = null;
-        _refreshToken = null;
         _user = null;
       } else {
         final result = await _authService.refreshToken();
         _accessToken = result['accessToken'];
-        _refreshToken = result['refreshToken'];
         _user = User.fromJson(result['user']);
       }
       _error = null;
     } catch (e) {
       await _authService.clearSession();
       _accessToken = null;
-      _refreshToken = null;
       _user = null;
       _error = null;
     } finally {
@@ -79,7 +75,6 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _accessToken = result['accessToken'];
-      _refreshToken = result['refreshToken'];
       _user = User.fromJson(result['user']);
       _error = null;
     } on AuthException catch (e) {
@@ -108,7 +103,6 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _accessToken = result['accessToken'];
-      _refreshToken = result['refreshToken'];
       _user = User.fromJson(result['user']);
       _error = null;
     } on AuthException catch (e) {
@@ -130,7 +124,6 @@ class AuthProvider extends ChangeNotifier {
       await _authService.logout();
       _user = null;
       _accessToken = null;
-      _refreshToken = null;
     } catch (e) {
       _error = 'Logout failed';
     } finally {
@@ -144,7 +137,6 @@ class AuthProvider extends ChangeNotifier {
     try {
       final result = await _authService.refreshToken();
       _accessToken = result['accessToken'];
-      _refreshToken = result['refreshToken'];
       _error = null;
     } on AuthException catch (e) {
       _error = e.message;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:didit_sdk/sdk_flutter.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 import '../core/exceptions.dart';
@@ -74,24 +75,54 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> completeKyc() async {
+  Future<bool> verifyIdentity() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _user = await _userService.completeKyc();
-      _balance = _user?.balance ?? 0;
-      return true;
+      final verificationSession = await _userService.createKycSession();
+      final result = await DiditSdk.startVerification(verificationSession.sessionToken);
+
+      switch (result) {
+        case VerificationCompleted(:final session):
+          final syncedUser = await _userService.syncKycSession(session.sessionId);
+          _user = syncedUser;
+          _balance = syncedUser.balance;
+
+          if (syncedUser.kycStatus == 'APPROVED') {
+            return true;
+          }
+
+          _error = _buildStatusMessage(syncedUser.kycStatus);
+          return false;
+        case VerificationCancelled():
+          _error = 'Identity verification was cancelled.';
+          return false;
+        case VerificationFailed(:final error):
+          _error = error.message;
+          return false;
+      }
     } on ApiError catch (e) {
       _error = e.message;
       return false;
     } catch (e) {
-      _error = 'Failed to complete identity check';
+      _error = 'Failed to complete identity verification';
       return false;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  String _buildStatusMessage(String status) {
+    switch (status) {
+      case 'REJECTED':
+        return 'Identity verification was declined. Try again or contact support.';
+      case 'SUBMITTED':
+        return 'Identity verification is under review.';
+      default:
+        return 'Identity verification is still pending.';
     }
   }
 

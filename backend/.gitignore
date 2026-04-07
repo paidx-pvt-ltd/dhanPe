@@ -45,3 +45,4 @@ coverage/
 .pids
 *.pid
 *.seed
+.vercel
