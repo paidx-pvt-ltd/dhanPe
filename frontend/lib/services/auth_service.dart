@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/config.dart';
 import '../core/exceptions.dart';
 
@@ -15,6 +17,7 @@ class AuthService {
     required String password,
     String? firstName,
     String? lastName,
+    String? phoneNumber,
   }) async {
     try {
       final response = await _dio.post(
@@ -24,6 +27,7 @@ class AuthService {
           'password': password,
           'firstName': firstName,
           'lastName': lastName,
+          'phoneNumber': phoneNumber,
         },
       );
 
@@ -111,12 +115,22 @@ class AuthService {
   }
 
   /// Get stored access token
-  Future<String?> getAccessToken() {
+  Future<String?> getAccessToken() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(Config.accessTokenKey);
+    }
+
     return _storage.read(key: Config.accessTokenKey);
   }
 
   /// Get stored refresh token
-  Future<String?> getRefreshToken() {
+  Future<String?> getRefreshToken() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(Config.refreshTokenKey);
+    }
+
     return _storage.read(key: Config.refreshTokenKey);
   }
 
@@ -132,6 +146,15 @@ class AuthService {
 
   /// Store tokens securely
   Future<void> _storeTokens(String accessToken, String refreshToken) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.setString(Config.accessTokenKey, accessToken),
+        prefs.setString(Config.refreshTokenKey, refreshToken),
+      ]);
+      return;
+    }
+
     await Future.wait([
       _storage.write(key: Config.accessTokenKey, value: accessToken),
       _storage.write(key: Config.refreshTokenKey, value: refreshToken),
@@ -140,6 +163,15 @@ class AuthService {
 
   /// Clear stored tokens
   Future<void> _clearTokens() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.remove(Config.accessTokenKey),
+        prefs.remove(Config.refreshTokenKey),
+      ]);
+      return;
+    }
+
     await Future.wait([
       _storage.delete(key: Config.accessTokenKey),
       _storage.delete(key: Config.refreshTokenKey),

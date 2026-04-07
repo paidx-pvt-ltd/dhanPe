@@ -90,4 +90,6 @@ class Config {
   static bool get debugMode => kDebugMode;
   static bool get enableLogging => kDebugMode;
   static bool get isSecureBackend => baseUrl.startsWith('https://');
+  static String get apiEnvironment => _apiEnvironment;
+  static String get cashfreeEnvironment => _cashfreeEnvironment;
 }

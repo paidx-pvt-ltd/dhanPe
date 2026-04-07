@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/debug_status_banner.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,9 +21,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final userProvider = context.read<UserProvider>();
+    final authUser = context.read<AuthProvider>().user;
+
+    if (userProvider.user == null && authUser != null) {
+      userProvider.seedUser(authUser);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        context.read<UserProvider>().loadProfile();
+      });
+    }
+
     if (_initialized) return;
 
-    final user = context.read<UserProvider>().user;
+    final user = userProvider.user;
     _firstNameController.text = user?.firstName ?? '';
     _lastNameController.text = user?.lastName ?? '';
     _phoneController.text = user?.phoneNumber ?? '';
@@ -94,6 +109,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const DebugStatusBanner(),
+                    const SizedBox(height: 16),
                     Text(
                       user?.email ?? 'No email available',
                       style: Theme.of(context).textTheme.titleMedium,

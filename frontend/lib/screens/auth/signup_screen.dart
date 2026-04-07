@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/user_provider.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -16,6 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
 
@@ -26,6 +28,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _confirmPasswordController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -39,10 +42,15 @@ class _SignupScreenState extends State<SignupScreen> {
       password: _passwordController.text,
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
     );
 
     if (mounted) {
       if (authProvider.isAuthenticated) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.clearState();
+        await userProvider.loadProfile();
+        if (!mounted) return;
         context.go('/dashboard');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,6 +129,26 @@ class _SignupScreenState extends State<SignupScreen> {
                     }
                     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
                       return 'Enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Mobile Number',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    final phone = value?.trim() ?? '';
+                    if (phone.isEmpty) {
+                      return 'Mobile number is required';
+                    }
+                    final digitsOnly = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+                    if (digitsOnly.length < 10) {
+                      return 'Enter a valid mobile number';
                     }
                     return null;
                   },

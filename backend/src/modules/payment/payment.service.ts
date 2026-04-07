@@ -32,6 +32,10 @@ export class PaymentService {
       throw new ValidationError('User KYC is not approved');
     }
 
+    if (!user.phoneNumber?.trim()) {
+      throw new ValidationError('Add a phone number to your profile before starting a transfer');
+    }
+
     const requestHash = sha256(JSON.stringify(input));
     if (idempotencyKey) {
       const existingKey = await this.paymentRepository.findIdempotencyKey(idempotencyKey);

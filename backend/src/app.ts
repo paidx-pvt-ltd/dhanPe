@@ -40,7 +40,9 @@ const corsOptions: cors.CorsOptions = {
       return;
     }
 
-    if (config.server.env !== 'production' && localhostPattern.test(origin)) {
+    // Allow local browser-based clients such as Flutter web during development,
+    // even when they point at the deployed backend.
+    if (localhostPattern.test(origin)) {
       callback(null, true);
       return;
     }

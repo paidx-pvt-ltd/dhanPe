@@ -8,8 +8,10 @@ import 'package:provider/provider.dart';
 
 import '../../config/config.dart';
 import '../../core/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/debug_status_banner.dart';
 
 enum _TransferStep { setup, cardVerification, identityCheck, review }
 
@@ -90,6 +92,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _processingCard = false;
   bool _processingId = false;
   bool _isSubmitting = false;
+  bool _requestedProfileHydration = false;
   String? _amountError;
   double _dragProgress = 0;
 
@@ -102,7 +105,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final user = context.read<UserProvider>().user;
+    final userProvider = context.read<UserProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final fallbackUser = authProvider.user;
+
+    if (userProvider.user == null && fallbackUser != null) {
+      userProvider.seedUser(fallbackUser);
+    }
+
+    final user = userProvider.user;
     if (user != null && user.firstName != null && user.lastName != null) {
       final accountHolder = '${user.firstName} ${user.lastName}'.trim();
       if (accountHolder.trim().isNotEmpty) {
@@ -110,6 +121,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
           accountHolderName: accountHolder,
         );
       }
+    }
+
+    if (!_requestedProfileHydration && !userProvider.isLoading) {
+      _requestedProfileHydration = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        context.read<UserProvider>().loadProfile();
+      });
     }
   }
 
@@ -149,6 +170,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           leading: Icons.close_rounded,
           onLeadingTap: () => context.pop(),
         ),
+        const DebugStatusBanner(),
         const SizedBox(height: 26),
         Text(
           _currencyFormat.format(_amount),
@@ -361,100 +383,182 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildIdentityCheck(BuildContext context) {
     final steps = [true, _processingId, false];
-    return Padding(
-      key: const ValueKey('identity'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _TopBar(
-            title: 'Identity Check',
-            leading: Icons.arrow_back_ios_new_rounded,
-            onLeadingTap: () =>
-                setState(() => _step = _TransferStep.cardVerification),
-          ),
-          const SizedBox(height: 26),
-          Row(
-            children: List.generate(3, (index) {
-              final active = steps[index];
-              return Expanded(
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, _) {
+        final kycStatus = userProvider.user?.kycStatus;
+        _reconcileIdentityStepWithStatus(kycStatus);
+        final isStatusUnknown = kycStatus == null;
+        final isApproved = kycStatus == 'APPROVED';
+        final isNotStarted = kycStatus == 'PENDING';
+        final isUnderReview = kycStatus == 'SUBMITTED';
+        final isDeclined = kycStatus == 'REJECTED';
+        final isWebHostedFlow = userProvider.hasActiveHostedKyc;
+
+        final title = isStatusUnknown
+            ? 'Loading identity status'
+            : _processingId
+            ? 'Checking your ID'
+            : isApproved
+                ? 'Identity already approved'
+                : isUnderReview
+                    ? 'Verification under review'
+                        : isNotStarted
+                            ? 'Start identity verification'
+                            : isDeclined
+                                ? 'Verification needs another try'
+                                : 'A quick identity check';
+        final subtitle = isStatusUnknown
+            ? 'Fetching your latest KYC status from the backend before starting verification.'
+            : isApproved
+            ? 'Your account is already approved for identity verification. You can continue to review the transfer.'
+            : isUnderReview
+                ? 'Your verification is under review. We refresh this screen regularly when the status changes.'
+                : isWebHostedFlow
+                    ? 'Didit is open in your browser. Complete the verification there and this screen will update automatically.'
+                : isNotStarted
+                    ? 'You have not started KYC yet. Launch Didit to scan your document and submit it for review.'
+                    : isDeclined
+                        ? 'Your last verification attempt was declined. Retry with a clearer document image and better lighting.'
+                        : 'We only use this to verify it'
+                            's really you. Bank-level encryption is applied end to end.';
+
+        return Padding(
+          key: const ValueKey('identity'),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _TopBar(
+                title: 'Identity Check',
+                leading: Icons.arrow_back_ios_new_rounded,
+                onLeadingTap: () =>
+                    setState(() => _step = _TransferStep.cardVerification),
+              ),
+              const DebugStatusBanner(),
+              const SizedBox(height: 26),
+              Row(
+                children: List.generate(3, (index) {
+                  final active = steps[index];
+                  return Expanded(
+                    child: Container(
+                      height: 4,
+                      margin: EdgeInsets.only(right: index == 2 ? 0 : 6),
+                      decoration: BoxDecoration(
+                        color: active ? AppColors.primary : AppColors.border,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 28),
+              Expanded(
                 child: Container(
-                  height: 4,
-                  margin: EdgeInsets.only(right: index == 2 ? 0 : 6),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: active ? AppColors.primary : AppColors.border,
-                    borderRadius: BorderRadius.circular(999),
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: AppTheme.softShadow(),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 160,
+                        height: 160,
+                        decoration: const BoxDecoration(
+                          color: AppColors.accentSoft,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.verified_user_outlined,
+                          size: 84,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        subtitle,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (userProvider.error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          userProvider.error!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: AppColors.warning),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      const Spacer(),
+                      if (isStatusUnknown || userProvider.isLoading)
+                        const Column(
+                          children: [
+                            SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 3),
+                            ),
+                            SizedBox(height: 12),
+                            Text('Loading your latest KYC status...'),
+                          ],
+                        )
+                      else if (_processingId)
+                        const Column(
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.accent,
+                              size: 56,
+                            ),
+                            SizedBox(height: 12),
+                            Text('Checking your latest verification status...'),
+                          ],
+                        )
+                      else if (isApproved)
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() => _step = _TransferStep.review);
+                          },
+                          child: const Text('Continue to review'),
+                        )
+                      else if (isUnderReview)
+                        const _PassiveStatusNote(
+                          icon: Icons.hourglass_top_rounded,
+                          text: 'We are waiting for Didit to finish reviewing your verification.',
+                        )
+                      else ...[
+                        ElevatedButton(
+                          onPressed: isStatusUnknown ? null : _startIdScan,
+                          child: Text(
+                            isNotStarted
+                                ? 'Start Didit verification'
+                                : isDeclined
+                                        ? 'Retry verification'
+                                        : isWebHostedFlow
+                                            ? 'Open Didit in browser again'
+                                            : 'Scan my ID',
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              );
-            }),
-          ),
-          const SizedBox(height: 28),
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: AppTheme.softShadow(),
               ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 160,
-                    height: 160,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentSoft,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.verified_user_outlined,
-                      size: 84,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _processingId
-                        ? 'Checking your ID'
-                        : 'A quick identity check',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'We only use this to verify it'
-                    's really you. Bank-level encryption is applied end to end.',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
-                    textAlign: TextAlign.center,
-                  ),
-                  const Spacer(),
-                  if (_processingId)
-                    const Column(
-                      children: [
-                        Icon(
-                          Icons.check_circle_rounded,
-                          color: AppColors.accent,
-                          size: 56,
-                        ),
-                        SizedBox(height: 12),
-                        Text('Looks good. Taking you to review...'),
-                      ],
-                    )
-                  else
-                    ElevatedButton(
-                      onPressed: _startIdScan,
-                      child: const Text('Scan my ID'),
-                    ),
-                ],
-              ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -629,6 +733,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _startIdScan() async {
+    final existingStatus = context.read<UserProvider>().user?.kycStatus;
+    if (existingStatus == 'APPROVED') {
+      setState(() => _step = _TransferStep.review);
+      return;
+    }
+
     setState(() => _processingId = true);
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) {
@@ -662,6 +772,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
       _step = _TransferStep.review;
     });
   }
+
+  void _reconcileIdentityStepWithStatus(String? kycStatus) {
+    if (!_processingId) {
+      return;
+    }
+
+    if (kycStatus == null || kycStatus == 'PENDING') {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_processingId) {
+        return;
+      }
+
+      setState(() {
+        _processingId = false;
+        if (kycStatus == 'APPROVED') {
+          _step = _TransferStep.review;
+        }
+      });
+    });
+  }
+
 
   Future<void> _submitTransfer() async {
     if (_isSubmitting) {
@@ -754,6 +888,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return accountNumber;
     }
     return '**** ${accountNumber.substring(accountNumber.length - 4)}';
+  }
+}
+
+class _PassiveStatusNote extends StatelessWidget {
+  const _PassiveStatusNote({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.accentSoft,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppColors.accent),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

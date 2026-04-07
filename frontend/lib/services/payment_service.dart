@@ -104,6 +104,8 @@ class PaymentService {
       throw PaymentException(message ?? 'Transfer not found');
     } else if (e.response?.statusCode == 401) {
       throw PaymentException(message ?? 'Unauthorized - please login again');
+    } else if (e.response?.statusCode == 422) {
+      throw PaymentException(message ?? 'Transfer request was rejected');
     } else if (e.response?.statusCode == 429) {
       throw PaymentException(
         message ?? 'Too many transfer requests. Please try again later.',
