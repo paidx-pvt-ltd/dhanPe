@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:didit_sdk/sdk_flutter.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
@@ -11,6 +12,7 @@ class UserProvider extends ChangeNotifier {
   double _balance = 0;
   bool _isLoading = false;
   String? _error;
+  Timer? _kycPollingTimer;
 
   UserProvider(this._userService);
 
@@ -29,6 +31,7 @@ class UserProvider extends ChangeNotifier {
     try {
       _user = await _userService.getProfile();
       _balance = _user?.balance ?? 0;
+      _syncKycPolling();
     } on ApiError catch (e) {
       _error = e.message;
     } catch (e) {
@@ -65,6 +68,7 @@ class UserProvider extends ChangeNotifier {
         lastName: lastName,
         phoneNumber: phoneNumber,
       );
+      _syncKycPolling();
     } on ApiError catch (e) {
       _error = e.message;
     } catch (e) {
@@ -89,6 +93,7 @@ class UserProvider extends ChangeNotifier {
           final syncedUser = await _userService.syncKycSession(session.sessionId);
           _user = syncedUser;
           _balance = syncedUser.balance;
+          _syncKycPolling();
 
           if (syncedUser.kycStatus == 'APPROVED') {
             return true;
@@ -129,5 +134,39 @@ class UserProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  Future<void> refreshProfileSilently() async {
+    try {
+      final user = await _userService.getProfile();
+      _user = user;
+      _balance = user.balance;
+      _syncKycPolling();
+      notifyListeners();
+    } catch (_) {
+      // Keep the last known UI state when silent refresh fails.
+    }
+  }
+
+  void _syncKycPolling() {
+    final status = _user?.kycStatus;
+    final shouldPoll = status == 'PENDING' || status == 'SUBMITTED';
+
+    if (!shouldPoll) {
+      _kycPollingTimer?.cancel();
+      _kycPollingTimer = null;
+      return;
+    }
+
+    _kycPollingTimer ??= Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => refreshProfileSilently(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _kycPollingTimer?.cancel();
+    super.dispose();
   }
 }

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/payment.dart';
+import '../services/cashfree_service.dart';
 import '../services/payment_service.dart';
 import '../core/exceptions.dart';
 
 class PaymentProvider extends ChangeNotifier {
   final PaymentService _paymentService;
+  final CashfreeService _cashfreeService;
 
   Payment? _currentPayment;
   bool _isLoading = false;
   String? _error;
 
-  PaymentProvider(this._paymentService);
+  PaymentProvider(this._paymentService, this._cashfreeService);
 
   // Getters
   Payment? get currentPayment => _currentPayment;
@@ -23,6 +25,7 @@ class PaymentProvider extends ChangeNotifier {
     required String accountHolderName,
     required String accountNumber,
     required String ifsc,
+    required bool useSandbox,
     String? bankName,
     String? description,
   }) async {
@@ -38,6 +41,10 @@ class PaymentProvider extends ChangeNotifier {
         ifsc: ifsc,
         bankName: bankName,
         description: description,
+      );
+      await _cashfreeService.launchCheckout(
+        _currentPayment!,
+        useSandbox: useSandbox,
       );
     } on PaymentException catch (e) {
       _error = e.message;

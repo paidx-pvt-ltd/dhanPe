@@ -103,6 +103,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'KYC status: ${user?.kycStatus ?? 'PENDING'}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                    if ((user?.kycStatus ?? 'PENDING') == 'PENDING' ||
+                        (user?.kycStatus ?? 'PENDING') == 'SUBMITTED') ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'This screen auto-refreshes your verification status every 15 seconds.',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _firstNameController,

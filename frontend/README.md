@@ -34,6 +34,7 @@ Preferred mode-based switching:
 flutter run --dart-define=DHANPE_API_ENV=production
 flutter run --dart-define=DHANPE_API_ENV=local --dart-define=DHANPE_LOCAL_API_BASE_URL=http://192.168.1.10:3000/api
 flutter run --dart-define=DHANPE_API_ENV=android-emulator
+flutter run --dart-define=DHANPE_API_ENV=production --dart-define=DHANPE_CASHFREE_ENV=sandbox
 ```
 
 Supported compile-time keys:
@@ -43,6 +44,7 @@ Supported compile-time keys:
 - `DHANPE_LOCAL_API_BASE_URL=...`
 - `DHANPE_ANDROID_EMULATOR_API_BASE_URL=...`
 - `DHANPE_PRODUCTION_API_BASE_URL=...`
+- `DHANPE_CASHFREE_ENV=sandbox|production`
 
 ## Current Flow
 

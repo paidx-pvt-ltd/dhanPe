@@ -18,6 +18,7 @@ export interface CashfreeOrderResponse {
   cf_order_id: string;
   order_id: string;
   order_token: string;
+  payment_session_id?: string;
   order_status: string;
 }
 

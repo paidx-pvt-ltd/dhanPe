@@ -70,7 +70,11 @@ class Config {
   // Payment Configuration
   static const String cashfreeClientId = 'YOUR_CASHFREE_CLIENT_ID';
   static const String cashfreeAppId = 'YOUR_CASHFREE_APP_ID';
-  static const bool isCashfreeSandbox = true;
+  static const String _cashfreeEnvironment = String.fromEnvironment(
+    'DHANPE_CASHFREE_ENV',
+    defaultValue: 'sandbox',
+  );
+  static bool get isCashfreeSandbox => _cashfreeEnvironment.toLowerCase() != 'production';
 
   // Storage Keys
   static const String accessTokenKey = 'access_token';

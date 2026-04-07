@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../config/config.dart';
 import '../../core/app_theme.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/user_provider.dart';
@@ -669,14 +670,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     setState(() => _isSubmitting = true);
     final paymentProvider = context.read<PaymentProvider>();
-    await paymentProvider.createPayment(
-      amount: _amount,
-      accountHolderName: _selectedBank.accountHolderName,
-      accountNumber: _selectedBank.accountNumber,
-      ifsc: _selectedBank.ifsc,
-      bankName: _selectedBank.bankName,
-      description: 'Friendly transfer from ${_selectedCard.label}',
-    );
+      await paymentProvider.createPayment(
+        amount: _amount,
+        accountHolderName: _selectedBank.accountHolderName,
+        accountNumber: _selectedBank.accountNumber,
+        ifsc: _selectedBank.ifsc,
+        useSandbox: Config.isCashfreeSandbox,
+        bankName: _selectedBank.bankName,
+        description: 'Friendly transfer from ${_selectedCard.label}',
+      );
 
     if (!mounted) {
       return;
