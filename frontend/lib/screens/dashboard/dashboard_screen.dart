@@ -7,6 +7,7 @@ import '../../core/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/debug_status_banner.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,7 +21,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserProvider>().loadProfile();
+      final authProvider = context.read<AuthProvider>();
+      final userProvider = context.read<UserProvider>();
+
+      if (userProvider.user == null && authProvider.user != null) {
+        userProvider.seedUser(authProvider.user!);
+      }
+
+      userProvider.loadProfile();
     });
   }
 
@@ -48,6 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
               children: [
+                const DebugStatusBanner(),
                 Consumer<UserProvider>(
                   builder: (context, userProvider, _) {
                     if (userProvider.isLoading) {
@@ -122,7 +131,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           TextButton(
             onPressed: () async {
               Navigator.of(dialogContext).pop();
+              final userProvider = Provider.of<UserProvider>(context, listen: false);
+              final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
               await context.read<AuthProvider>().logout();
+              if (!context.mounted) {
+                return;
+              }
+              userProvider.clearState();
+              paymentProvider.clearCurrentPayment();
               if (!context.mounted) {
                 return;
               }

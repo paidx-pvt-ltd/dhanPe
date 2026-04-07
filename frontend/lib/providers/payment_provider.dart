@@ -31,6 +31,7 @@ class PaymentProvider extends ChangeNotifier {
   }) async {
     _isLoading = true;
     _error = null;
+    _currentPayment = null;
     notifyListeners();
 
     try {
@@ -47,8 +48,10 @@ class PaymentProvider extends ChangeNotifier {
         useSandbox: useSandbox,
       );
     } on PaymentException catch (e) {
+      _currentPayment = null;
       _error = e.message;
     } catch (e) {
+      _currentPayment = null;
       _error = 'Failed to create payment: ${e.toString()}';
     } finally {
       _isLoading = false;

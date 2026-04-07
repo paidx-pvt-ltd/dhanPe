@@ -38,15 +38,38 @@ class AuthProvider extends ChangeNotifier {
         _accessToken = null;
         _user = null;
       } else {
-        final result = await _authService.refreshToken();
-        _accessToken = result['accessToken'];
-        _user = User.fromJson(result['user']);
+        _accessToken = accessToken;
+
+        try {
+          final result = await _authService.refreshToken();
+          _accessToken = result['accessToken'];
+          _user = User.fromJson(result['user']);
+        } on AuthException {
+          await _authService.clearSession();
+          _accessToken = null;
+          _user = null;
+        } on ApiError catch (e) {
+          if (e.type == ApiException.unauthorizedError) {
+            await _authService.clearSession();
+            _accessToken = null;
+            _user = null;
+          }
+        }
       }
       _error = null;
-    } catch (e) {
+    } on AuthException {
       await _authService.clearSession();
       _accessToken = null;
       _user = null;
+      _error = null;
+    } on ApiError catch (e) {
+      if (e.type == ApiException.unauthorizedError) {
+        await _authService.clearSession();
+        _accessToken = null;
+        _user = null;
+      }
+      _error = null;
+    } catch (e) {
       _error = null;
     } finally {
       _isLoading = false;
@@ -61,6 +84,7 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     String? firstName,
     String? lastName,
+    String? phoneNumber,
   }) async {
     _isLoading = true;
     _error = null;
@@ -72,6 +96,7 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         firstName: firstName,
         lastName: lastName,
+        phoneNumber: phoneNumber,
       );
 
       _accessToken = result['accessToken'];
