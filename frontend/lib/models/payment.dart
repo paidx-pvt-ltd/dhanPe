@@ -1,6 +1,7 @@
 class Payment {
   final String id;
   final String orderId;
+  final String paymentSessionId;
   final String orderToken;
   final double amount;
   final String status;
@@ -10,6 +11,7 @@ class Payment {
   Payment({
     required this.id,
     required this.orderId,
+    required this.paymentSessionId,
     required this.orderToken,
     required this.amount,
     required this.status,
@@ -27,6 +29,10 @@ class Payment {
       orderId: json['orderId'] as String? ??
           json['cashfreeOrderId'] as String? ??
           '',
+      paymentSessionId: json['paymentSessionId'] as String? ??
+          json['payment_session_id'] as String? ??
+          json['orderToken'] as String? ??
+          '',
       orderToken: json['orderToken'] as String? ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       status: json['status'] as String? ?? 'INITIATED',
@@ -39,6 +45,7 @@ class Payment {
     return {
       'id': id,
       'orderId': orderId,
+      'paymentSessionId': paymentSessionId,
       'orderToken': orderToken,
       'amount': amount,
       'status': status,

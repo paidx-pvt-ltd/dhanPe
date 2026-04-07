@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(getIt())),
         ChangeNotifierProvider(create: (_) => UserProvider(getIt())),
-        ChangeNotifierProvider(create: (_) => PaymentProvider(getIt())),
+        ChangeNotifierProvider(create: (_) => PaymentProvider(getIt(), getIt())),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) => MaterialApp.router(

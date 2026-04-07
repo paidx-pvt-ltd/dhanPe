@@ -76,6 +76,10 @@ class PaymentService {
     }
   }
 
+  Future<Payment> syncPaymentStatus(String transactionId) {
+    return getPaymentStatus(transactionId);
+  }
+
   String _buildIdempotencyKey(double amount, String accountNumber) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final lastDigits = accountNumber.length <= 4

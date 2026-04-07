@@ -81,6 +81,7 @@ export class PaymentService {
     const response = {
       transactionId: transaction.id,
       orderId: merchantOrderId,
+      paymentSessionId: order.payment_session_id ?? order.order_token,
       orderToken: order.order_token,
       amount: input.amount,
       status: transaction.status,

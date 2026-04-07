@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -17,12 +18,26 @@ class PaymentStatusScreen extends StatefulWidget {
 
 class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
   late Future<void> _paymentStatusFuture;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _paymentStatusFuture =
         context.read<PaymentProvider>().getPaymentStatus(widget.paymentId);
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      final payment = context.read<PaymentProvider>().currentPayment;
+      if (payment == null || payment.isSuccess || payment.isFailed) {
+        return;
+      }
+      context.read<PaymentProvider>().refreshPaymentStatus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   @override

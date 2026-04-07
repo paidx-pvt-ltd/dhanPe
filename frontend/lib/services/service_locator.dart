@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'http_client.dart';
 import 'auth_service.dart';
+import 'cashfree_service.dart';
 import 'user_service.dart';
 import 'payment_service.dart';
 import 'transaction_service.dart';
@@ -20,6 +21,10 @@ void setupServiceLocator() {
   // Services
   getIt.registerSingleton<AuthService>(
     AuthService(httpClient.getDio(), storage),
+  );
+
+  getIt.registerSingleton<CashfreeService>(
+    CashfreeService(),
   );
 
   getIt.registerSingleton<UserService>(
