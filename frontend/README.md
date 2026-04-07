@@ -28,6 +28,22 @@ To override the backend target explicitly:
 flutter run --dart-define=DHANPE_API_BASE_URL=http://localhost:3000/api
 ```
 
+Preferred mode-based switching:
+
+```bash
+flutter run --dart-define=DHANPE_API_ENV=production
+flutter run --dart-define=DHANPE_API_ENV=local --dart-define=DHANPE_LOCAL_API_BASE_URL=http://192.168.1.10:3000/api
+flutter run --dart-define=DHANPE_API_ENV=android-emulator
+```
+
+Supported compile-time keys:
+
+- `DHANPE_API_ENV=production|local|android-emulator|auto`
+- `DHANPE_API_BASE_URL=...` for a full explicit override
+- `DHANPE_LOCAL_API_BASE_URL=...`
+- `DHANPE_ANDROID_EMULATOR_API_BASE_URL=...`
+- `DHANPE_PRODUCTION_API_BASE_URL=...`
+
 ## Current Flow
 
 1. Login or signup through `/api/auth/*`

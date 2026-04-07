@@ -62,7 +62,9 @@ export class DiditService {
 
     const session = await this.diditClient.getSession(sessionId);
     if (session.vendor_data && session.vendor_data !== userId) {
-      throw new AuthenticationError('This verification session does not belong to the authenticated user');
+      throw new AuthenticationError(
+        'This verification session does not belong to the authenticated user'
+      );
     }
 
     const user = await this.diditRepository.updateUserKycStatus(
@@ -81,7 +83,10 @@ export class DiditService {
     };
   }
 
-  verifyWebhookSignature(payload: DiditWebhookPayload, headers: Record<string, string | undefined>) {
+  verifyWebhookSignature(
+    payload: DiditWebhookPayload,
+    headers: Record<string, string | undefined>
+  ) {
     if (!config.didit.webhookSecret) {
       throw new ServiceUnavailableError('Didit webhook secret is not configured');
     }
@@ -160,7 +165,10 @@ export class DiditService {
     });
   }
 
-  isTestWebhook(headers: Record<string, string | undefined>, payload: DiditWebhookPayload): boolean {
+  isTestWebhook(
+    headers: Record<string, string | undefined>,
+    payload: DiditWebhookPayload
+  ): boolean {
     if (headers['x-didit-test-webhook'] === 'true') {
       return true;
     }

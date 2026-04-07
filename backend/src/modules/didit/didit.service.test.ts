@@ -77,10 +77,7 @@ describe('DiditService', () => {
 
     const result = await service.syncSession('user_1', 'session_1');
 
-    expect(diditRepository.updateUserKycStatus).toHaveBeenCalledWith(
-      'user_1',
-      KYCStatus.APPROVED
-    );
+    expect(diditRepository.updateUserKycStatus).toHaveBeenCalledWith('user_1', KYCStatus.APPROVED);
     expect(result.profile).toMatchObject({
       id: 'user_1',
       kycStatus: KYCStatus.APPROVED,

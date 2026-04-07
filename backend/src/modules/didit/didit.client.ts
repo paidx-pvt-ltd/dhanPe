@@ -48,7 +48,9 @@ export class DiditClient {
 
   async getSession(sessionId: string): Promise<DiditGetSessionResponse> {
     try {
-      const { data } = await this.client.get<DiditGetSessionResponse>(`/session/${sessionId}/`);
+      const { data } = await this.client.get<DiditGetSessionResponse>(
+        `/session/${sessionId}/decision/`
+      );
       return data;
     } catch (error) {
       throw new ExternalServiceError('Failed to fetch Didit verification session', error);
