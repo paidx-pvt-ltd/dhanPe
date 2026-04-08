@@ -2,7 +2,7 @@ name: Deploy to Vercel
 
 on:
   workflow_run:
-    workflows: ["Test and Build"]
+    workflows: ["Backend CI"]
     types:
       - completed
 
