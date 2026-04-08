@@ -275,7 +275,9 @@ export class PaymentService {
         providerBeneficiaryId: providerBeneficiary.beneficiary_id,
         providerStatus: providerBeneficiary.beneficiary_status,
         status:
-          providerBeneficiary.beneficiary_status === 'VERIFIED' ? 'VERIFIED' : 'PENDING_VERIFICATION',
+          providerBeneficiary.beneficiary_status === 'VERIFIED'
+            ? 'VERIFIED'
+            : 'PENDING_VERIFICATION',
         verificationMetadata: providerBeneficiary as unknown as Prisma.InputJsonValue,
       });
     } catch (error) {

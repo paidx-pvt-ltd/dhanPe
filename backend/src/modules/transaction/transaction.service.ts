@@ -23,7 +23,10 @@ export class TransactionService {
       await this.payoutService.syncTransferStatus(transactionId).catch(() => null);
     }
 
-    const refreshedTransaction = await this.transactionRepository.findLifecycle(transactionId, userId);
+    const refreshedTransaction = await this.transactionRepository.findLifecycle(
+      transactionId,
+      userId
+    );
     if (!refreshedTransaction) {
       throw new NotFoundError('Transaction');
     }
@@ -89,15 +92,15 @@ export class TransactionService {
               typeof refreshedTransaction.payout.bankAccount === 'object' &&
               refreshedTransaction.payout.bankAccount !== null
                 ? {
-                    accountHolderName:
-                      (refreshedTransaction.payout.bankAccount as Record<string, unknown>)
-                        .accountHolderName,
-                    accountNumberMask:
-                      (refreshedTransaction.payout.bankAccount as Record<string, unknown>)
-                        .accountNumberMask,
+                    accountHolderName: (
+                      refreshedTransaction.payout.bankAccount as Record<string, unknown>
+                    ).accountHolderName,
+                    accountNumberMask: (
+                      refreshedTransaction.payout.bankAccount as Record<string, unknown>
+                    ).accountNumberMask,
                     ifsc: (refreshedTransaction.payout.bankAccount as Record<string, unknown>).ifsc,
-                    bankName:
-                      (refreshedTransaction.payout.bankAccount as Record<string, unknown>).bankName,
+                    bankName: (refreshedTransaction.payout.bankAccount as Record<string, unknown>)
+                      .bankName,
                   }
                 : null,
             failureReason: refreshedTransaction.payout.failureReason,

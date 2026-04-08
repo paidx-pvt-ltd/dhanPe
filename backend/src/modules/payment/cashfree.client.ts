@@ -76,7 +76,9 @@ export class CashfreeClient {
     }
   }
 
-  async createBeneficiary(payload: CashfreeBeneficiaryRequest): Promise<CashfreeBeneficiaryResponse> {
+  async createBeneficiary(
+    payload: CashfreeBeneficiaryRequest
+  ): Promise<CashfreeBeneficiaryResponse> {
     try {
       const { data } = await this.payoutClient.post<CashfreeBeneficiaryResponse>(
         '/payout/beneficiary',

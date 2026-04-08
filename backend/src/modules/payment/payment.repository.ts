@@ -1,4 +1,11 @@
-import { Beneficiary, BeneficiaryStatus, Prisma, PrismaClient, Transaction, User } from '@prisma/client';
+import {
+  Beneficiary,
+  BeneficiaryStatus,
+  Prisma,
+  PrismaClient,
+  Transaction,
+  User,
+} from '@prisma/client';
 
 type TxLike = PrismaClient | Prisma.TransactionClient;
 

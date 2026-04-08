@@ -73,12 +73,18 @@ export class PayoutService {
       return;
     }
 
-    if (payoutRecord.status === PayoutStatus.SUBMITTED || payoutRecord.status === PayoutStatus.PROCESSING) {
+    if (
+      payoutRecord.status === PayoutStatus.SUBMITTED ||
+      payoutRecord.status === PayoutStatus.PROCESSING
+    ) {
       await this.syncTransferStatus(transactionId);
       return;
     }
 
-    if (payoutRecord.status !== PayoutStatus.PENDING && payoutRecord.status !== PayoutStatus.QUEUED) {
+    if (
+      payoutRecord.status !== PayoutStatus.PENDING &&
+      payoutRecord.status !== PayoutStatus.QUEUED
+    ) {
       return;
     }
 
@@ -96,7 +102,11 @@ export class PayoutService {
         status: PayoutStatus.PROCESSING,
         nextRetryAt: this.computeRetryAt(1),
       });
-      await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, PayoutStatus.PROCESSING);
+      await this.payoutRepository.updateTransactionPayoutStatus(
+        tx,
+        transactionId,
+        PayoutStatus.PROCESSING
+      );
 
       return this.payoutRepository.createAttempt(tx, {
         payoutId: payoutRecord.id,
@@ -147,7 +157,13 @@ export class PayoutService {
         });
 
         if (mappedStatus === PayoutStatus.SUCCESS) {
-          await this.finalizeSuccessfulPayout(tx, payoutRecord.transaction.userId, transactionId, payoutRecord.id, payoutRecord.transaction.netPayoutAmount);
+          await this.finalizeSuccessfulPayout(
+            tx,
+            payoutRecord.transaction.userId,
+            transactionId,
+            payoutRecord.id,
+            payoutRecord.transaction.netPayoutAmount
+          );
         }
       });
     } catch (error) {
@@ -172,7 +188,10 @@ export class PayoutService {
       return payoutRecord.status;
     }
 
-    const statusResponse = await this.cashfreeClient.getPayoutStatus(transactionId, payoutRecord.providerRef);
+    const statusResponse = await this.cashfreeClient.getPayoutStatus(
+      transactionId,
+      payoutRecord.providerRef
+    );
     const mappedStatus = this.mapProviderStatus(statusResponse.status);
 
     const latestAttempt = payoutRecord.attempts[0];
@@ -192,14 +211,24 @@ export class PayoutService {
         providerStatus: statusResponse.status,
         lastSyncAt: new Date(),
         syncAttempts: payoutRecord.syncAttempts + 1,
-        nextRetryAt: mappedStatus === PayoutStatus.SUCCESS ? null : this.computeRetryAt(payoutRecord.syncAttempts + 1),
+        nextRetryAt:
+          mappedStatus === PayoutStatus.SUCCESS
+            ? null
+            : this.computeRetryAt(payoutRecord.syncAttempts + 1),
         statusDetails: statusResponse as unknown as Prisma.InputJsonValue,
-        failureReason: mappedStatus === PayoutStatus.FAILED ? statusResponse.status_description : undefined,
+        failureReason:
+          mappedStatus === PayoutStatus.FAILED ? statusResponse.status_description : undefined,
       });
       await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, mappedStatus);
 
       if (mappedStatus === PayoutStatus.SUCCESS) {
-        await this.finalizeSuccessfulPayout(tx, payoutRecord.transaction.userId, transactionId, payoutRecord.id, payoutRecord.transaction.netPayoutAmount);
+        await this.finalizeSuccessfulPayout(
+          tx,
+          payoutRecord.transaction.userId,
+          transactionId,
+          payoutRecord.id,
+          payoutRecord.transaction.netPayoutAmount
+        );
       }
     });
 
@@ -248,7 +277,11 @@ export class PayoutService {
         lastSyncAt: new Date(),
         nextRetryAt: this.computeRetryAt(attempts),
       });
-      await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, PayoutStatus.FAILED);
+      await this.payoutRepository.updateTransactionPayoutStatus(
+        tx,
+        transactionId,
+        PayoutStatus.FAILED
+      );
     });
   }
 

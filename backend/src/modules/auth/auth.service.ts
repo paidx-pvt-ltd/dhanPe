@@ -57,20 +57,20 @@ export class AuthService {
 
   private async buildAuthResponse(
     user: {
-    id: string;
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-    phoneNumber?: string | null;
-    addressLine1?: string | null;
-    city?: string | null;
-    state?: string | null;
-    postalCode?: string | null;
-    countryCode?: string | null;
-    kycStatus?: string;
-    balance?: { toString(): string } | number | string;
-    createdAt?: Date;
-  },
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      phoneNumber?: string | null;
+      addressLine1?: string | null;
+      city?: string | null;
+      state?: string | null;
+      postalCode?: string | null;
+      countryCode?: string | null;
+      kycStatus?: string;
+      balance?: { toString(): string } | number | string;
+      createdAt?: Date;
+    },
     rotateFromTokenId?: string
   ) {
     const payload = {
