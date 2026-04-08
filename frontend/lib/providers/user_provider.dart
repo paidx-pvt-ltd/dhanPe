@@ -65,6 +65,11 @@ class UserProvider extends ChangeNotifier {
     required String firstName,
     required String lastName,
     String? phoneNumber,
+    String? addressLine1,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? countryCode,
   }) async {
     _isLoading = true;
     _error = null;
@@ -75,6 +80,11 @@ class UserProvider extends ChangeNotifier {
         firstName: firstName,
         lastName: lastName,
         phoneNumber: phoneNumber,
+        addressLine1: addressLine1,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        countryCode: countryCode,
       );
       _syncKycPolling();
     } on ApiError catch (e) {

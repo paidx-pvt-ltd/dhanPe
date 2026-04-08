@@ -20,6 +20,24 @@ export class JwtService {
     } as SignOptions);
   }
 
+  static getRefreshTokenExpiryDate(): Date {
+    const expiry = config.jwt.refreshExpiry;
+    const now = new Date();
+    const match = /^(\d+)([smhd])$/.exec(expiry);
+
+    if (!match) {
+      now.setDate(now.getDate() + 7);
+      return now;
+    }
+
+    const value = Number(match[1]);
+    const unit = match[2];
+    const multiplier =
+      unit === 's' ? 1000 : unit === 'm' ? 60_000 : unit === 'h' ? 3_600_000 : 86_400_000;
+
+    return new Date(Date.now() + value * multiplier);
+  }
+
   static verifyAccessToken(token: string): JwtPayload {
     try {
       return jwt.verify(token, config.jwt.secret) as JwtPayload;

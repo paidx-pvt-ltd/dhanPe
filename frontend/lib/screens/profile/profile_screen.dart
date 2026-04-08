@@ -16,6 +16,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _postalCodeController = TextEditingController();
   bool _initialized = false;
 
   @override
@@ -40,6 +44,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstNameController.text = user?.firstName ?? '';
     _lastNameController.text = user?.lastName ?? '';
     _phoneController.text = user?.phoneNumber ?? '';
+    _addressController.text = user?.addressLine1 ?? '';
+    _cityController.text = user?.city ?? '';
+    _stateController.text = user?.state ?? '';
+    _postalCodeController.text = user?.postalCode ?? '';
     _initialized = true;
   }
 
@@ -48,6 +56,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _postalCodeController.dispose();
     super.dispose();
   }
 
@@ -55,13 +67,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = context.read<UserProvider>();
-    await provider.updateProfile(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      phoneNumber: _phoneController.text.trim().isEmpty
-          ? null
-          : _phoneController.text.trim(),
-    );
+      await provider.updateProfile(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
+        addressLine1: _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
+        city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
+        state: _stateController.text.trim().isEmpty ? null : _stateController.text.trim(),
+        postalCode: _postalCodeController.text.trim().isEmpty
+            ? null
+            : _postalCodeController.text.trim(),
+      );
 
     if (!mounted) return;
 
@@ -166,6 +186,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         prefixIcon: Icon(Icons.phone_outlined),
                       ),
                       keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _addressController,
+                      decoration: const InputDecoration(
+                        labelText: 'Address line 1',
+                        prefixIcon: Icon(Icons.home_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _cityController,
+                      decoration: const InputDecoration(
+                        labelText: 'City',
+                        prefixIcon: Icon(Icons.location_city_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _stateController,
+                      decoration: const InputDecoration(
+                        labelText: 'State',
+                        prefixIcon: Icon(Icons.map_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _postalCodeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Postal code',
+                        prefixIcon: Icon(Icons.markunread_mailbox_outlined),
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(

@@ -11,6 +11,7 @@ import { userRoutes } from './modules/user/user.routes.js';
 import { paymentRoutes } from './modules/payment/payment.routes.js';
 import { transactionRoutes } from './modules/transaction/transaction.routes.js';
 import { webhookRoutes } from './modules/webhook/webhook.routes.js';
+import { payoutRoutes } from './modules/payout/payout.routes.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { diditRoutes } from './modules/didit/didit.routes.js';
 import { diditWebhookRoutes } from './modules/didit/didit-webhook.routes.js';
@@ -96,6 +97,8 @@ app.use('/transfer', paymentRoutes);
 app.use('/api/transfer', paymentRoutes);
 app.use('/transaction', transactionRoutes);
 app.use('/api/transaction', transactionRoutes);
+app.use('/payout', payoutRoutes);
+app.use('/api/payout', payoutRoutes);
 
 app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });

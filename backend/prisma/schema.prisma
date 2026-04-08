@@ -16,6 +16,11 @@ model User {
   firstName    String?
   lastName     String?
   phoneNumber  String?
+  addressLine1 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  countryCode  String       @default("+91")
   kycStatus    KYCStatus    @default(PENDING)
   balance      Decimal      @default(0) @db.Decimal(18, 2)
   createdAt    DateTime     @default(now())
@@ -23,6 +28,7 @@ model User {
   isActive     Boolean      @default(true)
 
   transactions   Transaction[]
+  beneficiaries  Beneficiary[]
   ledgerEntries  Ledger[]
   refreshTokens  RefreshToken[]
   riskProfile    RiskProfile?
@@ -37,6 +43,12 @@ model Transaction {
   userId          String
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount          Decimal           @db.Decimal(18, 2)
+  grossAmount     Decimal           @default(0) @db.Decimal(18, 2)
+  platformFeeAmount Decimal         @default(0) @db.Decimal(18, 2)
+  taxAmount       Decimal           @default(0) @db.Decimal(18, 2)
+  netPayoutAmount Decimal           @default(0) @db.Decimal(18, 2)
+  currency        String            @default("INR")
+  feeRuleVersion  String            @default("v1")
   status          TransactionStatus @default(INITIATED)
   paymentProvider PaymentProvider   @default(CASHFREE)
   orderId         String            @unique
@@ -44,6 +56,8 @@ model Transaction {
   paymentId       String?           @unique
   payoutStatus    PayoutStatus      @default(PENDING)
   bankAccount     Json
+  beneficiaryId   String?
+  beneficiary     Beneficiary?      @relation(fields: [beneficiaryId], references: [id], onDelete: SetNull)
   description     String?
   idempotencyKey  String?           @unique
   metadata        Json?
@@ -52,10 +66,38 @@ model Transaction {
 
   ledgerEntries Ledger[]
   payout        Payout?
+  journalEntries JournalEntry[]
+
+  @@index([userId, createdAt])
+  @@index([beneficiaryId, createdAt])
+  @@index([status, createdAt])
+  @@index([payoutStatus, createdAt])
+}
+
+model Beneficiary {
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              BeneficiaryType    @default(BANK_ACCOUNT)
+  label             String?
+  accountHolderName String
+  accountNumberMask String
+  accountNumberHash String
+  ifsc              String?
+  upiHandle         String?
+  status            BeneficiaryStatus  @default(PENDING_VERIFICATION)
+  rawDetails        Json
+  providerBeneficiaryId String?
+  providerStatus    String?
+  verificationMetadata Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  transactions Transaction[]
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
-  @@index([payoutStatus, createdAt])
+  @@unique([userId, accountNumberHash, ifsc])
 }
 
 model Ledger {
@@ -82,10 +124,35 @@ model Payout {
   status        PayoutStatus @default(PENDING)
   bankAccount   Json
   providerRef   String?
+  providerStatus String?
+  syncAttempts  Int          @default(0)
+  lastSyncAt    DateTime?
+  nextRetryAt   DateTime?
+  statusDetails Json?
   failureReason String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
+  attempts      PayoutAttempt[]
+
+  @@index([status, createdAt])
+}
+
+model PayoutAttempt {
+  id             String       @id @default(cuid())
+  payoutId        String
+  payout          Payout       @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+  idempotencyKey  String       @unique
+  status          PayoutStatus @default(PENDING)
+  providerRef     String?
+  providerStatus  String?
+  requestPayload  Json
+  responsePayload Json?
+  errorMessage    String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([payoutId, createdAt])
   @@index([status, createdAt])
 }
 
@@ -106,12 +173,46 @@ model RefreshToken {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
+  tokenHash String   @unique
   expiresAt DateTime
   revokedAt DateTime?
+  replacedByTokenId String?
+  lastUsedAt DateTime?
+  deviceInfo Json?
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model JournalEntry {
+  id            String         @id @default(cuid())
+  transactionId String?
+  transaction   Transaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  referenceId   String
+  kind          JournalEntryKind
+  memo          String?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+
+  lines JournalLine[]
+
+  @@index([transactionId, createdAt])
+  @@index([referenceId])
+  @@index([kind, createdAt])
+}
+
+model JournalLine {
+  id        String         @id @default(cuid())
+  entryId   String
+  entry     JournalEntry   @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account   JournalAccount
+  debit     Decimal        @default(0) @db.Decimal(18, 2)
+  credit    Decimal        @default(0) @db.Decimal(18, 2)
+  createdAt DateTime       @default(now())
+
+  @@index([entryId])
+  @@index([account, createdAt])
 }
 
 model WebhookEvent {
@@ -167,11 +268,40 @@ enum LedgerEntryType {
 
 enum PayoutStatus {
   PENDING
+  QUEUED
   PROCESSING
+  SUBMITTED
   SUCCESS
   FAILED
 }
 
 enum PaymentProvider {
   CASHFREE
+}
+
+enum BeneficiaryType {
+  BANK_ACCOUNT
+  UPI
+}
+
+enum BeneficiaryStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum JournalEntryKind {
+  PAYMENT_CAPTURED
+  PLATFORM_FEE_RECORDED
+  PAYOUT_SUBMITTED
+  PAYOUT_SETTLED
+  PAYOUT_FAILED
+}
+
+enum JournalAccount {
+  GATEWAY_CLEARING
+  CUSTOMER_FUNDS_LIABILITY
+  PLATFORM_REVENUE
+  TAX_PAYABLE
+  PAYOUT_CLEARING
 }

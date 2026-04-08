@@ -1,4 +1,11 @@
-import { Prisma, PrismaClient, Payout, PayoutStatus, Transaction } from '@prisma/client';
+import {
+  Prisma,
+  PrismaClient,
+  Payout,
+  PayoutAttempt,
+  PayoutStatus,
+  Transaction,
+} from '@prisma/client';
 
 type TxLike = PrismaClient | Prisma.TransactionClient;
 
@@ -18,7 +25,7 @@ export class PayoutRepository {
       create: {
         txnId: data.txnId,
         bankAccount: data.bankAccount,
-        status: PayoutStatus.PENDING,
+        status: PayoutStatus.QUEUED,
       },
     });
   }
@@ -27,8 +34,47 @@ export class PayoutRepository {
     return this.db.payout.findUnique({
       where: { txnId },
       include: {
-        transaction: true,
+        attempts: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        transaction: {
+          include: {
+            beneficiary: true,
+          },
+        },
       },
+    });
+  }
+
+  findPendingWork(limit = 25) {
+    return this.db.payout.findMany({
+      where: {
+        status: {
+          in: [PayoutStatus.QUEUED, PayoutStatus.PROCESSING, PayoutStatus.SUBMITTED],
+        },
+        OR: [
+          { nextRetryAt: null },
+          {
+            nextRetryAt: {
+              lte: new Date(),
+            },
+          },
+        ],
+      },
+      include: {
+        attempts: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        transaction: {
+          include: {
+            beneficiary: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: limit,
     });
   }
 
@@ -38,11 +84,34 @@ export class PayoutRepository {
     data: {
       status: PayoutStatus;
       providerRef?: string;
+      providerStatus?: string;
+      syncAttempts?: number;
+      lastSyncAt?: Date | null;
+      nextRetryAt?: Date | null;
+      statusDetails?: Prisma.InputJsonValue;
       failureReason?: string;
     }
   ) {
     return tx.payout.update({
       where: { id: payoutId },
+      data,
+    });
+  }
+
+  createAttempt(
+    tx: TxLike,
+    data: Prisma.PayoutAttemptUncheckedCreateInput
+  ): Promise<PayoutAttempt> {
+    return tx.payoutAttempt.create({ data });
+  }
+
+  updateAttempt(
+    tx: TxLike,
+    attemptId: string,
+    data: Prisma.PayoutAttemptUncheckedUpdateInput
+  ): Promise<PayoutAttempt> {
+    return tx.payoutAttempt.update({
+      where: { id: attemptId },
       data,
     });
   }

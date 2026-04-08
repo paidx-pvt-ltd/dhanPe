@@ -10,10 +10,17 @@ export class TransactionRepository {
         userId,
       },
       include: {
+        beneficiary: true,
         ledgerEntries: {
           orderBy: { createdAt: 'asc' },
         },
         payout: true,
+        journalEntries: {
+          include: {
+            lines: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
         user: {
           select: {
             id: true,

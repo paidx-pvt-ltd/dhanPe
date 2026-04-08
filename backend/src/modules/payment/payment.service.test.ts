@@ -7,6 +7,9 @@ describe('PaymentService', () => {
   const paymentRepository = {
     findUser: vi.fn(),
     findIdempotencyKey: vi.fn(),
+    findVerifiedBeneficiary: vi.fn(),
+    createBeneficiary: vi.fn(),
+    updateBeneficiary: vi.fn(),
     createTransaction: vi.fn(),
     updateTransactionOrder: vi.fn(),
     saveIdempotencyRecord: vi.fn(),
@@ -18,6 +21,7 @@ describe('PaymentService', () => {
 
   const cashfreeClient = {
     createOrder: vi.fn(),
+    createBeneficiary: vi.fn(),
   };
 
   const db = {
@@ -40,13 +44,35 @@ describe('PaymentService', () => {
       id: 'user_1',
       email: 'user@example.com',
       phoneNumber: '9999999999',
+      firstName: 'Test',
+      lastName: 'User',
+      addressLine1: '221B Baker Street',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      postalCode: '560001',
+      countryCode: '+91',
       isActive: true,
       kycStatus: KYCStatus.APPROVED,
     });
     paymentRepository.findIdempotencyKey.mockResolvedValue(null);
+    paymentRepository.findVerifiedBeneficiary.mockResolvedValue(null);
     db.$transaction.mockImplementation(async (handler: (tx: unknown) => Promise<unknown>) =>
       handler({})
     );
+    paymentRepository.createBeneficiary.mockResolvedValue({
+      id: 'beneficiary_1',
+      accountHolderName: 'Test User',
+      accountNumberMask: 'XXXXXX7890',
+      ifsc: 'HDFC0001234',
+      status: 'PENDING_VERIFICATION',
+    });
+    paymentRepository.updateBeneficiary.mockResolvedValue({
+      id: 'beneficiary_1',
+      accountHolderName: 'Test User',
+      accountNumberMask: 'XXXXXX7890',
+      ifsc: 'HDFC0001234',
+      status: 'VERIFIED',
+    });
     paymentRepository.createTransaction.mockResolvedValue({
       id: 'txn_1',
       status: TransactionStatus.INITIATED,
@@ -56,6 +82,10 @@ describe('PaymentService', () => {
       order_id: 'order_1',
       order_token: 'token_123',
       order_status: 'ACTIVE',
+    });
+    cashfreeClient.createBeneficiary.mockResolvedValue({
+      beneficiary_id: 'cf_bene_1',
+      beneficiary_status: 'VERIFIED',
     });
 
     const result = (await service.createTransfer(
@@ -85,7 +115,7 @@ describe('PaymentService', () => {
         userId: 'user_1',
         status: TransactionStatus.INITIATED,
         paymentProvider: PaymentProvider.CASHFREE,
-        payoutStatus: PayoutStatus.PENDING,
+        payoutStatus: PayoutStatus.QUEUED,
         idempotencyKey: 'idem-123',
       })
     );
@@ -99,7 +129,7 @@ describe('PaymentService', () => {
     expect(result.transactionId).toBe('txn_1');
     expect(result.orderId).toEqual(expect.any(String));
     expect(result.orderToken).toBe('token_123');
-    expect(result.amount).toBe(5000);
+    expect(result.amount).toBe(5075);
     expect(result.status).toBe(TransactionStatus.INITIATED);
   });
 
@@ -108,6 +138,13 @@ describe('PaymentService', () => {
       id: 'user_1',
       email: 'user@example.com',
       phoneNumber: '9999999999',
+      firstName: 'Test',
+      lastName: 'User',
+      addressLine1: '221B Baker Street',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      postalCode: '560001',
+      countryCode: '+91',
       isActive: true,
       kycStatus: KYCStatus.APPROVED,
     });
@@ -127,7 +164,7 @@ describe('PaymentService', () => {
         transactionId: 'txn_existing',
         orderId: 'existing_order',
         orderToken: 'existing_token',
-        amount: 5000,
+        amount: 5075,
         status: TransactionStatus.INITIATED,
       },
     });
@@ -156,7 +193,7 @@ describe('PaymentService', () => {
       transactionId: 'txn_existing',
       orderId: 'existing_order',
       orderToken: 'existing_token',
-      amount: 5000,
+      amount: 5075,
       status: TransactionStatus.INITIATED,
     });
     expect(riskService.evaluateTransfer).not.toHaveBeenCalled();

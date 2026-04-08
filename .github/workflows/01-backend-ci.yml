@@ -1,17 +1,30 @@
-name: Test and Build
+name: Backend CI
 
 on:
-  workflow_run:
-    workflows: ["Security and Code Quality"]
-    types:
-      - completed
+  pull_request:
+    branches: [develop, staging, main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/01-backend-ci.yml'
+      - '.github/workflows/03-deploy-vercel.yml'
+  push:
+    branches: [develop, staging, main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/01-backend-ci.yml'
+      - '.github/workflows/03-deploy-vercel.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
+  security-events: write
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test-and-build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  backend-ci:
     runs-on: ubuntu-latest
 
     services:
@@ -30,14 +43,18 @@ jobs:
           --health-retries=5
 
     steps:
-      - name: Debug trigger
-        run: |
-          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
-          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
-
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkmarx AST Github Action
+        uses: Checkmarx/ast-github-action@c52fa63dbd4916520882e10456d66ff4dd7bf754
+        with:
+          base_uri: https://ind.ast.checkmarx.net
+          cx_tenant: ama-partners
+          cx_client_id: dhruv-integrations
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+          project_name: manual-financeapp
+          additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -56,6 +73,18 @@ jobs:
             pg_isready -h localhost -p 5432 && break
             sleep 3
           done
+
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Format check
+        working-directory: backend
+        run: npm run format:check
+
+      - name: Type check
+        working-directory: backend
+        run: npx tsc --noEmit
 
       - name: Setup DB
         working-directory: backend

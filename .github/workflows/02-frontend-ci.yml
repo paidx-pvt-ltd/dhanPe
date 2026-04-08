@@ -1,24 +1,29 @@
-name: Security and Code Quality
+name: Frontend CI
 
 on:
   pull_request:
     branches: [develop, staging, main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/02-frontend-ci.yml'
   push:
     branches: [develop, staging, main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/02-frontend-ci.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
   security-events: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: frontend-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  security:
+  frontend-ci:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
 
     steps:
       - name: Checkout
@@ -34,34 +39,20 @@ jobs:
           project_name: manual-financeapp
           additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1"
 
-  quality:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
+          channel: stable
+          cache: true
 
       - name: Install dependencies
-        working-directory: backend
-        run: npm ci
+        working-directory: frontend
+        run: flutter pub get
 
-      - name: Lint
-        working-directory: backend
-        run: npm run lint
+      - name: Analyze
+        working-directory: frontend
+        run: flutter analyze
 
-      - name: Format check
-        working-directory: backend
-        run: npm run format:check
-
-      - name: Type check
-        working-directory: backend
-        run: npx tsc --noEmit
+      - name: Run tests
+        working-directory: frontend
+        run: flutter test

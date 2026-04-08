@@ -1,4 +1,4 @@
-import { PrismaClient, User } from '@prisma/client';
+import { PrismaClient, RefreshToken, User } from '@prisma/client';
 
 export class AuthRepository {
   constructor(private readonly db: PrismaClient) {}
@@ -19,5 +19,40 @@ export class AuthRepository {
     phoneNumber?: string;
   }): Promise<User> {
     return this.db.user.create({ data });
+  }
+
+  createRefreshToken(data: {
+    userId: string;
+    token: string;
+    tokenHash: string;
+    expiresAt: Date;
+    deviceInfo?: object;
+  }): Promise<RefreshToken> {
+    return this.db.refreshToken.create({
+      data,
+    });
+  }
+
+  findActiveRefreshToken(tokenHash: string) {
+    return this.db.refreshToken.findFirst({
+      where: {
+        tokenHash,
+        revokedAt: null,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+    });
+  }
+
+  revokeRefreshToken(id: string, replacedByTokenId?: string) {
+    return this.db.refreshToken.update({
+      where: { id },
+      data: {
+        revokedAt: new Date(),
+        replacedByTokenId,
+        lastUsedAt: new Date(),
+      },
+    });
   }
 }

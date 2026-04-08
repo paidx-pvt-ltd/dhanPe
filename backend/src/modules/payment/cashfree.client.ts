@@ -2,10 +2,13 @@ import axios, { AxiosInstance } from 'axios';
 import { config } from '../../config/index.js';
 import { ExternalServiceError } from '../../shared/errors.js';
 import {
+  CashfreeBeneficiaryRequest,
+  CashfreeBeneficiaryResponse,
   CashfreeOrderRequest,
   CashfreeOrderResponse,
   CashfreePayoutRequest,
   CashfreePayoutResponse,
+  CashfreeTransferStatusResponse,
 } from './payment.types.js';
 
 export class CashfreeClient {
@@ -16,7 +19,7 @@ export class CashfreeClient {
     const headers = {
       'x-client-id': config.cashfree.clientId,
       'x-client-secret': config.cashfree.clientSecret,
-      'x-api-version': '2023-08-01',
+      'x-api-version': '2024-01-01',
     };
 
     this.orderClient = axios.create({
@@ -50,6 +53,40 @@ export class CashfreeClient {
       return data;
     } catch (error) {
       throw new ExternalServiceError('Failed to create Cashfree payout', error);
+    }
+  }
+
+  async getPayoutStatus(
+    transferId: string,
+    cfTransferId?: string
+  ): Promise<CashfreeTransferStatusResponse> {
+    try {
+      const { data } = await this.payoutClient.get<CashfreeTransferStatusResponse>(
+        '/payout/transfers',
+        {
+          params: {
+            transfer_id: transferId,
+            ...(cfTransferId ? { cf_transfer_id: cfTransferId } : {}),
+          },
+        }
+      );
+      return data;
+    } catch (error) {
+      throw new ExternalServiceError('Failed to fetch Cashfree payout status', error);
+    }
+  }
+
+  async createBeneficiary(
+    payload: CashfreeBeneficiaryRequest
+  ): Promise<CashfreeBeneficiaryResponse> {
+    try {
+      const { data } = await this.payoutClient.post<CashfreeBeneficiaryResponse>(
+        '/payout/beneficiary',
+        payload
+      );
+      return data;
+    } catch (error) {
+      throw new ExternalServiceError('Failed to create Cashfree beneficiary', error);
     }
   }
 }

@@ -5,9 +5,12 @@ type TxLike = PrismaClient | Prisma.TransactionClient;
 export class WebhookRepository {
   constructor(private readonly db: PrismaClient) {}
 
-  findTransactionByOrderId(orderId: string): Promise<Transaction | null> {
+  findTransactionByOrderId(orderId: string) {
     return this.db.transaction.findUnique({
       where: { orderId },
+      include: {
+        beneficiary: true,
+      },
     });
   }
 

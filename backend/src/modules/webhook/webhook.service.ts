@@ -68,7 +68,7 @@ export class WebhookService {
     }
 
     const webhookAmount = Number(payload.order_amount);
-    if (Number.isNaN(webhookAmount) || toNumber(transaction.amount) !== webhookAmount) {
+    if (Number.isNaN(webhookAmount) || toNumber(transaction.grossAmount) !== webhookAmount) {
       await this.db.$transaction((tx) =>
         this.webhookRepository.markEventProcessed(tx, event.id, false, 'Amount mismatch')
       );
@@ -95,12 +95,22 @@ export class WebhookService {
           userId: transaction.userId,
           transactionId: transaction.id,
           type: LedgerEntryType.CREDIT,
-          amount: transaction.amount,
+          amount: transaction.netPayoutAmount,
           referenceId: transaction.id,
+        });
+        await this.ledgerService.recordPaymentCaptured(tx, {
+          transactionId: transaction.id,
+          referenceId: transaction.id,
+          grossAmount: transaction.grossAmount,
+          netPayoutAmount: transaction.netPayoutAmount,
+          platformFeeAmount: transaction.platformFeeAmount,
+          taxAmount: transaction.taxAmount,
         });
         await this.payoutRepository.createOrGetPendingPayout(tx, {
           txnId: transaction.id,
-          bankAccount: transaction.bankAccount as Prisma.InputJsonValue,
+          bankAccount:
+            (transaction.beneficiary?.rawDetails as Prisma.InputJsonValue) ??
+            (transaction.bankAccount as Prisma.InputJsonValue),
         });
         await this.webhookRepository.markEventProcessed(tx, event.id, true);
       });
