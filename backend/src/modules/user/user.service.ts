@@ -17,6 +17,11 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       phoneNumber: user.phoneNumber,
+      addressLine1: user.addressLine1,
+      city: user.city,
+      state: user.state,
+      postalCode: user.postalCode,
+      countryCode: user.countryCode,
       kycStatus: user.kycStatus,
       balance: toNumber(user.balance),
       createdAt: user.createdAt,
@@ -25,7 +30,16 @@ export class UserService {
 
   async updateProfile(
     userId: string,
-    data: { firstName?: string; lastName?: string; phoneNumber?: string }
+    data: {
+      firstName?: string;
+      lastName?: string;
+      phoneNumber?: string;
+      addressLine1?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+      countryCode?: string;
+    }
   ) {
     const user = await this.userRepository.updateProfile(userId, data);
     return {
@@ -34,6 +48,11 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       phoneNumber: user.phoneNumber,
+      addressLine1: user.addressLine1,
+      city: user.city,
+      state: user.state,
+      postalCode: user.postalCode,
+      countryCode: user.countryCode,
       kycStatus: user.kycStatus,
       balance: toNumber(user.balance),
       createdAt: user.createdAt,

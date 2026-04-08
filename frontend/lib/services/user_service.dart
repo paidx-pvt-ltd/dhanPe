@@ -37,6 +37,11 @@ class UserService {
     required String firstName,
     required String lastName,
     String? phoneNumber,
+    String? addressLine1,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? countryCode,
   }) async {
     try {
       final response = await _dio.patch(
@@ -45,6 +50,11 @@ class UserService {
           'firstName': firstName,
           'lastName': lastName,
           'phoneNumber': phoneNumber,
+          'addressLine1': addressLine1,
+          'city': city,
+          'state': state,
+          'postalCode': postalCode,
+          'countryCode': countryCode,
         },
       );
 

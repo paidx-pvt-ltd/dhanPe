@@ -65,6 +65,7 @@ export const config = {
   },
   queue: {
     concurrency: parseNumber(process.env.PAYOUT_QUEUE_CONCURRENCY, 1),
+    pollIntervalMs: parseNumber(process.env.PAYOUT_QUEUE_POLL_INTERVAL_MS, 15000),
   },
 };
 

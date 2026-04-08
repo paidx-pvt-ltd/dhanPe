@@ -14,6 +14,7 @@ describe('WebhookService', () => {
 
   const ledgerService = {
     recordEntry: vi.fn(),
+    recordPaymentCaptured: vi.fn(),
   };
 
   const payoutRepository = {
@@ -46,7 +47,7 @@ describe('WebhookService', () => {
   it('marks a valid paid webhook as processed, credits the ledger, and enqueues payout', async () => {
     const rawBody = JSON.stringify({
       order_id: 'order_1',
-      order_amount: 5000,
+      order_amount: 5075,
       payment_status: 'SUCCESS',
       cf_payment_id: 'pay_1',
     });
@@ -56,18 +57,29 @@ describe('WebhookService', () => {
     webhookRepository.findTransactionByOrderId.mockResolvedValue({
       id: 'txn_1',
       userId: 'user_1',
-      amount: new Prisma.Decimal(5000),
+      amount: new Prisma.Decimal(5075),
+      grossAmount: new Prisma.Decimal(5075),
+      platformFeeAmount: new Prisma.Decimal(75),
+      taxAmount: new Prisma.Decimal(0),
+      netPayoutAmount: new Prisma.Decimal(5000),
       bankAccount: {
         accountHolderName: 'Test User',
         accountNumber: '1234567890',
         ifsc: 'HDFC0001234',
+      },
+      beneficiary: {
+        rawDetails: {
+          accountHolderName: 'Test User',
+          accountNumber: '1234567890',
+          ifsc: 'HDFC0001234',
+        },
       },
       status: TransactionStatus.INITIATED,
     });
 
     await service.processCashfreeWebhook(rawBody, {
       order_id: 'order_1',
-      order_amount: 5000,
+      order_amount: 5075,
       payment_status: 'SUCCESS',
       cf_payment_id: 'pay_1',
     });
@@ -81,6 +93,7 @@ describe('WebhookService', () => {
         type: LedgerEntryType.CREDIT,
       })
     );
+    expect(ledgerService.recordPaymentCaptured).toHaveBeenCalled();
     expect(payoutRepository.createOrGetPendingPayout).toHaveBeenCalled();
     expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith({}, 'event_1', true);
     expect(payoutService.enqueue).toHaveBeenCalledWith('txn_1');

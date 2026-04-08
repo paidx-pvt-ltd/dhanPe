@@ -110,3 +110,6 @@ Primary routes exposed by the app today:
 - Inject production env vars from the deployment platform.
 - Use `backend/.env.production` only as a checklist/template, not as a committed secrets file.
 - Set Flutter production API endpoints with `--dart-define=DHANPE_API_BASE_URL=...`.
+
+/////////////////////////////////////////////////////////////////
+flutter run --dart-define=DHANPE_API_ENV=production --dart-define=DHANPE_CASHFREE_ENV=sandbox

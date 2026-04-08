@@ -13,6 +13,11 @@ export class UserRepository {
       firstName?: string;
       lastName?: string;
       phoneNumber?: string;
+      addressLine1?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+      countryCode?: string;
     }
   ): Promise<User> {
     return this.db.user.update({
