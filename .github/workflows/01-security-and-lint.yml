@@ -10,9 +10,34 @@ permissions:
   contents: read
   security-events: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  security-lint:
+  security:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkmarx AST Github Action
+        uses: Checkmarx/ast-github-action@c52fa63dbd4916520882e10456d66ff4dd7bf754
+        with:
+          base_uri: https://ind.ast.checkmarx.net
+          cx_tenant: ama-partners
+          cx_client_id: dhruv-integrations
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+          project_name: manual-financeapp
+          additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1"
+
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
 
     steps:
       - name: Checkout
@@ -40,7 +65,3 @@ jobs:
       - name: Type check
         working-directory: backend
         run: npx tsc --noEmit
-
-      - name: Dependency audit (fail on high)
-        working-directory: backend
-        run: npm audit --audit-level=high
