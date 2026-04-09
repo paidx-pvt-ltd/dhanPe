@@ -11,7 +11,10 @@ import { submitPanSchema, updateProfileSchema } from './user.schemas.js';
 import { asHandler } from '../../shared/http.js';
 
 const repository = new UserRepository(prisma);
-const service = new UserService(repository, new PanVerificationService(fintechRuntime.cashfreeClient));
+const service = new UserService(
+  repository,
+  new PanVerificationService(fintechRuntime.cashfreeClient)
+);
 const controller = new UserController(service);
 
 export const userRoutes = Router();

@@ -12,7 +12,10 @@ export const updateProfileSchema = z.object({
 });
 
 export const submitPanSchema = z.object({
-  panNumber: z.string().trim().regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/),
+  panNumber: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/),
   legalName: z.string().trim().min(2).max(120).optional(),
 });
 

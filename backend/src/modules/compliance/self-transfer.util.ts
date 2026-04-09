@@ -57,7 +57,8 @@ export const isSelfTransfer = (userPanName: string, beneficiaryName: string): bo
   }
 
   const distance = levenshteinDistance(normalizedPanName, normalizedBeneficiaryName);
-  const similarity = 1 - distance / Math.max(normalizedPanName.length, normalizedBeneficiaryName.length);
+  const similarity =
+    1 - distance / Math.max(normalizedPanName.length, normalizedBeneficiaryName.length);
 
   return similarity >= 0.88;
 };

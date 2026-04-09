@@ -18,7 +18,10 @@ export class UserController {
     res.json({ success: true, data: profile });
   };
 
-  submitPan = async (req: Request<unknown, unknown, SubmitPanDto>, res: Response): Promise<void> => {
+  submitPan = async (
+    req: Request<unknown, unknown, SubmitPanDto>,
+    res: Response
+  ): Promise<void> => {
     const result = await this.userService.submitPan(req.userId!, req.body);
     res.status(201).json({ success: true, data: result });
   };

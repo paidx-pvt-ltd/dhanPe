@@ -15,7 +15,11 @@ const controller = new AuthController(service);
 
 export const authRoutes = Router();
 
-authRoutes.get('/widget-config', validate(widgetConfigSchema), asHandler(controller.getWidgetConfig));
+authRoutes.get(
+  '/widget-config',
+  validate(widgetConfigSchema),
+  asHandler(controller.getWidgetConfig)
+);
 authRoutes.post(
   '/verify-otp',
   authLimiter,
