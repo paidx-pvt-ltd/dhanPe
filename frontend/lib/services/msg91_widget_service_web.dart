@@ -26,6 +26,17 @@ class WebMsg91WidgetService implements Msg91WidgetService {
       return;
     }
 
+    // Guard against re-initialization on the same element (common during Hot Restarts)
+    final host = html.document.getElementById('msg91-captcha-host');
+    if (host != null && host.children.isNotEmpty) {
+      // If the host already has children, it likely already has an hCaptcha iframe/container.
+      // We mark as initialized and return early to avoid the "hCaptcha already rendered" error.
+      _initialized = true;
+      _widgetId = widgetId;
+      _tokenAuth = tokenAuth;
+      return;
+    }
+
     final configuration = js.JsObject.jsify({
       'widgetId': widgetId,
       'tokenAuth': tokenAuth,
@@ -41,6 +52,15 @@ class WebMsg91WidgetService implements Msg91WidgetService {
       _widgetId = widgetId;
       _tokenAuth = tokenAuth;
     } catch (error) {
+      // If we still get an "already rendered" error, we can safely ignore it 
+      // as it means the JS bridge is already alive.
+      final errorStr = error.toString().toLowerCase();
+      if (errorStr.contains('already rendered')) {
+        _initialized = true;
+        _widgetId = widgetId;
+        _tokenAuth = tokenAuth;
+        return;
+      }
       throw AuthException('Failed to initialize MSG91 widget: $error');
     }
   }
