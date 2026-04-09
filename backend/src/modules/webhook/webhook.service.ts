@@ -48,8 +48,8 @@ export class WebhookService {
     signature: string | undefined,
     timestamp: string | undefined
   ): void {
-    if (!config.cashfree.clientSecret) {
-      throw new ValidationError('Cashfree client secret is not configured');
+    if (!config.cashfree.payoutClientSecret) {
+      throw new ValidationError('Cashfree payout client secret is not configured');
     }
 
     if (!signature || !timestamp) {
@@ -58,7 +58,7 @@ export class WebhookService {
 
     const expectedSignature = createHmacBase64(
       `${timestamp}${rawBody}`,
-      config.cashfree.clientSecret
+      config.cashfree.payoutClientSecret
     );
 
     if (!safeEqual(expectedSignature, signature)) {

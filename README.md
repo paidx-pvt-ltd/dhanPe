@@ -72,6 +72,9 @@ Notes:
 - Use `.env.development` for local setup.
 - `.env.production` is a placeholder checklist; do not commit secrets.
 - Flutter uses `--dart-define`, not `.env` files.
+- Cashfree uses separate key pairs:
+  - `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` for PG
+  - `CASHFREE_PAYOUT_CLIENT_ID` / `CASHFREE_PAYOUT_CLIENT_SECRET` for payout APIs
 
 ## Transaction Lifecycle (Strict State Machine)
 

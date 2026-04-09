@@ -24,6 +24,8 @@ Required:
 - `JWT_REFRESH_SECRET`
 - `CASHFREE_CLIENT_ID`
 - `CASHFREE_CLIENT_SECRET`
+- `CASHFREE_PAYOUT_CLIENT_ID`
+- `CASHFREE_PAYOUT_CLIENT_SECRET`
 - `CASHFREE_WEBHOOK_SECRET`
 - `REDIS_URL`
 
@@ -57,6 +59,11 @@ Also parsed by config:
 - `SEED_USER_PASSWORD`
 
 Use `backend/.env.development` as the local template. Production secrets should come from the host environment, not git.
+
+Cashfree integration note:
+
+- `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` are used for PG orders/refunds.
+- `CASHFREE_PAYOUT_CLIENT_ID` / `CASHFREE_PAYOUT_CLIENT_SECRET` are used for payout beneficiary/transfers and payout webhook signature verification.
 
 ## Current Routes
 
