@@ -100,7 +100,7 @@ export class DiditService {
       throw new ValidationError('Missing Didit webhook timestamp');
     }
 
-    const timestamp = Number(timestampHeader);
+    const timestamp = this.parseWebhookTimestamp(timestampHeader);
     if (!Number.isFinite(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) {
       throw new ValidationError('Didit webhook timestamp is invalid or expired');
     }
@@ -187,6 +187,15 @@ export class DiditService {
       throw new ServiceUnavailableError(
         'Didit is not configured. Set DIDIT_API_KEY and DIDIT_WORKFLOW_ID on the backend'
       );
+    }
+
+    if (config.server.env === 'production') {
+      const appUrl = this.parseAppUrl(config.server.appUrl);
+      if (!appUrl || appUrl.protocol !== 'https:' || this.isLocalhost(appUrl.hostname)) {
+        throw new ServiceUnavailableError(
+          'APP_URL must be a public HTTPS URL in production for Didit webhook callback sync'
+        );
+      }
     }
   }
 
@@ -303,6 +312,32 @@ export class DiditService {
     }
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  private parseWebhookTimestamp(value: string): number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return Number.NaN;
+    }
+
+    // Accept both epoch seconds and epoch milliseconds.
+    return numeric > 1e12 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+  }
+
+  private parseAppUrl(value: string | undefined): URL | null {
+    if (!value) {
+      return null;
+    }
+
+    try {
+      return new URL(value);
+    } catch {
+      return null;
+    }
+  }
+
+  private isLocalhost(hostname: string): boolean {
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
   }
 
   private serializeUser(user: User) {
