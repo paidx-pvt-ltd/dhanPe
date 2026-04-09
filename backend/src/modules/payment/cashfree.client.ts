@@ -4,10 +4,12 @@ import { ExternalServiceError } from '../../shared/errors.js';
 import {
   CashfreeBeneficiaryRequest,
   CashfreeBeneficiaryResponse,
+  CashfreeCreateRefundRequest,
   CashfreeOrderRequest,
   CashfreeOrderResponse,
   CashfreePayoutRequest,
   CashfreePayoutResponse,
+  CashfreeRefundResponse,
   CashfreeTransferStatusResponse,
 } from './payment.types.js';
 
@@ -87,6 +89,32 @@ export class CashfreeClient {
       return data;
     } catch (error) {
       throw new ExternalServiceError('Failed to create Cashfree beneficiary', error);
+    }
+  }
+
+  async createRefund(
+    orderId: string,
+    payload: CashfreeCreateRefundRequest
+  ): Promise<CashfreeRefundResponse> {
+    try {
+      const { data } = await this.orderClient.post<CashfreeRefundResponse[]>(
+        `/pg/orders/${orderId}/refunds`,
+        payload
+      );
+      return Array.isArray(data) ? data[0]! : (data as unknown as CashfreeRefundResponse);
+    } catch (error) {
+      throw new ExternalServiceError('Failed to create Cashfree refund', error);
+    }
+  }
+
+  async getRefund(orderId: string, refundId: string): Promise<CashfreeRefundResponse> {
+    try {
+      const { data } = await this.orderClient.get<CashfreeRefundResponse>(
+        `/pg/orders/${orderId}/refunds/${refundId}`
+      );
+      return data;
+    } catch (error) {
+      throw new ExternalServiceError('Failed to fetch Cashfree refund status', error);
     }
   }
 }

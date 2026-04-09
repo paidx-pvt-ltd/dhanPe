@@ -9,6 +9,37 @@ export class TransactionService {
     private readonly payoutService: PayoutService
   ) {}
 
+  async listSummaries(userId: string, limit: number) {
+    const transactions = await this.transactionRepository.listSummaries(userId, limit);
+
+    return transactions.map((transaction) => ({
+      id: transaction.id,
+      orderId: transaction.orderId,
+      status: transaction.status,
+      payoutStatus: transaction.payoutStatus,
+      amount: toNumber(transaction.amount),
+      grossAmount: toNumber(transaction.grossAmount),
+      netPayoutAmount: toNumber(transaction.netPayoutAmount),
+      currency: transaction.currency,
+      description: transaction.description,
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+      beneficiary: transaction.beneficiary
+        ? {
+            id: transaction.beneficiary.id,
+            label: transaction.beneficiary.label,
+            accountHolderName: transaction.beneficiary.accountHolderName,
+            accountNumberMask: transaction.beneficiary.accountNumberMask,
+            ifsc: transaction.beneficiary.ifsc,
+            status: transaction.beneficiary.status,
+          }
+        : null,
+      latestRefundStatus: transaction.refunds[0]?.status ?? null,
+      latestDisputeStatus: transaction.disputes[0]?.status ?? null,
+      openReconciliationCount: transaction.reconciliationItems.length,
+    }));
+  }
+
   async getLifecycle(transactionId: string, userId: string) {
     const transaction = await this.transactionRepository.findLifecycle(transactionId, userId);
     if (!transaction) {
@@ -108,6 +139,48 @@ export class TransactionService {
             updatedAt: refreshedTransaction.payout.updatedAt,
           }
         : null,
+      refunds: refreshedTransaction.refunds.map((refund) => ({
+        id: refund.id,
+        refundId: refund.refundId,
+        amount: toNumber(refund.amount),
+        currency: refund.currency,
+        status: refund.status,
+        providerRefundId: refund.providerRefundId,
+        providerStatus: refund.providerStatus,
+        reason: refund.reason,
+        failureReason: refund.failureReason,
+        createdAt: refund.createdAt,
+        updatedAt: refund.updatedAt,
+      })),
+      disputes: refreshedTransaction.disputes.map((dispute) => ({
+        id: dispute.id,
+        disputeId: dispute.disputeId,
+        phase: dispute.phase,
+        status: dispute.status,
+        amount: toNumber(dispute.amount),
+        currency: dispute.currency,
+        providerDisputeId: dispute.providerDisputeId,
+        providerCaseId: dispute.providerCaseId,
+        providerStatus: dispute.providerStatus,
+        reasonCode: dispute.reasonCode,
+        reasonMessage: dispute.reasonMessage,
+        operatorNote: dispute.operatorNote,
+        resolutionNote: dispute.resolutionNote,
+        evidenceDueBy: dispute.evidenceDueBy,
+        respondedAt: dispute.respondedAt,
+        resolvedAt: dispute.resolvedAt,
+        createdAt: dispute.createdAt,
+        updatedAt: dispute.updatedAt,
+      })),
+      reconciliation: refreshedTransaction.reconciliationItems.map((item) => ({
+        id: item.id,
+        scope: item.scope,
+        severity: item.severity,
+        status: item.status,
+        code: item.code,
+        message: item.message,
+        createdAt: item.createdAt,
+      })),
     };
   }
 }

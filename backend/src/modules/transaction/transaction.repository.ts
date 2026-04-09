@@ -3,6 +3,30 @@ import { PrismaClient } from '@prisma/client';
 export class TransactionRepository {
   constructor(private readonly db: PrismaClient) {}
 
+  listSummaries(userId: string, limit: number) {
+    return this.db.transaction.findMany({
+      where: { userId },
+      include: {
+        beneficiary: true,
+        refunds: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        disputes: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        reconciliationItems: {
+          where: { status: 'OPEN' },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  }
+
   findLifecycle(transactionId: string, userId: string) {
     return this.db.transaction.findFirst({
       where: {
@@ -15,6 +39,16 @@ export class TransactionRepository {
           orderBy: { createdAt: 'asc' },
         },
         payout: true,
+        refunds: {
+          orderBy: { createdAt: 'asc' },
+        },
+        disputes: {
+          orderBy: { createdAt: 'asc' },
+        },
+        reconciliationItems: {
+          orderBy: { createdAt: 'asc' },
+          take: 20,
+        },
         journalEntries: {
           include: {
             lines: true,

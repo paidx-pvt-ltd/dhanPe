@@ -11,6 +11,7 @@ const seed = async (): Promise<void> => {
     update: {
       kycStatus: KYCStatus.APPROVED,
       isActive: true,
+      isAdmin: true,
     },
     create: {
       email,
@@ -20,6 +21,7 @@ const seed = async (): Promise<void> => {
       phoneNumber: '9999999999',
       kycStatus: KYCStatus.APPROVED,
       isActive: true,
+      isAdmin: true,
     },
   });
 };

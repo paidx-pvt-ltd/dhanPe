@@ -80,3 +80,23 @@ export interface CashfreeBeneficiaryResponse {
   beneficiary_status: string;
   added_on?: string;
 }
+
+export interface CashfreeCreateRefundRequest {
+  refund_amount: number;
+  refund_id: string;
+  refund_note?: string;
+  refund_speed?: 'STANDARD' | 'INSTANT';
+}
+
+export interface CashfreeRefundResponse {
+  cf_payment_id?: string | number;
+  cf_refund_id?: string;
+  refund_id: string;
+  order_id: string;
+  refund_amount: number;
+  refund_currency?: string;
+  refund_note?: string;
+  refund_status: string;
+  status_description?: string;
+  created_at?: string;
+}

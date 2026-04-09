@@ -67,6 +67,12 @@ export class LedgerService {
     const netPayoutAmount = toDecimal(input.netPayoutAmount);
     const platformFeeAmount = toDecimal(input.platformFeeAmount);
     const taxAmount = toDecimal(input.taxAmount);
+    this.assertBalanced([
+      { debit: grossAmount },
+      { credit: netPayoutAmount },
+      { credit: platformFeeAmount },
+      { credit: taxAmount },
+    ]);
 
     await this.ledgerRepository.createJournalEntry(tx, {
       transactionId: input.transactionId,
@@ -91,6 +97,7 @@ export class LedgerService {
     }
   ) {
     const amount = toDecimal(input.amount);
+    this.assertBalanced([{ debit: amount }, { credit: amount }]);
     await this.ledgerRepository.createJournalEntry(tx, {
       transactionId: input.transactionId,
       referenceId: input.referenceId,
@@ -112,6 +119,7 @@ export class LedgerService {
     }
   ) {
     const amount = toDecimal(input.amount);
+    this.assertBalanced([{ debit: amount }, { credit: amount }]);
     await this.ledgerRepository.createJournalEntry(tx, {
       transactionId: input.transactionId,
       referenceId: input.referenceId,
@@ -122,5 +130,63 @@ export class LedgerService {
         { account: JournalAccount.GATEWAY_CLEARING, credit: amount },
       ],
     });
+  }
+
+  async recordRefundSettled(
+    tx: Prisma.TransactionClient,
+    input: {
+      transactionId: string;
+      referenceId: string;
+      grossAmount: number | Prisma.Decimal;
+      netPayoutAmount: number | Prisma.Decimal;
+      platformFeeAmount: number | Prisma.Decimal;
+      taxAmount: number | Prisma.Decimal;
+    }
+  ) {
+    const grossAmount = toDecimal(input.grossAmount);
+    const netPayoutAmount = toDecimal(input.netPayoutAmount);
+    const platformFeeAmount = toDecimal(input.platformFeeAmount);
+    const taxAmount = toDecimal(input.taxAmount);
+    this.assertBalanced([
+      { debit: netPayoutAmount },
+      { debit: platformFeeAmount },
+      { debit: taxAmount },
+      { credit: grossAmount },
+    ]);
+
+    await this.ledgerRepository.createJournalEntry(tx, {
+      transactionId: input.transactionId,
+      referenceId: input.referenceId,
+      kind: JournalEntryKind.REFUND_SETTLED,
+      memo: 'Cashfree refund settled',
+      lines: [
+        { account: JournalAccount.CUSTOMER_FUNDS_LIABILITY, debit: netPayoutAmount },
+        { account: JournalAccount.PLATFORM_REVENUE, debit: platformFeeAmount },
+        { account: JournalAccount.TAX_PAYABLE, debit: taxAmount },
+        { account: JournalAccount.GATEWAY_CLEARING, credit: grossAmount },
+      ],
+    });
+  }
+
+  private assertBalanced(
+    lines: Array<{
+      debit?: Prisma.Decimal;
+      credit?: Prisma.Decimal;
+    }>
+  ) {
+    const totals = lines.reduce(
+      (acc, line) => ({
+        debit: (acc.debit ?? new Prisma.Decimal(0)).plus(line.debit ?? 0),
+        credit: (acc.credit ?? new Prisma.Decimal(0)).plus(line.credit ?? 0),
+      }),
+      {
+        debit: new Prisma.Decimal(0),
+        credit: new Prisma.Decimal(0),
+      }
+    );
+
+    if (!totals.debit?.equals(totals.credit ?? 0)) {
+      throw new ValidationError('Journal entry is not balanced');
+    }
   }
 }

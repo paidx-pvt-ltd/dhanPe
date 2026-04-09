@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/app_theme.dart';
+import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/payment_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/debug_status_banner.dart';
+import '../../widgets/kinetic_primitives.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,35 +26,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
   final _postalCodeController = TextEditingController();
-  bool _initialized = false;
+  bool _seeded = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final userProvider = context.read<UserProvider>();
-    final authUser = context.read<AuthProvider>().user;
-
-    if (userProvider.user == null && authUser != null) {
-      userProvider.seedUser(authUser);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        context.read<UserProvider>().loadProfile();
-      });
-    }
-
-    if (_initialized) return;
-
-    final user = userProvider.user;
-    _firstNameController.text = user?.firstName ?? '';
-    _lastNameController.text = user?.lastName ?? '';
-    _phoneController.text = user?.phoneNumber ?? '';
-    _addressController.text = user?.addressLine1 ?? '';
-    _cityController.text = user?.city ?? '';
-    _stateController.text = user?.state ?? '';
-    _postalCodeController.text = user?.postalCode ?? '';
-    _initialized = true;
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserProvider>().loadProfile();
+    });
   }
 
   @override
@@ -63,189 +48,232 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final provider = context.read<UserProvider>();
-      await provider.updateProfile(
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim().isEmpty
-            ? null
-            : _phoneController.text.trim(),
-        addressLine1: _addressController.text.trim().isEmpty
-            ? null
-            : _addressController.text.trim(),
-        city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
-        state: _stateController.text.trim().isEmpty ? null : _stateController.text.trim(),
-        postalCode: _postalCodeController.text.trim().isEmpty
-            ? null
-            : _postalCodeController.text.trim(),
-      );
-
-    if (!mounted) return;
-
-    if (provider.error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error!)),
-      );
-    }
-  }
-
-  Future<void> _verifyIdentity() async {
-    final provider = context.read<UserProvider>();
-    final approved = await provider.verifyIdentity();
-
-    if (!mounted) return;
-
-    final message = approved
-        ? 'Identity verification approved.'
-        : provider.error ?? 'Identity verification was not completed.';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Consumer<UserProvider>(
-          builder: (context, userProvider, _) {
-            final user = userProvider.user;
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, _) {
+        final user = userProvider.user ?? context.read<AuthProvider>().user;
+        if (!_seeded && user != null) {
+          _seedFields(user);
+          _seeded = true;
+        }
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
+          children: [
+            const DebugStatusBanner(),
+            Row(
+              children: [
+                ProfileAvatar(label: user?.initials ?? 'DP', size: 60),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user?.displayName ?? 'Profile', style: Theme.of(context).textTheme.headlineSmall),
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.email ?? '',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            KineticPanel(
+              glass: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      StatusBadge(
+                        label: user?.kycStatus ?? 'PENDING',
+                        color: user?.isKycApproved == true
+                            ? AppColors.success
+                            : AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      if (user?.isAdmin == true)
+                        const StatusBadge(label: 'Admin', color: AppColors.tertiary),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    user?.isKycApproved == true
+                        ? 'Your account is ready for payout-backed transfers.'
+                        : 'Identity verification is required before you can send money.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 14),
+                  GradientButton(
+                    label: user?.isKycApproved == true ? 'Re-run KYC' : 'Start KYC',
+                    icon: Icons.verified_user_outlined,
+                    isLoading: userProvider.isLoading,
+                    onPressed: _verifyIdentity,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            KineticPanel(
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const DebugStatusBanner(),
-                    const SizedBox(height: 16),
-                    Text(
-                      user?.email ?? 'No email available',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Text('Profile details', style: Theme.of(context).textTheme.headlineSmall),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _firstNameController,
+                            decoration: const InputDecoration(labelText: 'First name'),
+                            validator: _requiredValidator,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lastNameController,
+                            decoration: const InputDecoration(labelText: 'Last name'),
+                            validator: _requiredValidator,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'KYC status: ${user?.kycStatus ?? 'PENDING'}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    if ((user?.kycStatus ?? 'PENDING') == 'PENDING' ||
-                        (user?.kycStatus ?? 'PENDING') == 'SUBMITTED') ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'This screen auto-refreshes your verification status every 15 seconds.',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _firstNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'First name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'First name is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _lastNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Last name',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Last name is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: _phoneController,
                       decoration: const InputDecoration(
                         labelText: 'Phone number',
-                        prefixIcon: Icon(Icons.phone_outlined),
+                        prefixIcon: Icon(Icons.phone_iphone_rounded),
                       ),
-                      keyboardType: TextInputType.phone,
+                      validator: _requiredValidator,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: _addressController,
                       decoration: const InputDecoration(
                         labelText: 'Address line 1',
                         prefixIcon: Icon(Icons.home_outlined),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _cityController,
-                      decoration: const InputDecoration(
-                        labelText: 'City',
-                        prefixIcon: Icon(Icons.location_city_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _stateController,
-                      decoration: const InputDecoration(
-                        labelText: 'State',
-                        prefixIcon: Icon(Icons.map_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _postalCodeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Postal code',
-                        prefixIcon: Icon(Icons.markunread_mailbox_outlined),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: userProvider.isLoading ? null : _verifyIdentity,
-                      icon: const Icon(Icons.verified_user_outlined),
-                      label: Text(
-                        (user?.kycStatus ?? 'PENDING') == 'APPROVED'
-                            ? 'Re-run identity verification'
-                            : 'Verify identity with Didit',
-                      ),
+                      validator: _requiredValidator,
                     ),
                     const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: userProvider.isLoading ? null : _saveProfile,
-                      child: userProvider.isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Save profile'),
+                    TextFormField(
+                      controller: _cityController,
+                      decoration: const InputDecoration(labelText: 'City'),
+                      validator: _requiredValidator,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _stateController,
+                      decoration: const InputDecoration(labelText: 'State'),
+                      validator: _requiredValidator,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _postalCodeController,
+                      decoration: const InputDecoration(labelText: 'Postal code'),
+                      validator: _requiredValidator,
+                    ),
+                    const SizedBox(height: 18),
+                    GradientButton(
+                      label: 'Save profile',
+                      icon: Icons.save_outlined,
+                      isLoading: userProvider.isLoading,
+                      onPressed: _saveProfile,
                     ),
                   ],
                 ),
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final authProvider = context.read<AuthProvider>();
+                final userProvider = context.read<UserProvider>();
+                final paymentProvider = context.read<PaymentProvider>();
+                await authProvider.logout();
+                userProvider.clearState();
+                paymentProvider.clearCurrentPayment();
+                if (!context.mounted) {
+                  return;
+                }
+                context.go('/login');
+              },
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _seedFields(User user) {
+    _firstNameController.text = user.firstName ?? '';
+    _lastNameController.text = user.lastName ?? '';
+    _phoneController.text = user.phoneNumber ?? '';
+    _addressController.text = user.addressLine1 ?? '';
+    _cityController.text = user.city ?? '';
+    _stateController.text = user.state ?? '';
+    _postalCodeController.text = user.postalCode ?? '';
+  }
+
+  String? _requiredValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Required';
+    }
+    return null;
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final provider = context.read<UserProvider>();
+    await provider.updateProfile(
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
+      addressLine1: _addressController.text.trim(),
+      city: _cityController.text.trim(),
+      state: _stateController.text.trim(),
+      postalCode: _postalCodeController.text.trim(),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(provider.error ?? 'Profile saved')),
+    );
+  }
+
+  Future<void> _verifyIdentity() async {
+    final provider = context.read<UserProvider>();
+    final approved = await provider.verifyIdentity();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          approved
+              ? 'Identity verification approved.'
+              : provider.error ?? 'Verification is still in progress.',
         ),
       ),
     );

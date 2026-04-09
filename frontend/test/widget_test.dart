@@ -56,7 +56,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to DhanPe'), findsOneWidget);
-    expect(find.text('Login'), findsWidgets);
+    expect(find.text('Move money without losing the plot.'), findsOneWidget);
+    expect(find.text('Sign in'), findsWidgets);
   });
 }

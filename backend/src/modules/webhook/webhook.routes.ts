@@ -8,3 +8,4 @@ const webhookController = new WebhookController(fintechRuntime.webhookService);
 export const webhookRoutes = Router();
 
 webhookRoutes.post('/', asHandler(webhookController.cashfree));
+webhookRoutes.post('/payout', asHandler(webhookController.cashfreePayout));

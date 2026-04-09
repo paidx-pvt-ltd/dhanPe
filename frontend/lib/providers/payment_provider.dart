@@ -22,9 +22,10 @@ class PaymentProvider extends ChangeNotifier {
   /// Create payment order
   Future<void> createPayment({
     required double amount,
-    required String accountHolderName,
-    required String accountNumber,
-    required String ifsc,
+    String? beneficiaryId,
+    String? accountHolderName,
+    String? accountNumber,
+    String? ifsc,
     required bool useSandbox,
     String? bankName,
     String? description,
@@ -37,6 +38,7 @@ class PaymentProvider extends ChangeNotifier {
     try {
       _currentPayment = await _paymentService.createPayment(
         amount: amount,
+        beneficiaryId: beneficiaryId,
         accountHolderName: accountHolderName,
         accountNumber: accountNumber,
         ifsc: ifsc,
@@ -81,6 +83,31 @@ class PaymentProvider extends ChangeNotifier {
   Future<void> refreshPaymentStatus() async {
     if (_currentPayment == null) return;
     await getPaymentStatus(_currentPayment!.id);
+  }
+
+  Future<void> createRefund({
+    required String transactionId,
+    double? amount,
+    String? reason,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _paymentService.createRefund(
+        transactionId: transactionId,
+        amount: amount,
+        reason: reason,
+      );
+    } on PaymentException catch (e) {
+      _error = e.message;
+    } catch (e) {
+      _error = 'Failed to request refund: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void clearError() {

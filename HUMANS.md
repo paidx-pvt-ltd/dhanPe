@@ -75,18 +75,32 @@ flutter build apk
 - Treat `backend/.env.production` as a reference only.
 - Never commit real secrets.
 - Flutter configuration is compile-time based; use `--dart-define` instead of adding frontend secrets to source.
+- Backend local/dev now requires Redis because payouts run through BullMQ and reconciliation can run on a schedule.
 
 ## API Routes That Matter
 
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
-- `POST /api/auth/logout`
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
+- `GET /api/users/beneficiaries`
+- `POST /api/users/beneficiaries`
 - `POST /api/transfer`
 - `GET /api/transaction/:id`
 - `POST /api/webhook/cashfree`
+- `POST /api/webhook/cashfree/payout`
+- `POST /api/payout/:transactionId/sync`
+- `POST /api/refund/:transactionId`
+- `POST /api/refund/:refundId/sync`
+- `POST /api/reconciliation/run`
+- `GET /api/reconciliation/items`
+- `POST /api/reconciliation/items/:itemId/resolve`
+
+Notes:
+
+- Reconciliation routes are admin-only and require `isAdmin=true` on the user record.
+- The seeded local user is created as an admin by `npm run db:seed`.
 
 ## Before You Commit
 

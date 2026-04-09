@@ -6,6 +6,9 @@ export const sha256 = (value: string): string =>
 export const createHmac = (value: string, secret: string): string =>
   crypto.createHmac('sha256', secret).update(value).digest('hex');
 
+export const createHmacBase64 = (value: string, secret: string): string =>
+  crypto.createHmac('sha256', secret).update(value).digest('base64');
+
 export const safeEqual = (left: string, right: string): boolean => {
   const a = Buffer.from(left);
   const b = Buffer.from(right);

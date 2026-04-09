@@ -1,4 +1,5 @@
 import {
+  Beneficiary,
   KYCStatus,
   PaymentProvider,
   PayoutStatus,
@@ -12,7 +13,7 @@ import { sha256 } from '../../utils/hash.js';
 import { RiskService } from '../risk/risk.service.js';
 import { PaymentRepository } from './payment.repository.js';
 import { CashfreeClient } from './cashfree.client.js';
-import { CreateTransferDto } from './payment.schemas.js';
+import { BankAccountDto, CreateTransferDto } from './payment.schemas.js';
 
 export class PaymentService {
   constructor(
@@ -50,7 +51,7 @@ export class PaymentService {
 
     const pricing = this.calculatePricing(input.amount);
     const merchantOrderId = `txn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const beneficiary = await this.ensureBeneficiary(userId, input);
+    const { beneficiary, bankAccount } = await this.resolveTransferInstrument(userId, input);
 
     const transaction = await this.db.$transaction((tx) =>
       this.paymentRepository.createTransaction(tx, {
@@ -66,7 +67,7 @@ export class PaymentService {
         paymentProvider: PaymentProvider.CASHFREE,
         orderId: merchantOrderId,
         payoutStatus: PayoutStatus.QUEUED,
-        bankAccount: this.maskBankAccount(input.bankAccount),
+        bankAccount: this.maskBankAccount(bankAccount),
         beneficiaryId: beneficiary.id,
         description: input.description,
         idempotencyKey,
@@ -127,6 +128,40 @@ export class PaymentService {
     return response;
   }
 
+  private async resolveTransferInstrument(userId: string, input: CreateTransferDto) {
+    if (input.bankAccount) {
+      const beneficiary = await this.ensureBeneficiary(userId, input.bankAccount);
+      return {
+        beneficiary,
+        bankAccount: input.bankAccount,
+      };
+    }
+
+    const beneficiary = await this.paymentRepository.findBeneficiaryById(
+      userId,
+      input.beneficiaryId!
+    );
+    if (!beneficiary) {
+      throw new NotFoundError('Beneficiary');
+    }
+
+    const bankAccount = this.extractBankAccountFromBeneficiary(beneficiary);
+    const resolvedBeneficiary =
+      !beneficiary.providerBeneficiaryId || beneficiary.providerStatus !== 'VERIFIED'
+        ? await this.syncCashfreeBeneficiary(beneficiary, {
+            userId,
+            accountHolderName: bankAccount.accountHolderName,
+            accountNumber: bankAccount.accountNumber,
+            ifsc: bankAccount.ifsc,
+          })
+        : beneficiary;
+
+    return {
+      beneficiary: resolvedBeneficiary,
+      bankAccount,
+    };
+  }
+
   private calculatePricing(netPayoutAmount: number) {
     const feeRate = 0.015;
     const taxRate = 0;
@@ -143,23 +178,23 @@ export class PaymentService {
     };
   }
 
-  private async ensureBeneficiary(userId: string, input: CreateTransferDto) {
+  private async ensureBeneficiary(userId: string, bankAccount: BankAccountDto) {
     const accountNumberHash = sha256(
-      `${input.bankAccount.accountNumber.trim()}|${input.bankAccount.ifsc.trim().toUpperCase()}`
+      `${bankAccount.accountNumber.trim()}|${bankAccount.ifsc.trim().toUpperCase()}`
     );
     const existing = await this.paymentRepository.findVerifiedBeneficiary(
       userId,
       accountNumberHash,
-      input.bankAccount.ifsc.trim().toUpperCase()
+      bankAccount.ifsc.trim().toUpperCase()
     );
 
     if (existing) {
       if (!existing.providerBeneficiaryId || existing.providerStatus !== 'VERIFIED') {
         return this.syncCashfreeBeneficiary(existing, {
           userId,
-          accountHolderName: input.bankAccount.accountHolderName,
-          accountNumber: input.bankAccount.accountNumber,
-          ifsc: input.bankAccount.ifsc,
+          accountHolderName: bankAccount.accountHolderName,
+          accountNumber: bankAccount.accountNumber,
+          ifsc: bankAccount.ifsc,
         });
       }
       return existing;
@@ -169,24 +204,24 @@ export class PaymentService {
       this.paymentRepository.createBeneficiary(tx, {
         userId,
         status: 'PENDING_VERIFICATION',
-        accountHolderName: input.bankAccount.accountHolderName.trim(),
-        accountNumberMask: this.maskAccountNumber(input.bankAccount.accountNumber),
+        accountHolderName: bankAccount.accountHolderName.trim(),
+        accountNumberMask: this.maskAccountNumber(bankAccount.accountNumber),
         accountNumberHash,
-        ifsc: input.bankAccount.ifsc.trim().toUpperCase(),
-        label: input.bankAccount.bankName ?? input.bankAccount.accountHolderName,
-        rawDetails: input.bankAccount as unknown as Prisma.InputJsonValue,
+        ifsc: bankAccount.ifsc.trim().toUpperCase(),
+        label: bankAccount.bankName ?? bankAccount.accountHolderName,
+        rawDetails: bankAccount as unknown as Prisma.InputJsonValue,
       })
     );
 
     return this.syncCashfreeBeneficiary(beneficiary, {
       userId,
-      accountHolderName: input.bankAccount.accountHolderName,
-      accountNumber: input.bankAccount.accountNumber,
-      ifsc: input.bankAccount.ifsc,
+      accountHolderName: bankAccount.accountHolderName,
+      accountNumber: bankAccount.accountNumber,
+      ifsc: bankAccount.ifsc,
     });
   }
 
-  private maskBankAccount(input: CreateTransferDto['bankAccount']) {
+  private maskBankAccount(input: BankAccountDto) {
     return {
       accountHolderName: input.accountHolderName,
       accountNumberMask: this.maskAccountNumber(input.accountNumber),
@@ -230,13 +265,10 @@ export class PaymentService {
   }
 
   private async syncCashfreeBeneficiary(
-    beneficiary: {
-      id: string;
-      userId: string;
-      accountHolderName: string;
-      providerBeneficiaryId?: string | null;
-      status: string;
-    },
+    beneficiary: Pick<
+      Beneficiary,
+      'id' | 'userId' | 'accountHolderName' | 'providerBeneficiaryId' | 'status'
+    >,
     instrument: {
       userId: string;
       accountHolderName: string;
@@ -290,5 +322,27 @@ export class PaymentService {
 
       throw error;
     }
+  }
+
+  private extractBankAccountFromBeneficiary(beneficiary: Beneficiary) {
+    const rawDetails =
+      typeof beneficiary.rawDetails === 'object' && beneficiary.rawDetails !== null
+        ? (beneficiary.rawDetails as Record<string, unknown>)
+        : null;
+    const accountHolderName = rawDetails?.accountHolderName?.toString().trim();
+    const accountNumber = rawDetails?.accountNumber?.toString().trim();
+    const ifsc = rawDetails?.ifsc?.toString().trim();
+    const bankName = rawDetails?.bankName?.toString().trim();
+
+    if (!accountHolderName || !accountNumber || !ifsc) {
+      throw new ValidationError('Selected beneficiary is missing bank details');
+    }
+
+    return {
+      accountHolderName,
+      accountNumber,
+      ifsc,
+      bankName: bankName && bankName.length > 0 ? bankName : undefined,
+    };
   }
 }

@@ -23,6 +23,11 @@ describe('WebhookService', () => {
 
   const payoutService = {
     enqueue: vi.fn(),
+    applyTransferUpdate: vi.fn(),
+  };
+
+  const refundService = {
+    applyRefundUpdate: vi.fn(),
   };
 
   const db = {
@@ -34,6 +39,7 @@ describe('WebhookService', () => {
     ledgerService as never,
     payoutRepository as never,
     payoutService as never,
+    refundService as never,
     db as never
   );
 
@@ -122,5 +128,73 @@ describe('WebhookService', () => {
 
     expect(webhookRepository.createEvent).not.toHaveBeenCalled();
     expect(payoutService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('processes payout webhooks through the payout service and marks the event processed', async () => {
+    const rawBody = JSON.stringify({
+      type: 'TRANSFER_SUCCESS',
+      event_time: '2024-07-25T17:43:37',
+      data: {
+        transfer_id: 'txn_1',
+        cf_transfer_id: 'cf_transfer_1',
+        status: 'SUCCESS',
+        status_code: 'COMPLETED',
+        status_description: 'Transfer completed successfully',
+      },
+    });
+
+    webhookRepository.findEventByEventId.mockResolvedValue(null);
+    webhookRepository.createEvent.mockResolvedValue({ id: 'event_payout_1' });
+
+    await service.processCashfreePayoutWebhook(rawBody, {
+      type: 'TRANSFER_SUCCESS',
+      event_time: '2024-07-25T17:43:37',
+      data: {
+        transfer_id: 'txn_1',
+        cf_transfer_id: 'cf_transfer_1',
+        status: 'SUCCESS',
+        status_code: 'COMPLETED',
+        status_description: 'Transfer completed successfully',
+      },
+    });
+
+    expect(payoutService.applyTransferUpdate).toHaveBeenCalledWith(
+      'txn_1',
+      expect.objectContaining({
+        providerRef: 'cf_transfer_1',
+        providerStatus: 'SUCCESS',
+        providerStatusCode: 'COMPLETED',
+      })
+    );
+    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith({}, 'event_payout_1', true);
+  });
+
+  it('routes refund payment webhooks through the refund service', async () => {
+    const rawBody = JSON.stringify({
+      order_id: 'order_1',
+      order_amount: 5075,
+      refund_id: 'refund_1',
+      cf_refund_id: 'cf_refund_1',
+      refund_status: 'SUCCESS',
+      status_description: 'Refund completed',
+    });
+
+    await service.processCashfreeWebhook(rawBody, {
+      order_id: 'order_1',
+      order_amount: 5075,
+      refund_id: 'refund_1',
+      cf_refund_id: 'cf_refund_1',
+      refund_status: 'SUCCESS',
+      status_description: 'Refund completed',
+    });
+
+    expect(refundService.applyRefundUpdate).toHaveBeenCalledWith(
+      'refund_1',
+      expect.objectContaining({
+        providerRefundId: 'cf_refund_1',
+        providerStatus: 'SUCCESS',
+      })
+    );
+    expect(webhookRepository.createEvent).not.toHaveBeenCalled();
   });
 });

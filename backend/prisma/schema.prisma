@@ -26,6 +26,7 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   isActive     Boolean      @default(true)
+  isAdmin      Boolean      @default(false)
 
   transactions   Transaction[]
   beneficiaries  Beneficiary[]
@@ -66,7 +67,10 @@ model Transaction {
 
   ledgerEntries Ledger[]
   payout        Payout?
+  refunds       Refund[]
+  disputes      Dispute[]
   journalEntries JournalEntry[]
+  reconciliationItems ReconciliationItem[]
 
   @@index([userId, createdAt])
   @@index([beneficiaryId, createdAt])
@@ -138,6 +142,57 @@ model Payout {
   @@index([status, createdAt])
 }
 
+model Refund {
+  id               String       @id @default(cuid())
+  transactionId    String
+  transaction      Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  refundId         String       @unique
+  amount           Decimal      @db.Decimal(18, 2)
+  currency         String       @default("INR")
+  status           RefundStatus @default(PENDING)
+  providerRefundId String?      @unique
+  providerStatus   String?
+  providerReference String?
+  reason           String?
+  metadata         Json?
+  failureReason    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([transactionId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Dispute {
+  id                String        @id @default(cuid())
+  transactionId     String
+  transaction       Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  disputeId         String        @unique
+  phase             DisputePhase  @default(DISPUTE)
+  status            DisputeStatus @default(OPEN)
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          String        @default("INR")
+  providerDisputeId String?       @unique
+  providerCaseId    String?
+  providerStatus    String?
+  reasonCode        String?
+  reasonMessage     String?
+  operatorNote      String?
+  resolutionNote    String?
+  evidenceDueBy     DateTime?
+  respondedAt       DateTime?
+  resolvedAt        DateTime?
+  openedByUserId    String?
+  resolvedByUserId  String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([transactionId, createdAt])
+  @@index([status, phase, createdAt])
+  @@index([evidenceDueBy, status])
+}
+
 model PayoutAttempt {
   id             String       @id @default(cuid())
   payoutId        String
@@ -200,6 +255,46 @@ model JournalEntry {
   @@index([transactionId, createdAt])
   @@index([referenceId])
   @@index([kind, createdAt])
+}
+
+model ReconciliationRun {
+  id                String                 @id @default(cuid())
+  scope             ReconciliationScope
+  status            ReconciliationRunStatus @default(RUNNING)
+  triggeredByUserId String?
+  summary           Json?
+  mismatchCount     Int                    @default(0)
+  startedAt         DateTime               @default(now())
+  completedAt       DateTime?
+
+  items ReconciliationItem[]
+
+  @@index([scope, startedAt])
+  @@index([status, startedAt])
+}
+
+model ReconciliationItem {
+  id           String                  @id @default(cuid())
+  runId        String
+  run          ReconciliationRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  transactionId String?
+  transaction  Transaction?            @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  scope        ReconciliationScope
+  severity     ReconciliationSeverity  @default(MEDIUM)
+  status       ReconciliationItemStatus @default(OPEN)
+  code         String
+  message      String
+  entityId     String
+  expectedState Json
+  actualState  Json?
+  resolutionNote String?
+  resolvedByUserId String?
+  createdAt    DateTime                @default(now())
+  resolvedAt   DateTime?
+
+  @@index([runId, createdAt])
+  @@index([transactionId, createdAt])
+  @@index([scope, status, createdAt])
 }
 
 model JournalLine {
@@ -296,6 +391,7 @@ enum JournalEntryKind {
   PAYOUT_SUBMITTED
   PAYOUT_SETTLED
   PAYOUT_FAILED
+  REFUND_SETTLED
 }
 
 enum JournalAccount {
@@ -304,4 +400,48 @@ enum JournalAccount {
   PLATFORM_REVENUE
   TAX_PAYABLE
   PAYOUT_CLEARING
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+enum DisputePhase {
+  DISPUTE
+  CHARGEBACK
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  WON
+  LOST
+  CLOSED
+}
+
+enum ReconciliationScope {
+  PAYMENT
+  PAYOUT
+  REFUND
+}
+
+enum ReconciliationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ReconciliationItemStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ReconciliationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
