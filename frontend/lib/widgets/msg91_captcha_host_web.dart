@@ -19,15 +19,20 @@ class Msg91CaptchaHost extends StatelessWidget {
       ui_web.platformViewRegistry.registerViewFactory(_viewType, (int _) {
         final element = html.DivElement()
           ..id = 'msg91-captcha-host'
-          ..style.width = '100%'
-          ..style.minHeight = '76px'
-          ..style.display = 'block';
+          ..style.width = '1px'
+          ..style.height = '1px'
+          ..style.minHeight = '0'
+          ..style.overflow = 'hidden'
+          ..style.position = 'absolute'
+          ..style.top = '-9999px'
+          ..style.left = '-9999px';
         return element;
       });
     }
 
     return const SizedBox(
-      height: 76,
+      width: 1,
+      height: 1,
       child: HtmlElementView(viewType: _viewType),
     );
   }

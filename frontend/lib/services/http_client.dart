@@ -44,14 +44,19 @@ class HttpClient {
     }
 
     if (Config.enableLogging) {
-      final safeHeaders = Map<String, dynamic>.from(options.headers);
-      if (safeHeaders.containsKey('Authorization')) {
-        safeHeaders['Authorization'] = 'Bearer [redacted]';
-      }
+      // Suppress request log for widget-config — 503 is expected when MSG91
+      // isn't configured server-side; no need to clutter the console.
+      final isWidgetConfig = options.path.contains('widget-config');
+      if (!isWidgetConfig) {
+        final safeHeaders = Map<String, dynamic>.from(options.headers);
+        if (safeHeaders.containsKey('Authorization')) {
+          safeHeaders['Authorization'] = 'Bearer [redacted]';
+        }
 
-      debugPrint('API ${options.method} ${options.path}');
-      debugPrint('Base URL: ${options.baseUrl}');
-      debugPrint('Headers: $safeHeaders');
+        debugPrint('API ${options.method} ${options.path}');
+        debugPrint('Base URL: ${options.baseUrl}');
+        debugPrint('Headers: $safeHeaders');
+      }
     }
 
     handler.next(options);
@@ -81,13 +86,21 @@ class HttpClient {
     }
 
     if (Config.enableLogging) {
-      debugPrint('Error type: ${err.type}');
-      debugPrint('Error: ${err.message}');
-      debugPrint('Response: ${err.response?.data}');
-      if (kIsWeb && err.response == null) {
-        debugPrint(
-          'Web request failed before response. Check CORS, HTTPS certificate, and API base URL.',
-        );
+      // Suppress noisy but expected 503 from /auth/widget-config — MSG91 is
+      // not configured on the backend; the provider handles this gracefully.
+      final isExpectedWidgetConfig503 =
+          err.response?.statusCode == 503 &&
+          (err.requestOptions.path.contains('widget-config'));
+
+      if (!isExpectedWidgetConfig503) {
+        debugPrint('Error type: ${err.type}');
+        debugPrint('Error: ${err.message}');
+        debugPrint('Response: ${err.response?.data}');
+        if (kIsWeb && err.response == null) {
+          debugPrint(
+            'Web request failed before response. Check CORS, HTTPS certificate, and API base URL.',
+          );
+        }
       }
     }
 

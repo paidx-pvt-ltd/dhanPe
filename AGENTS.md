@@ -31,6 +31,9 @@ This guide is for AI agents and automation-oriented contributors working in the 
 - `CASHFREE_CLIENT_ID`
 - `CASHFREE_CLIENT_SECRET`
 - `CASHFREE_WEBHOOK_SECRET`
+- `MSG91_AUTH_KEY`
+- `MSG91_WIDGET_ID`
+- `MSG91_WIDGET_TOKEN`
 
 Supporting keys currently parsed by config:
 
@@ -53,6 +56,8 @@ Supporting keys currently parsed by config:
 - `PAYOUT_QUEUE_CONCURRENCY`
 - `SEED_USER_EMAIL`
 - `SEED_USER_PASSWORD`
+- `MSG91_WIDGET_ENABLED`
+- `MSG91_BASE_URL`
 
 ## Operational Notes
 
@@ -60,6 +65,8 @@ Supporting keys currently parsed by config:
 - Current transfer creation route is `/api/transfer`, not `/api/payments/create-order`.
 - Current transaction lookup route is `/api/transaction/:id`, not `/api/transactions/:id`.
 - Current Cashfree webhook route is `/api/webhook/cashfree`, not `/api/payments/webhook`.
+- Current login flow uses a 3-step progressive disclosure UI with a StepIndicator.
+- Login requires a valid MSG91 widget configuration; the frontend handles 503 errors gracefully by disabling the Send OTP button and showing a hint.
 
 ## Safe Workflow
 

@@ -21,7 +21,7 @@ DhanPe is a fintech application for compliant, bill-payment-based fund flows wit
 - Integrations:
   - Cashfree (payments, payouts, payment/payout webhooks)
   - Didit (KYC session + webhook)
-  - MSG91 (mobile OTP widget)
+  - MSG91 (mobile OTP widget with Step-Indicator flow)
 
 ## Quick Start
 
@@ -76,6 +76,10 @@ Notes:
 - Cashfree uses separate key pairs:
   - `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` for PG
   - `CASHFREE_PAYOUT_CLIENT_ID` / `CASHFREE_PAYOUT_CLIENT_SECRET` for payout APIs
+- MSG91 requires three specific keys for the widget:
+  - `MSG91_AUTH_KEY`: Primary Auth Key
+  - `MSG91_WIDGET_ID`: Widget ID from OTP section
+  - `MSG91_WIDGET_TOKEN`: Widget Token for verification bridge
 
 ## Transaction Lifecycle (Strict State Machine)
 

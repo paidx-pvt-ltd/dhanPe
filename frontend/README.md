@@ -49,8 +49,12 @@ Supported compile-time keys:
 ## Current Flow
 
 1. Load MSG91 widget metadata through `GET /api/auth/widget-config`
-2. Complete mobile verification in the MSG91 widget
-3. Exchange the MSG91 widget access token through `POST /api/auth/verify-otp`
+2. Complete mobile verification through the guided 3-step progressive login flow:
+   - **Step 1: Enter Number**: User provides their mobile number.
+   - **Step 2: Receive OTP**: Backend triggers OTP send (if configured).
+   - **Step 3: Verify**: User enters the received OTP.
+   *Note: If the MSG91 service is unconfigured, the flow gracefully disables Step 2 and provides a user-friendly hint.*
+3. Exchange the MSG91 widget access token through `POST /api/auth/verify-otp` (or verify internal OTP if using a different provider).
 4. Load profile with `/api/users/profile`
 5. Request a Didit session through `/api/users/kyc/session`
 6. Complete native identity verification in the Didit SDK
@@ -108,10 +112,8 @@ flutter analyze
 flutter test
 ```
 
-Current known analyzer warnings outside the new UI flow:
-
-- `lib/providers/auth_provider.dart`: unused `_refreshToken`
-- `lib/services/http_client.dart`: debug `print` calls
+Current known analyzer warnings:
+- None. (The login redesign recently resolved several gaps and `flutter analyze` is currently passing with no issues).
 
 ## Native Setup Notes
 
