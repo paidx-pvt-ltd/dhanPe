@@ -79,7 +79,7 @@ class UserProvider extends ChangeNotifier {
       _user = await _userService.updateProfile(
         firstName: firstName,
         lastName: lastName,
-        phoneNumber: phoneNumber,
+        contactNumber: phoneNumber,
         addressLine1: addressLine1,
         city: city,
         state: state,

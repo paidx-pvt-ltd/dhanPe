@@ -15,6 +15,7 @@ import { RefundService } from '../refund/refund.service.js';
 import { RiskRepository } from '../risk/risk.repository.js';
 import { RiskService } from '../risk/risk.service.js';
 import { TransactionRepository } from '../transaction/transaction.repository.js';
+import { TransactionStateService } from '../transaction/transaction-state.service.js';
 import { TransactionService } from '../transaction/transaction.service.js';
 import { WebhookRepository } from '../webhook/webhook.repository.js';
 import { WebhookService } from '../webhook/webhook.service.js';
@@ -23,18 +24,32 @@ const ledgerRepository = new LedgerRepository(prisma);
 const ledgerService = new LedgerService(ledgerRepository, prisma);
 const payoutRepository = new PayoutRepository(prisma);
 const cashfreeClient = new CashfreeClient();
-const payoutService = new PayoutService(payoutRepository, ledgerService, cashfreeClient, prisma);
 const paymentRepository = new PaymentRepository(prisma);
 const riskRepository = new RiskRepository(prisma);
 const riskService = new RiskService(riskRepository);
-const paymentService = new PaymentService(paymentRepository, riskService, cashfreeClient, prisma);
+const transactionStateService = new TransactionStateService(prisma);
+const payoutService = new PayoutService(
+  payoutRepository,
+  ledgerService,
+  cashfreeClient,
+  transactionStateService,
+  prisma
+);
+const paymentService = new PaymentService(
+  paymentRepository,
+  riskService,
+  transactionStateService,
+  cashfreeClient,
+  prisma
+);
 const disputeRepository = new DisputeRepository(prisma);
-const disputeService = new DisputeService(disputeRepository);
+const disputeService = new DisputeService(disputeRepository, transactionStateService);
 const refundRepository = new RefundRepository(prisma);
 const refundService = new RefundService(
   refundRepository,
   payoutRepository,
   ledgerService,
+  transactionStateService,
   cashfreeClient,
   prisma
 );
@@ -51,6 +66,7 @@ const webhookService = new WebhookService(
   webhookRepository,
   ledgerService,
   payoutRepository,
+  transactionStateService,
   payoutService,
   refundService,
   prisma
@@ -75,6 +91,7 @@ export const fintechRuntime = {
   riskRepository,
   riskService,
   transactionRepository,
+  transactionStateService,
   transactionService,
   webhookRepository,
   webhookService,

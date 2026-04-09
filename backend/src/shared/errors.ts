@@ -56,3 +56,19 @@ export class ServiceUnavailableError extends AppError {
     super(503, message, 'SERVICE_UNAVAILABLE', details);
   }
 }
+
+export class InvalidTransactionTransitionError extends AppError {
+  constructor(details: {
+    transactionId: string;
+    fromState: string;
+    toState: string;
+    reason?: string;
+  }) {
+    super(
+      409,
+      `Invalid transaction state transition: ${details.fromState} -> ${details.toState}`,
+      'INVALID_TRANSACTION_TRANSITION',
+      details
+    );
+  }
+}

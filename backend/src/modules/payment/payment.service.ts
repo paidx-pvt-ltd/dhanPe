@@ -5,12 +5,14 @@ import {
   PayoutStatus,
   Prisma,
   PrismaClient,
+  TransactionLifecycleState,
   TransactionStatus,
 } from '@prisma/client';
 import { config } from '../../config/index.js';
 import { ExternalServiceError, NotFoundError, ValidationError } from '../../shared/errors.js';
 import { sha256 } from '../../utils/hash.js';
 import { RiskService } from '../risk/risk.service.js';
+import { TransactionStateService } from '../transaction/transaction-state.service.js';
 import { PaymentRepository } from './payment.repository.js';
 import { CashfreeClient } from './cashfree.client.js';
 import { BankAccountDto, CreateTransferDto } from './payment.schemas.js';
@@ -19,6 +21,7 @@ export class PaymentService {
   constructor(
     private readonly paymentRepository: PaymentRepository,
     private readonly riskService: RiskService,
+    private readonly transactionStateService: TransactionStateService,
     private readonly cashfreeClient: CashfreeClient,
     private readonly db: PrismaClient
   ) {}
@@ -72,6 +75,14 @@ export class PaymentService {
         description: input.description,
         idempotencyKey,
       })
+    );
+
+    await this.transactionStateService.transitionTransactionState(
+      transaction.id,
+      TransactionLifecycleState.PAYMENT_PENDING,
+      {
+        reason: 'Transfer initiated and waiting for payment confirmation',
+      }
     );
 
     const order = await this.cashfreeClient.createOrder({

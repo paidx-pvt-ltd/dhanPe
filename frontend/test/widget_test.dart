@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dhanpe/core/exceptions.dart';
 import 'package:dhanpe/main.dart';
 import 'package:dhanpe/services/auth_service.dart';
+import 'package:dhanpe/services/device_security_service.dart';
 import 'package:dhanpe/services/payment_service.dart';
 import 'package:dhanpe/services/service_locator.dart';
 import 'package:dhanpe/services/transaction_service.dart';
@@ -53,7 +54,15 @@ void main() {
   });
 
   testWidgets('unauthenticated app lands on the login screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      const MyApp(
+        securityStatus: DeviceSecurityStatus(
+          deviceLockEnabled: true,
+          deviceCompromised: false,
+          installerTrusted: true,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Move money without losing the plot.'), findsOneWidget);

@@ -33,6 +33,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Beneficiary? _selectedBeneficiary;
   String _query = '';
   bool _useManualForm = false;
+  bool _acceptedDisclosure = false;
 
   @override
   void initState() {
@@ -77,7 +78,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           children: [
             const SectionHeading(
               title: 'Payments',
-              subtitle: 'Create transfers and manage beneficiaries',
+              subtitle: 'Pay bills and manage settlement accounts',
             ),
             const SizedBox(height: 18),
             TextField(
@@ -105,8 +106,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     const SizedBox(height: 12),
                     Text(
                       user?.isKycApproved == true
-                          ? 'Finish your profile address and phone details before creating a payout-backed transfer.'
-                          : 'Complete KYC and fill your profile details before creating a transfer.',
+                          ? 'Finish your compliance profile before creating a bill payment.'
+                          : 'Complete KYC and your profile details before creating a bill payment.',
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium
@@ -131,7 +132,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Create transfer',
+                            'Create bill payment',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                         ),
@@ -153,7 +154,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     Text(
                       _useManualForm
                           ? 'Use one-off bank details'
-                          : 'Pick a saved beneficiary and move money fast',
+                          : 'Pick a saved account to settle payment proceeds',
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium
@@ -236,11 +237,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ),
                     ],
                     const SizedBox(height: 6),
+                    _ComplianceDisclosureTile(
+                      accepted: _acceptedDisclosure,
+                      onChanged: (value) {
+                        setState(() => _acceptedDisclosure = value ?? false);
+                      },
+                    ),
+                    const SizedBox(height: 10),
                     GradientButton(
                       label: 'Continue to checkout',
                       icon: Icons.arrow_outward_rounded,
                       isLoading: paymentProvider.isLoading,
-                      onPressed: canTransfer ? _createTransfer : null,
+                      onPressed:
+                          canTransfer && _acceptedDisclosure ? _createTransfer : null,
                     ),
                   ],
                 ),
@@ -273,7 +282,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 24),
             SectionHeading(
-              title: 'Saved beneficiaries',
+              title: 'Linked settlement accounts',
               subtitle: beneficiaryProvider.error,
               actionLabel: _useManualForm ? null : 'Manual',
               onActionTap: () => setState(() => _useManualForm = true),
@@ -354,7 +363,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     if (beneficiary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error ?? 'Could not save beneficiary')),
+        SnackBar(content: Text(provider.error ?? 'Could not save settlement account')),
       );
       return;
     }
@@ -394,13 +403,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
+    final confirmed = await _showComplianceConfirmation(
+      context,
+      amount: amount,
+      estimatedFee: _estimateFee(amount),
+    );
+    if (!confirmed) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
     final paymentProvider = context.read<PaymentProvider>();
     await paymentProvider.createPayment(
       amount: amount,
       beneficiaryId: !_useManualForm ? _selectedBeneficiary?.id : null,
       accountHolderName:
           _useManualForm ? _accountHolderController.text.trim() : null,
-      accountNumber:
+      bankAccountRef:
           _useManualForm ? _accountNumberController.text.trim() : null,
       ifsc: _useManualForm ? _ifscController.text.trim().toUpperCase() : null,
       bankName: _useManualForm && _bankNameController.text.trim().isNotEmpty
@@ -418,7 +439,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     if (paymentProvider.currentPayment == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(paymentProvider.error ?? 'Transfer creation failed')),
+        SnackBar(content: Text(paymentProvider.error ?? 'Payment creation failed')),
       );
       return;
     }
@@ -428,6 +449,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
     context.push('/transfers/${paymentProvider.currentPayment!.id}');
+  }
+
+  double _estimateFee(double amount) {
+    return (amount * 0.015);
   }
 }
 
@@ -547,4 +572,93 @@ class _PaymentLoadingList extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ComplianceDisclosureTile extends StatelessWidget {
+  const _ComplianceDisclosureTile({
+    required this.accepted,
+    required this.onChanged,
+  });
+
+  final bool accepted;
+  final ValueChanged<bool?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return KineticPanel(
+      color: AppColors.surfaceLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Before you continue',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This flow is processed as a bill payment and settled to your linked account.',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            value: accepted,
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            activeColor: AppColors.secondary,
+            title: const Text('I understand and accept this compliance disclosure.'),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<bool> _showComplianceConfirmation(
+  BuildContext context, {
+  required double amount,
+  required double estimatedFee,
+}) async {
+  final amountLabel = NumberFormat.currency(symbol: 'INR ', decimalDigits: 2).format(amount);
+  final feeLabel = NumberFormat.currency(symbol: 'INR ', decimalDigits: 2).format(estimatedFee);
+
+  return await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Confirm bill payment details'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Amount: $amountLabel'),
+                const SizedBox(height: 4),
+                Text('Estimated fee: $feeLabel'),
+                const SizedBox(height: 8),
+                const Text('Processing time: T+1 settlement in most cases.'),
+                const SizedBox(height: 4),
+                const Text('This payment may be non-reversible after processing starts.'),
+                const SizedBox(height: 4),
+                const Text(
+                  'This is a bill payment flow, not a cash withdrawal.',
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Review'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Confirm payment'),
+              ),
+            ],
+          );
+        },
+      ) ??
+      false;
 }

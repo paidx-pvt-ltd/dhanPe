@@ -51,6 +51,7 @@ model Transaction {
   currency        String            @default("INR")
   feeRuleVersion  String            @default("v1")
   status          TransactionStatus @default(INITIATED)
+  lifecycleState  TransactionLifecycleState @default(INITIATED)
   paymentProvider PaymentProvider   @default(CASHFREE)
   orderId         String            @unique
   providerOrderId String?
@@ -64,6 +65,7 @@ model Transaction {
   metadata        Json?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  version         Int               @default(0)
 
   ledgerEntries Ledger[]
   payout        Payout?
@@ -71,11 +73,26 @@ model Transaction {
   disputes      Dispute[]
   journalEntries JournalEntry[]
   reconciliationItems ReconciliationItem[]
+  stateTransitions TransactionLog[]
 
   @@index([userId, createdAt])
   @@index([beneficiaryId, createdAt])
   @@index([status, createdAt])
   @@index([payoutStatus, createdAt])
+}
+
+model TransactionLog {
+  id         String                    @id @default(cuid())
+  txnId       String
+  transaction Transaction              @relation(fields: [txnId], references: [id], onDelete: Cascade)
+  fromState   TransactionLifecycleState
+  toState     TransactionLifecycleState
+  reason      String?
+  metadata    Json?
+  createdAt   DateTime                 @default(now())
+
+  @@index([txnId, createdAt])
+  @@index([toState, createdAt])
 }
 
 model Beneficiary {
@@ -354,6 +371,19 @@ enum TransactionStatus {
   INITIATED
   PAID
   FAILED
+}
+
+enum TransactionLifecycleState {
+  INITIATED
+  PAYMENT_PENDING
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PAYOUT_PENDING
+  PAYOUT_SUCCESS
+  PAYOUT_FAILED
+  COMPLETED
+  REFUNDED
+  DISPUTED
 }
 
 enum LedgerEntryType {

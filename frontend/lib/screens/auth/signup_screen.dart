@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/legal_links.dart';
 import '../../widgets/kinetic_primitives.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
+  bool _acceptedPolicies = false;
 
   @override
   void dispose() {
@@ -91,12 +92,12 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 18),
               Text(
-                'Set up your transfer workspace.',
+                'Set up your payment workspace.',
                 style: Theme.of(context).textTheme.displayMedium,
               ),
               const SizedBox(height: 10),
               Text(
-                'Start with the basics. You can complete KYC and add beneficiary details inside the app.',
+                'Complete onboarding to manage bill payments and settlement to your linked account.',
                 style: Theme.of(context)
                     .textTheme
                     .bodyLarge
@@ -135,6 +136,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
+                        obscureText: true,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        enableIMEPersonalizedLearning: false,
+                        enableInteractiveSelection: false,
                         decoration: const InputDecoration(
                           labelText: 'Mobile number',
                           prefixIcon: Icon(Icons.phone_iphone_rounded),
@@ -151,6 +157,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        obscureText: true,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        enableIMEPersonalizedLearning: false,
+                        enableInteractiveSelection: false,
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.alternate_email_rounded),
@@ -168,20 +179,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
+                        obscureText: true,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        enableIMEPersonalizedLearning: false,
+                        enableInteractiveSelection: false,
+                        decoration: const InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline_rounded),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
-                            },
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_rounded
-                                  : Icons.visibility_rounded,
-                            ),
-                          ),
+                          prefixIcon: Icon(Icons.lock_outline_rounded),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -196,7 +201,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _confirmPasswordController,
-                        obscureText: _obscurePassword,
+                        obscureText: true,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        enableIMEPersonalizedLearning: false,
+                        enableInteractiveSelection: false,
                         decoration: const InputDecoration(
                           labelText: 'Confirm password',
                           prefixIcon: Icon(Icons.verified_user_outlined),
@@ -215,10 +224,27 @@ class _SignupScreenState extends State<SignupScreen> {
                             label: 'Create account',
                             icon: Icons.person_add_alt_1_rounded,
                             isLoading: authProvider.isLoading,
-                            onPressed: authProvider.isLoading ? null : _handleSignup,
+                            onPressed: authProvider.isLoading || !_acceptedPolicies
+                                ? null
+                                : _handleSignup,
                           );
                         },
                       ),
+                      const SizedBox(height: 12),
+                      CheckboxListTile(
+                        value: _acceptedPolicies,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.secondary,
+                        title: const Text(
+                          'I agree to Terms, Privacy, and Refund Policy.',
+                        ),
+                        onChanged: (value) {
+                          setState(() => _acceptedPolicies = value ?? false);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      const LegalLinks(compact: true),
                     ],
                   ),
                 ),

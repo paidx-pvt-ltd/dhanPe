@@ -3,7 +3,7 @@ import {
   Prisma,
   PrismaClient,
   RefundStatus,
-  TransactionStatus,
+  TransactionLifecycleState,
 } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors.js';
 import { toDecimal, toNumber } from '../../utils/decimal.js';
@@ -11,6 +11,7 @@ import { LedgerService } from '../ledger/ledger.service.js';
 import { CashfreeClient } from '../payment/cashfree.client.js';
 import { CashfreeRefundResponse } from '../payment/payment.types.js';
 import { PayoutRepository } from '../payout/payout.repository.js';
+import { TransactionStateService } from '../transaction/transaction-state.service.js';
 import { CreateRefundDto } from './refund.schemas.js';
 import { RefundRepository } from './refund.repository.js';
 
@@ -22,6 +23,7 @@ export class RefundService {
     private readonly refundRepository: RefundRepository,
     private readonly payoutRepository: PayoutRepository,
     private readonly ledgerService: LedgerService,
+    private readonly transactionStateService: TransactionStateService,
     private readonly cashfreeClient: CashfreeClient,
     private readonly db: PrismaClient
   ) {}
@@ -32,8 +34,8 @@ export class RefundService {
       throw new NotFoundError('Transaction');
     }
 
-    if (transaction.status !== TransactionStatus.PAID) {
-      throw new ValidationError('Only paid transactions can be refunded');
+    if (transaction.lifecycleState !== TransactionLifecycleState.COMPLETED) {
+      throw new ValidationError('Only completed transactions can be refunded');
     }
 
     if (
@@ -195,6 +197,16 @@ export class RefundService {
             PayoutStatus.FAILED
           );
         }
+
+        await this.transactionStateService.transitionTransactionState(
+          refund.transactionId,
+          TransactionLifecycleState.REFUNDED,
+          {
+            reason: `Refund ${refund.refundId} settled`,
+            details: input.details,
+          },
+          tx
+        );
       }
     });
 

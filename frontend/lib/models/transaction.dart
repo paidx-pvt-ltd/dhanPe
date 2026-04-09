@@ -174,6 +174,7 @@ class TransactionSummary {
     required this.id,
     required this.orderId,
     required this.status,
+    required this.lifecycleState,
     required this.payoutStatus,
     required this.amount,
     required this.grossAmount,
@@ -191,6 +192,7 @@ class TransactionSummary {
   final String id;
   final String orderId;
   final String status;
+  final String lifecycleState;
   final String payoutStatus;
   final double amount;
   final double grossAmount;
@@ -209,6 +211,7 @@ class TransactionSummary {
       id: json['id'] as String,
       orderId: json['orderId'] as String? ?? '',
       status: json['status'] as String? ?? 'INITIATED',
+      lifecycleState: json['lifecycleState'] as String? ?? 'INITIATED',
       payoutStatus: json['payoutStatus'] as String? ?? 'PENDING',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       grossAmount: (json['grossAmount'] as num?)?.toDouble() ?? 0,
@@ -238,7 +241,7 @@ class TransactionSummary {
   bool get isPaid => status == 'PAID';
   bool get isFailed => status == 'FAILED' || payoutStatus == 'FAILED';
   bool get isPending => !isPaid && !isFailed;
-  bool get isCompleted => payoutStatus == 'SUCCESS';
+  bool get isCompleted => lifecycleState == 'COMPLETED' || payoutStatus == 'SUCCESS';
 
   String get title =>
       beneficiary?.title ??
@@ -250,6 +253,7 @@ class Transaction extends TransactionSummary {
     required super.id,
     required super.orderId,
     required super.status,
+    required super.lifecycleState,
     required super.payoutStatus,
     required super.amount,
     required super.grossAmount,
@@ -301,6 +305,7 @@ class Transaction extends TransactionSummary {
       id: json['id'] as String,
       orderId: json['orderId'] as String? ?? '',
       status: json['status'] as String? ?? 'INITIATED',
+      lifecycleState: json['lifecycleState'] as String? ?? 'INITIATED',
       payoutStatus: json['payoutStatus'] as String? ?? 'PENDING',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       grossAmount: (json['grossAmount'] as num?)?.toDouble() ?? 0,

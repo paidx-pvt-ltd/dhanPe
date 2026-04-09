@@ -1,4 +1,10 @@
-import { LedgerEntryType, PayoutStatus, Prisma, PrismaClient } from '@prisma/client';
+import {
+  LedgerEntryType,
+  PayoutStatus,
+  Prisma,
+  PrismaClient,
+  TransactionLifecycleState,
+} from '@prisma/client';
 import { Job, Queue, QueueEvents, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { config } from '../../config/index.js';
@@ -8,6 +14,7 @@ import { sha256 } from '../../utils/hash.js';
 import { toNumber } from '../../utils/decimal.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { CashfreeClient } from '../payment/cashfree.client.js';
+import { TransactionStateService } from '../transaction/transaction-state.service.js';
 import {
   createPayoutQueue,
   createPayoutQueueEvents,
@@ -35,6 +42,7 @@ export class PayoutService {
     private readonly payoutRepository: PayoutRepository,
     private readonly ledgerService: LedgerService,
     private readonly cashfreeClient: CashfreeClient,
+    private readonly transactionStateService: TransactionStateService,
     private readonly db: PrismaClient
   ) {
     this.queueConnection = createRedisConnection();
@@ -127,6 +135,24 @@ export class PayoutService {
     }
 
     if (
+      payoutRecord.transaction.lifecycleState === TransactionLifecycleState.PAYOUT_SUCCESS ||
+      payoutRecord.transaction.lifecycleState === TransactionLifecycleState.COMPLETED ||
+      payoutRecord.transaction.lifecycleState === TransactionLifecycleState.REFUNDED ||
+      payoutRecord.transaction.lifecycleState === TransactionLifecycleState.DISPUTED
+    ) {
+      return;
+    }
+
+    if (
+      payoutRecord.transaction.lifecycleState !== TransactionLifecycleState.PAYMENT_SUCCESS &&
+      payoutRecord.transaction.lifecycleState !== TransactionLifecycleState.PAYOUT_PENDING
+    ) {
+      throw new ValidationError(
+        `Payout processing is blocked for transaction lifecycle state ${payoutRecord.transaction.lifecycleState}`
+      );
+    }
+
+    if (
       payoutRecord.status === PayoutStatus.SUBMITTED ||
       payoutRecord.status === PayoutStatus.PROCESSING
     ) {
@@ -151,6 +177,18 @@ export class PayoutService {
     );
 
     const attempt = await this.db.$transaction(async (tx) => {
+      if (
+        payoutRecord.transaction.lifecycleState === TransactionLifecycleState.PAYMENT_SUCCESS
+      ) {
+        await this.transactionStateService.transitionTransactionState(
+          transactionId,
+          TransactionLifecycleState.PAYOUT_PENDING,
+          {
+            reason: 'Payout worker picked transaction for submission',
+          },
+          tx
+        );
+      }
       await this.payoutRepository.updateStatus(tx, payoutRecord.id, {
         status: PayoutStatus.PROCESSING,
         nextRetryAt: this.computeRetryAt(1),
@@ -216,6 +254,23 @@ export class PayoutService {
             transactionId,
             payoutRecord.id,
             payoutRecord.transaction.netPayoutAmount
+          );
+          await this.transactionStateService.transitionTransactionState(
+            transactionId,
+            TransactionLifecycleState.PAYOUT_SUCCESS,
+            {
+              reason: 'Payout marked successful from create payout response',
+              details: payoutResponse as unknown as Prisma.InputJsonValue,
+            },
+            tx
+          );
+          await this.transactionStateService.transitionTransactionState(
+            transactionId,
+            TransactionLifecycleState.COMPLETED,
+            {
+              reason: 'Transaction completed after payout success',
+            },
+            tx
           );
         }
       });
@@ -311,6 +366,38 @@ export class PayoutService {
           payoutRecord.id,
           payoutRecord.transaction.netPayoutAmount
         );
+        await this.transactionStateService.transitionTransactionState(
+          transactionId,
+          TransactionLifecycleState.PAYOUT_SUCCESS,
+          {
+            reason: 'Payout marked successful from status sync',
+            details: input.details,
+          },
+          tx
+        );
+        await this.transactionStateService.transitionTransactionState(
+          transactionId,
+          TransactionLifecycleState.COMPLETED,
+          {
+            reason: 'Transaction completed after payout status sync success',
+          },
+          tx
+        );
+      }
+
+      if (
+        mappedStatus !== PayoutStatus.SUCCESS &&
+        payoutRecord.transaction.lifecycleState === TransactionLifecycleState.PAYMENT_SUCCESS
+      ) {
+        await this.transactionStateService.transitionTransactionState(
+          transactionId,
+          TransactionLifecycleState.PAYOUT_PENDING,
+          {
+            reason: 'Payout status sync moved transaction into payout pending',
+            details: input.details,
+          },
+          tx
+        );
       }
     });
 
@@ -364,6 +451,20 @@ export class PayoutService {
         transactionId,
         PayoutStatus.FAILED
       );
+      const freshTxn = await tx.transaction.findUnique({
+        where: { id: transactionId },
+        select: { lifecycleState: true },
+      });
+      if (freshTxn?.lifecycleState === TransactionLifecycleState.PAYOUT_PENDING) {
+        await this.transactionStateService.transitionTransactionState(
+          transactionId,
+          TransactionLifecycleState.PAYOUT_FAILED,
+          {
+            reason: failureReason,
+          },
+          tx
+        );
+      }
     });
   }
 

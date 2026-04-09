@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { LedgerEntryType, Prisma, TransactionStatus } from '@prisma/client';
+import {
+  LedgerEntryType,
+  Prisma,
+  TransactionLifecycleState,
+  TransactionStatus,
+} from '@prisma/client';
 import { WebhookService } from './webhook.service.js';
 
 describe('WebhookService', () => {
@@ -25,6 +30,9 @@ describe('WebhookService', () => {
     enqueue: vi.fn(),
     applyTransferUpdate: vi.fn(),
   };
+  const transactionStateService = {
+    transitionTransactionState: vi.fn(),
+  };
 
   const refundService = {
     applyRefundUpdate: vi.fn(),
@@ -38,6 +46,7 @@ describe('WebhookService', () => {
     webhookRepository as never,
     ledgerService as never,
     payoutRepository as never,
+    transactionStateService as never,
     payoutService as never,
     refundService as never,
     db as never
@@ -46,7 +55,11 @@ describe('WebhookService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     db.$transaction.mockImplementation(async (handler: (tx: unknown) => Promise<unknown>) =>
-      handler({})
+      handler({
+        transaction: {
+          update: vi.fn(),
+        },
+      })
     );
   });
 
@@ -81,6 +94,7 @@ describe('WebhookService', () => {
         },
       },
       status: TransactionStatus.INITIATED,
+      lifecycleState: TransactionLifecycleState.PAYMENT_PENDING,
     });
 
     await service.processCashfreeWebhook(rawBody, {
@@ -90,9 +104,9 @@ describe('WebhookService', () => {
       cf_payment_id: 'pay_1',
     });
 
-    expect(webhookRepository.updateTransactionPaid).toHaveBeenCalled();
+    expect(transactionStateService.transitionTransactionState).toHaveBeenCalled();
     expect(ledgerService.recordEntry).toHaveBeenCalledWith(
-      {},
+      expect.any(Object),
       expect.objectContaining({
         userId: 'user_1',
         transactionId: 'txn_1',
@@ -101,7 +115,11 @@ describe('WebhookService', () => {
     );
     expect(ledgerService.recordPaymentCaptured).toHaveBeenCalled();
     expect(payoutRepository.createOrGetPendingPayout).toHaveBeenCalled();
-    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith({}, 'event_1', true);
+    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith(
+      expect.any(Object),
+      'event_1',
+      true
+    );
     expect(payoutService.enqueue).toHaveBeenCalledWith('txn_1');
   });
 
@@ -166,7 +184,11 @@ describe('WebhookService', () => {
         providerStatusCode: 'COMPLETED',
       })
     );
-    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith({}, 'event_payout_1', true);
+    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith(
+      expect.any(Object),
+      'event_payout_1',
+      true
+    );
   });
 
   it('routes refund payment webhooks through the refund service', async () => {

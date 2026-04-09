@@ -1,6 +1,6 @@
 # DhanPe Frontend
 
-Flutter app for the Everyday Utility transfer flow: dashboard, transfer setup, card verification, identity step, review, and success tracking.
+Flutter app for compliant bill payments and linked-account settlement with clear disclosures, KYC status, and lifecycle tracking.
 
 ## Quick Start
 
@@ -53,8 +53,8 @@ Supported compile-time keys:
 3. Request a Didit session through `/api/users/kyc/session`
 4. Complete native identity verification in the Didit SDK
 5. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
-6. Create transfer through `/api/transfer`
-7. View transfer state through `/api/transaction/:id`
+6. Create a bill payment request through `/api/transfer`
+7. Track lifecycle state through `/api/transaction/:id`
 
 ## Structure
 
@@ -74,8 +74,28 @@ Important files:
 - `lib/config/config.dart`: API target resolution
 - `lib/core/app_theme.dart`: shared Everyday Utility design tokens/theme
 - `lib/screens/dashboard/dashboard_screen.dart`: redesigned dashboard
-- `lib/screens/payment/payment_screen.dart`: multi-step transfer flow
-- `lib/screens/payment/payment_status_screen.dart`: success/status tracker
+- `lib/screens/payment/payment_screen.dart`: payment creation + compliance disclosure and confirmation
+- `lib/screens/payment/payment_status_screen.dart`: settlement lifecycle timeline and edge-state messaging
+- `lib/screens/profile/kyc_screen.dart`: KYC status and verification guidance
+- `lib/widgets/legal_links.dart`: Terms, Privacy, Refund Policy, and support entry points
+
+## Compliance Messaging Baseline
+
+The app UI should consistently describe the flow as bill payment and settlement, not cash withdrawal.
+
+Required user-facing disclosures before confirmation:
+
+- processing time expectation (for example, T+1 in most cases)
+- fees breakdown
+- non-reversibility warning after processing begins
+- explicit statement: "This is a bill payment flow, not a cash withdrawal."
+
+Trust and policy elements surfaced in app:
+
+- KYC status and verification prompts
+- secure payment indicators
+- transaction status timeline updates
+- legal links available from signup and settings/profile surfaces
 
 ## Validation
 

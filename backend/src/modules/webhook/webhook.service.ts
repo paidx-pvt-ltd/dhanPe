@@ -1,4 +1,4 @@
-import { LedgerEntryType, Prisma, PrismaClient, TransactionStatus } from '@prisma/client';
+import { LedgerEntryType, Prisma, PrismaClient, TransactionLifecycleState } from '@prisma/client';
 import { config } from '../../config/index.js';
 import { ValidationError, NotFoundError } from '../../shared/errors.js';
 import { createHmac, createHmacBase64, safeEqual } from '../../utils/hash.js';
@@ -7,6 +7,7 @@ import { LedgerService } from '../ledger/ledger.service.js';
 import { PayoutService } from '../payout/payout.service.js';
 import { PayoutRepository } from '../payout/payout.repository.js';
 import { RefundService } from '../refund/refund.service.js';
+import { TransactionStateService } from '../transaction/transaction-state.service.js';
 import { WebhookRepository } from './webhook.repository.js';
 import { CashfreePayoutWebhookDto, CashfreeWebhookDto } from './webhook.schemas.js';
 
@@ -15,6 +16,7 @@ export class WebhookService {
     private readonly webhookRepository: WebhookRepository,
     private readonly ledgerService: LedgerService,
     private readonly payoutRepository: PayoutRepository,
+    private readonly transactionStateService: TransactionStateService,
     private readonly payoutService: PayoutService,
     private readonly refundService: RefundService,
     private readonly db: PrismaClient
@@ -114,7 +116,14 @@ export class WebhookService {
 
     const paymentStatus = payload.payment_status ?? payload.order_status ?? 'UNKNOWN';
     if (['PAID', 'SUCCESS', 'COMPLETED', 'SETTLED'].includes(paymentStatus)) {
-      if (transaction.status === TransactionStatus.PAID) {
+      if (
+        transaction.lifecycleState === TransactionLifecycleState.PAYMENT_SUCCESS ||
+        transaction.lifecycleState === TransactionLifecycleState.PAYOUT_PENDING ||
+        transaction.lifecycleState === TransactionLifecycleState.PAYOUT_SUCCESS ||
+        transaction.lifecycleState === TransactionLifecycleState.COMPLETED ||
+        transaction.lifecycleState === TransactionLifecycleState.REFUNDED ||
+        transaction.lifecycleState === TransactionLifecycleState.DISPUTED
+      ) {
         await this.db.$transaction((tx) =>
           this.webhookRepository.markEventProcessed(tx, event.id, true)
         );
@@ -122,11 +131,21 @@ export class WebhookService {
       }
 
       await this.db.$transaction(async (tx) => {
-        await this.webhookRepository.updateTransactionPaid(
-          tx,
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: {
+            paymentId: payload.cf_payment_id,
+            metadata: parsedPayload,
+          },
+        });
+        await this.transactionStateService.transitionTransactionState(
           transaction.id,
-          payload.cf_payment_id,
-          parsedPayload
+          TransactionLifecycleState.PAYMENT_SUCCESS,
+          {
+            reason: 'Payment confirmed via Cashfree webhook',
+            details: parsedPayload,
+          },
+          tx
         );
         await this.ledgerService.recordEntry(tx, {
           userId: transaction.userId,
@@ -156,8 +175,29 @@ export class WebhookService {
       return;
     }
 
+    if (transaction.lifecycleState === TransactionLifecycleState.PAYMENT_FAILED) {
+      await this.db.$transaction((tx) =>
+        this.webhookRepository.markEventProcessed(tx, event.id, true)
+      );
+      return;
+    }
+
     await this.db.$transaction(async (tx) => {
-      await this.webhookRepository.updateTransactionFailed(tx, transaction.id, parsedPayload);
+      await tx.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          metadata: parsedPayload,
+        },
+      });
+      await this.transactionStateService.transitionTransactionState(
+        transaction.id,
+        TransactionLifecycleState.PAYMENT_FAILED,
+        {
+          reason: `Payment failed via webhook status ${paymentStatus}`,
+          details: parsedPayload,
+        },
+        tx
+      );
       await this.webhookRepository.markEventProcessed(tx, event.id, true);
     });
   }

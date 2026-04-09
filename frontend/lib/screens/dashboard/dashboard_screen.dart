@@ -106,10 +106,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       children: [
                         StatusBadge(
-                          label: user?.isKycApproved == true ? 'KYC Approved' : 'KYC Pending',
+                          label: user?.isKycApproved == true ? 'KYC Verified' : 'KYC Pending',
                           color: user?.isKycApproved == true
                               ? AppColors.success
                               : AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        const StatusBadge(
+                          label: 'Secure Payment',
+                          color: AppColors.secondary,
                         ),
                         const SizedBox(width: 8),
                         StatusBadge(
@@ -126,8 +131,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Expanded(
                     child: _ActionCard(
-                      title: 'Create transfer',
-                      subtitle: 'Move money to a saved beneficiary',
+                      title: 'Create payment',
+                      subtitle: 'Pay bills and settle to linked account',
                       gradient: const LinearGradient(
                         colors: [AppColors.primaryDim, Color(0xFF7A33ED)],
                       ),
@@ -140,8 +145,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: _ActionCard(
                       title: user?.isKycApproved == true ? 'Manage profile' : 'Complete KYC',
                       subtitle: user?.isKycApproved == true
-                          ? 'Keep payout details current'
-                          : 'Unlock transfers and beneficiary verification',
+                          ? 'Keep compliance details current'
+                          : 'Unlock compliant settlement access',
                       gradient: const LinearGradient(
                         colors: [Color(0xFF2787C8), AppColors.secondary],
                       ),
@@ -157,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Expanded(
                     child: KineticPanel(
                       child: _StatTile(
-                        label: 'Transfers',
+                        label: 'Transactions',
                         value: '${recentTransactions.length}',
                         accent: AppColors.success,
                       ),
@@ -193,10 +198,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('No transfers yet', style: Theme.of(context).textTheme.titleLarge),
+                      Text('No transactions yet', style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 8),
                       Text(
-                        'Create your first transfer from the Payments tab once your profile is ready.',
+                        'Create your first payment from the Payments tab once your profile is ready.',
                         style: Theme.of(context)
                             .textTheme
                             .bodyMedium

@@ -9,6 +9,7 @@ import '../../providers/payment_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../widgets/debug_status_banner.dart';
 import '../../widgets/kinetic_primitives.dart';
+import '../../widgets/legal_links.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -93,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     children: [
                       StatusBadge(
-                        label: user?.kycStatus ?? 'PENDING',
+                        label: 'KYC ${user?.kycStatus ?? 'PENDING'}',
                         color: user?.isKycApproved == true
                             ? AppColors.success
                             : AppColors.warning,
@@ -106,16 +107,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 14),
                   Text(
                     user?.isKycApproved == true
-                        ? 'Your account is ready for payout-backed transfers.'
-                        : 'Identity verification is required before you can send money.',
+                        ? 'Your account is verified for compliant bill-payment settlement.'
+                        : 'Identity verification is required before settlement can be enabled.',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 14),
                   GradientButton(
-                    label: user?.isKycApproved == true ? 'Re-run KYC' : 'Start KYC',
+                    label: user?.isKycApproved == true ? 'Review KYC' : 'Start KYC',
                     icon: Icons.verified_user_outlined,
                     isLoading: userProvider.isLoading,
-                    onPressed: _verifyIdentity,
+                    onPressed: () => context.push('/kyc'),
                   ),
                 ],
               ),
@@ -151,6 +152,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _phoneController,
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      enableIMEPersonalizedLearning: false,
+                      enableInteractiveSelection: false,
                       decoration: const InputDecoration(
                         labelText: 'Phone number',
                         prefixIcon: Icon(Icons.phone_iphone_rounded),
@@ -193,6 +199,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            KineticPanel(
+              color: AppColors.surfaceLow,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Terms and support', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 10),
+                  const LegalLinks(),
+                ],
               ),
             ),
             const SizedBox(height: 18),
@@ -260,22 +278,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _verifyIdentity() async {
-    final provider = context.read<UserProvider>();
-    final approved = await provider.verifyIdentity();
-
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          approved
-              ? 'Identity verification approved.'
-              : provider.error ?? 'Verification is still in progress.',
-        ),
-      ),
-    );
-  }
 }

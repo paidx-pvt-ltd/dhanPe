@@ -92,11 +92,11 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final result = await _authService.signup(
-        email: email,
-        password: password,
+        identifier: email,
+        secret: password,
         firstName: firstName,
         lastName: lastName,
-        phoneNumber: phoneNumber,
+        contactNumber: phoneNumber,
       );
 
       _accessToken = result['accessToken'];
@@ -123,8 +123,8 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final result = await _authService.login(
-        email: email,
-        password: password,
+        identifier: email,
+        secret: password,
       );
 
       _accessToken = result['accessToken'];

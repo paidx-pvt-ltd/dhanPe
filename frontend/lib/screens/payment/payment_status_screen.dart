@@ -41,8 +41,8 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
             ),
             const Expanded(
               child: SectionHeading(
-                title: 'Transfer detail',
-                subtitle: 'Lifecycle, payout, and operations status',
+                title: 'Payment detail',
+                subtitle: 'Payment lifecycle and settlement status',
               ),
             ),
           ],
@@ -65,12 +65,12 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Transfer unavailable',
+                      'Payment unavailable',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'We could not load this transfer right now.',
+                      'We could not load this payment right now.',
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium
@@ -120,7 +120,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Created ${DateFormat('MMM d, yyyy • h:mm a').format(transaction.createdAt)}',
+                        'Created ${DateFormat('MMM d, yyyy | h:mm a').format(transaction.createdAt)}',
                         style: Theme.of(context)
                             .textTheme
                             .bodyMedium
@@ -130,14 +130,17 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                _FlowTimeline(transaction: transaction),
+                const SizedBox(height: 16),
                 KineticPanel(
                   color: AppColors.surfaceHigh,
                   child: Column(
                     children: [
                       _DetailRow(label: 'Order ID', value: transaction.orderId),
                       _DetailRow(label: 'Gateway', value: transaction.paymentProvider),
+                      _DetailRow(label: 'Lifecycle', value: transaction.lifecycleState),
                       _DetailRow(
-                        label: 'Net payout',
+                        label: 'Net settlement',
                         value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
                             .format(transaction.netPayoutAmount),
                       ),
@@ -148,11 +151,22 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       ),
                       if (transaction.beneficiary != null)
                         _DetailRow(
-                          label: 'Beneficiary',
+                          label: 'Linked account',
                           value:
-                              '${transaction.beneficiary!.title} • ${transaction.beneficiary!.accountNumberMask}',
+                              '${transaction.beneficiary!.title} | ${transaction.beneficiary!.accountNumberMask}',
                         ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                KineticPanel(
+                  color: AppColors.surfaceLow,
+                  child: Text(
+                    'This operation is processed as a bill payment settlement, not a cash withdrawal.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.textMuted),
                   ),
                 ),
                 if (transaction.payout != null) ...[
@@ -162,7 +176,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Payout status', style: Theme.of(context).textTheme.titleLarge),
+                        Text('Settlement status', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 8),
                         Text(
                           transaction.payout!.providerStatus ?? transaction.payout!.status,
@@ -191,7 +205,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Refunds', style: Theme.of(context).textTheme.titleLarge),
+                        Text('Refund updates', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 10),
                         ...transaction.refunds.map(
                           (refund) => Padding(
@@ -217,13 +231,13 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Disputes', style: Theme.of(context).textTheme.titleLarge),
+                        Text('Dispute cases', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 10),
                         ...transaction.disputes.map(
                           (dispute) => Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _MiniStatusRow(
-                              title: '${dispute.phase} • ${dispute.status}',
+                              title: '${dispute.phase} | ${dispute.status}',
                               subtitle: dispute.reasonMessage ?? dispute.disputeId,
                               value: NumberFormat.currency(
                                 symbol: 'INR ',
@@ -248,7 +262,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                           (item) => Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _MiniStatusRow(
-                              title: '${item.severity} • ${item.status}',
+                              title: '${item.severity} | ${item.status}',
                               subtitle: item.message,
                               value: item.scope,
                             ),
@@ -303,8 +317,86 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Refund request submitted')),
+      const SnackBar(content: Text('Refund initiated. We will update status shortly.')),
     );
+  }
+}
+
+class _FlowTimeline extends StatelessWidget {
+  const _FlowTimeline({required this.transaction});
+
+  final Transaction transaction;
+
+  @override
+  Widget build(BuildContext context) {
+    final states = <String>[
+      'PAYMENT_PENDING',
+      'PAYOUT_PENDING',
+      'PAYOUT_SUCCESS',
+      'COMPLETED',
+    ];
+    final labels = <String>[
+      'Payment initiated',
+      'Processing',
+      'Settlement',
+      'Completion',
+    ];
+    final currentIndex = states.indexOf(transaction.lifecycleState);
+
+    return KineticPanel(
+      color: AppColors.surfaceLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Transaction flow', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 10),
+          for (var i = 0; i < labels.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    i <= currentIndex ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                    size: 18,
+                    color: i <= currentIndex ? AppColors.success : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      labels[i],
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 6),
+          Text(
+            _edgeCaseHint(transaction),
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _edgeCaseHint(Transaction transaction) {
+    if (transaction.lifecycleState == 'PAYMENT_FAILED') {
+      return 'Payment failed. No settlement will be attempted.';
+    }
+    if (transaction.lifecycleState == 'PAYOUT_FAILED') {
+      return 'Settlement delayed or failed. Support can help with next steps.';
+    }
+    if (transaction.lifecycleState == 'REFUNDED') {
+      return 'Refund initiated successfully.';
+    }
+    if (transaction.lifecycleState == 'DISPUTED') {
+      return 'This payment is currently under dispute review.';
+    }
+    return 'Settlement usually completes by T+1 depending on banking rails.';
   }
 }
 
