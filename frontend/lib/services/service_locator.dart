@@ -4,6 +4,7 @@ import 'http_client.dart';
 import 'auth_service.dart';
 import 'beneficiary_service.dart';
 import 'cashfree_service.dart';
+import 'msg91_widget_service.dart';
 import 'user_service.dart';
 import 'payment_service.dart';
 import 'transaction_service.dart';
@@ -22,6 +23,10 @@ void setupServiceLocator() {
   // Services
   getIt.registerSingleton<AuthService>(
     AuthService(httpClient.getDio(), storage),
+  );
+
+  getIt.registerSingleton<Msg91WidgetService>(
+    createMsg91WidgetService(),
   );
 
   getIt.registerSingleton<CashfreeService>(

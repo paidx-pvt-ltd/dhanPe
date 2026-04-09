@@ -19,12 +19,13 @@ export class Msg91WidgetService {
   }
 
   getWidgetConfig() {
-    if (!config.msg91.widgetId) {
+    if (!config.msg91.widgetId || !config.msg91.widgetToken) {
       throw new ServiceUnavailableError('MSG91 widget is not configured');
     }
 
     return {
       widgetId: config.msg91.widgetId,
+      tokenAuth: config.msg91.widgetToken,
     };
   }
 
