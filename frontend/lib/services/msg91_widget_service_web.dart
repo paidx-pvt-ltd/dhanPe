@@ -12,8 +12,6 @@ const _scriptUrl = 'https://verify.msg91.com/otp-provider.js';
 class WebMsg91WidgetService implements Msg91WidgetService {
   Future<void>? _scriptLoader;
   bool _initialized = false;
-  String? _widgetId;
-  String? _tokenAuth;
 
   @override
   Future<void> initialize({
@@ -22,7 +20,14 @@ class WebMsg91WidgetService implements Msg91WidgetService {
   }) async {
     await _ensureScriptLoaded();
 
-    if (_initialized && _widgetId == widgetId && _tokenAuth == tokenAuth) {
+    // Guard against re-initialization on the same element (common during Hot Restarts)
+    final host = html.document.getElementById('msg91-captcha-host');
+    if (host != null && host.children.isNotEmpty) {
+      // If the host already has children, it likely already has an hCaptcha iframe/container.
+      // We mark as initialized and return early to avoid the "hCaptcha already rendered" error.
+      _initialized = true;
+      _widgetId = widgetId;
+      _tokenAuth = tokenAuth;
       return;
     }
 
@@ -41,6 +46,15 @@ class WebMsg91WidgetService implements Msg91WidgetService {
       _widgetId = widgetId;
       _tokenAuth = tokenAuth;
     } catch (error) {
+      // If we still get an "already rendered" error, we can safely ignore it 
+      // as it means the JS bridge is already alive.
+      final errorStr = error.toString().toLowerCase();
+      if (errorStr.contains('already rendered')) {
+        _initialized = true;
+        _widgetId = widgetId;
+        _tokenAuth = tokenAuth;
+        return;
+      }
       throw AuthException('Failed to initialize MSG91 widget: $error');
     }
   }
