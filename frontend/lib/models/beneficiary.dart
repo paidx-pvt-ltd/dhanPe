@@ -5,6 +5,7 @@ class Beneficiary {
     required this.accountHolderName,
     required this.accountNumberMask,
     required this.ifsc,
+    required this.isVerified,
     required this.status,
     required this.providerStatus,
     required this.createdAt,
@@ -16,6 +17,7 @@ class Beneficiary {
   final String accountHolderName;
   final String accountNumberMask;
   final String ifsc;
+  final bool isVerified;
   final String status;
   final String? providerStatus;
   final DateTime createdAt;
@@ -34,12 +36,11 @@ class Beneficiary {
       accountHolderName: json['accountHolderName'] as String? ?? '',
       accountNumberMask: json['accountNumberMask'] as String? ?? 'XXXXXX0000',
       ifsc: json['ifsc'] as String? ?? '',
+      isVerified: json['isVerified'] as bool? ?? ((json['status'] as String?) == 'VERIFIED'),
       status: json['status'] as String? ?? 'PENDING_VERIFICATION',
       providerStatus: json['providerStatus'] as String?,
       createdAt: DateTime.parse(createdAtValue),
       updatedAt: DateTime.parse(updatedAtValue),
     );
   }
-
-  bool get isVerified => status == 'VERIFIED';
 }

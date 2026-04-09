@@ -11,6 +11,7 @@ class PaymentProvider extends ChangeNotifier {
   Payment? _currentPayment;
   bool _isLoading = false;
   String? _error;
+  String? _errorCode;
 
   PaymentProvider(this._paymentService, this._cashfreeService);
 
@@ -18,6 +19,7 @@ class PaymentProvider extends ChangeNotifier {
   Payment? get currentPayment => _currentPayment;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get errorCode => _errorCode;
 
   /// Create payment order
   Future<void> createPayment({
@@ -32,6 +34,7 @@ class PaymentProvider extends ChangeNotifier {
   }) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     _currentPayment = null;
     notifyListeners();
 
@@ -52,6 +55,7 @@ class PaymentProvider extends ChangeNotifier {
     } on PaymentException catch (e) {
       _currentPayment = null;
       _error = e.message;
+      _errorCode = e.code;
     } catch (e) {
       _currentPayment = null;
       _error = 'Failed to create payment: ${e.toString()}';
@@ -65,12 +69,14 @@ class PaymentProvider extends ChangeNotifier {
   Future<void> getPaymentStatus(String paymentId) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     notifyListeners();
 
     try {
       _currentPayment = await _paymentService.getPaymentStatus(paymentId);
     } on PaymentException catch (e) {
       _error = e.message;
+      _errorCode = e.code;
     } catch (e) {
       _error = 'Failed to fetch payment status';
     } finally {
@@ -92,6 +98,7 @@ class PaymentProvider extends ChangeNotifier {
   }) async {
     _isLoading = true;
     _error = null;
+    _errorCode = null;
     notifyListeners();
 
     try {
@@ -102,6 +109,7 @@ class PaymentProvider extends ChangeNotifier {
       );
     } on PaymentException catch (e) {
       _error = e.message;
+      _errorCode = e.code;
     } catch (e) {
       _error = 'Failed to request refund: ${e.toString()}';
     } finally {
@@ -112,6 +120,7 @@ class PaymentProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
+    _errorCode = null;
     notifyListeners();
   }
 

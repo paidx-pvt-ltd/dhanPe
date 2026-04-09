@@ -9,60 +9,27 @@ class AuthService {
 
   AuthService(this._dio, this._storage);
 
-  /// Sign up new user
-  Future<Map<String, dynamic>> signup({
-    required String identifier,
-    required String secret,
-    String? firstName,
-    String? lastName,
-    String? contactNumber,
-  }) async {
+  Future<Map<String, dynamic>> getWidgetConfig() async {
     try {
-      _ensureSensitiveTransport();
-      final response = await _dio.post(
-        '/auth/signup',
-        data: {
-          'email': identifier,
-          'password': secret,
-          'firstName': firstName,
-          'lastName': lastName,
-          'phoneNumber': contactNumber,
-        },
-      );
-
-      if (response.statusCode == 201) {
-        await _storeTokens(
-          response.data['accessToken'],
-          response.data['refreshToken'],
-        );
-        return response.data;
-      }
-      throw ApiError(
-        type: ApiException.unknownError,
-        message: response.data['message'] ?? 'Signup failed',
-      );
+      final response = await _dio.get('/auth/widget-config');
+      return response.data['data'] as Map<String, dynamic>;
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
-    } on AuthException {
-      rethrow;
-    } catch (e) {
-      throw AuthException('Session storage failed. Clear browser site data and try again.');
     }
   }
 
-  /// Login user
-  Future<Map<String, dynamic>> login({
-    required String identifier,
-    required String secret,
+  Future<Map<String, dynamic>> verifyOtp({
+    required String mobileNumber,
+    required String accessToken,
   }) async {
     try {
       _ensureSensitiveTransport();
       final response = await _dio.post(
-        '/auth/login',
+        '/auth/verify-otp',
         data: {
-          'email': identifier,
-          'password': secret,
+          'mobileNumber': mobileNumber,
+          'accessToken': accessToken,
         },
       );
 
@@ -75,7 +42,7 @@ class AuthService {
       }
       throw ApiError(
         type: ApiException.unknownError,
-        message: response.data['message'] ?? 'Login failed',
+        message: response.data['message'] ?? 'Authentication failed',
       );
     } on DioException catch (e) {
       _handleDioException(e);
@@ -202,16 +169,21 @@ class AuthService {
         message: 'Request timeout',
       );
     } else if (e.response?.statusCode == 401) {
-      throw AuthException('Unauthorized. Please login again.');
+      throw AuthException(
+        e.response?.data['error']?['message']?.toString() ?? 'Unauthorized. Please login again.',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
     } else if (e.response?.statusCode == 400) {
       throw ApiError(
         type: ApiException.validationError,
-        message: e.response?.data['message'] ?? 'Validation error',
+        message: e.response?.data['error']?['message']?.toString() ?? 'Validation error',
+        code: e.response?.data['error']?['code']?.toString(),
       );
     } else {
       throw ApiError(
         type: ApiException.networkError,
-        message: e.message ?? 'Network error',
+        message: e.response?.data['error']?['message']?.toString() ?? e.message ?? 'Network error',
+        code: e.response?.data['error']?['code']?.toString(),
       );
     }
   }

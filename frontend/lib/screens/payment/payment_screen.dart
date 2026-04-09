@@ -160,6 +160,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           .bodyMedium
                           ?.copyWith(color: AppColors.textMuted),
                     ),
+                    if (user?.panVerified != true) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'PAN will be requested before the first transfer is submitted.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.warning),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     TextField(
                       controller: _amountController,
@@ -437,6 +447,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
+    if (paymentProvider.currentPayment == null &&
+        paymentProvider.errorCode == 'PAN_REQUIRED') {
+      final panVerified = await _promptForPan(context);
+      if (!mounted || !panVerified) {
+        return;
+      }
+
+      await paymentProvider.createPayment(
+        amount: amount,
+        beneficiaryId: !_useManualForm ? _selectedBeneficiary?.id : null,
+        accountHolderName: _useManualForm ? _accountHolderController.text.trim() : null,
+        bankAccountRef: _useManualForm ? _accountNumberController.text.trim() : null,
+        ifsc: _useManualForm ? _ifscController.text.trim().toUpperCase() : null,
+        bankName: _useManualForm && _bankNameController.text.trim().isNotEmpty
+            ? _bankNameController.text.trim()
+            : null,
+        description:
+            _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        useSandbox: Config.isCashfreeSandbox,
+      );
+    }
+
+    if (!mounted) {
+      return;
+    }
+
     if (paymentProvider.currentPayment == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(paymentProvider.error ?? 'Payment creation failed')),
@@ -453,6 +489,79 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   double _estimateFee(double amount) {
     return (amount * 0.015);
+  }
+
+  Future<bool> _promptForPan(BuildContext context) async {
+    final panController = TextEditingController();
+    final userProvider = context.read<UserProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final legalNameController = TextEditingController(text: userProvider.user?.displayName ?? '');
+    var submitted = false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('PAN verification required'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Verify PAN before initiating your first transfer.',
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: panController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'PAN number'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: legalNameController,
+                decoration: const InputDecoration(labelText: 'Legal name'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (submitted) {
+                  return;
+                }
+                submitted = true;
+                final ok = await userProvider.submitPan(
+                      panNumber: panController.text.trim(),
+                      legalName: legalNameController.text.trim().isEmpty
+                          ? null
+                          : legalNameController.text.trim(),
+                    );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop(ok);
+              },
+              child: const Text('Verify PAN'),
+            ),
+          ],
+        );
+      },
+    );
+
+    panController.dispose();
+    legalNameController.dispose();
+
+    if (result != true && mounted) {
+      final message = userProvider.error;
+      if (message != null && message.isNotEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(message)));
+      }
+    }
+
+    return result ?? false;
   }
 }
 

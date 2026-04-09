@@ -11,7 +11,6 @@ import 'providers/transactions_provider.dart';
 import 'providers/user_provider.dart';
 import 'screens/accounts/accounts_screen.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/auth/signup_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/payment/payment_screen.dart';
 import 'screens/payment/payment_status_screen.dart';
@@ -82,10 +81,6 @@ class MyApp extends StatelessWidget {
           path: '/login',
           builder: (context, state) => const LoginScreen(),
         ),
-        GoRoute(
-          path: '/signup',
-          builder: (context, state) => const SignupScreen(),
-        ),
         ShellRoute(
           builder: (context, state, child) => AppShell(
             location: state.uri.path,
@@ -126,7 +121,7 @@ class MyApp extends StatelessWidget {
       ],
       redirect: (context, state) {
         final location = state.matchedLocation;
-        final authRoutes = {'/login', '/signup'};
+        final authRoutes = {'/login'};
         final isAuthRoute = authRoutes.contains(location);
         final isSplash = location == '/splash';
 

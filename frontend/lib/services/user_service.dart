@@ -111,6 +111,34 @@ class UserService {
     }
   }
 
+  Future<User> submitPan({
+    required String panNumber,
+    String? legalName,
+  }) async {
+    try {
+      _ensureSensitiveTransport();
+      final response = await _dio.post(
+        '/users/pan',
+        data: {
+          'panNumber': panNumber.trim().toUpperCase(),
+          if (legalName != null && legalName.trim().isNotEmpty) 'legalName': legalName.trim(),
+        },
+      );
+
+      if (response.statusCode == 201) {
+        return getProfile();
+      }
+
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Failed to verify PAN',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
   /// Handle DioException
   void _handleDioException(DioException e) {
     if (e.response?.statusCode == 404) {
@@ -127,12 +155,20 @@ class UserService {
       throw ApiError(
         type: ApiException.validationError,
         message: e.response?.data['error']?['message']?.toString() ?? 'Invalid request',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
+    } else if (e.response?.statusCode == 422) {
+      throw ApiError(
+        type: ApiException.validationError,
+        message: e.response?.data['error']?['message']?.toString() ?? 'Request rejected',
+        code: e.response?.data['error']?['code']?.toString(),
       );
     } else {
       throw ApiError(
         type: ApiException.networkError,
         message:
             e.response?.data['error']?['message']?.toString() ?? e.message ?? 'Network error',
+        code: e.response?.data['error']?['code']?.toString(),
       );
     }
   }

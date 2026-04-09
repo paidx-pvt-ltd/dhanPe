@@ -48,13 +48,16 @@ Supported compile-time keys:
 
 ## Current Flow
 
-1. Login or signup through `/api/auth/*`
-2. Load profile with `/api/users/profile`
-3. Request a Didit session through `/api/users/kyc/session`
-4. Complete native identity verification in the Didit SDK
-5. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
-6. Create a bill payment request through `/api/transfer`
-7. Track lifecycle state through `/api/transaction/:id`
+1. Load MSG91 widget metadata through `GET /api/auth/widget-config`
+2. Complete mobile verification in the MSG91 widget
+3. Exchange the MSG91 widget access token through `POST /api/auth/verify-otp`
+4. Load profile with `/api/users/profile`
+5. Request a Didit session through `/api/users/kyc/session`
+6. Complete native identity verification in the Didit SDK
+7. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
+8. If transfer creation returns `PAN_REQUIRED`, collect PAN and submit it through `POST /api/users/pan`
+9. Create a bill payment request through `/api/transfer`
+10. Track lifecycle state through `/api/transaction/:id`
 
 ## Structure
 
@@ -93,9 +96,10 @@ Required user-facing disclosures before confirmation:
 Trust and policy elements surfaced in app:
 
 - KYC status and verification prompts
+- PAN verification state and just-in-time PAN collection
 - secure payment indicators
 - transaction status timeline updates
-- legal links available from signup and settings/profile surfaces
+- legal links available from auth and settings/profile surfaces
 
 ## Validation
 

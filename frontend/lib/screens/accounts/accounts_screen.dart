@@ -66,20 +66,27 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     style: Theme.of(context).textTheme.displaySmall,
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      StatusBadge(
+                    Row(
+                      children: [
+                        StatusBadge(
                         label: userProvider.user?.isKycApproved == true
                             ? 'KYC Approved'
                             : 'KYC Pending',
                         color: userProvider.user?.isKycApproved == true
                             ? AppColors.success
                             : AppColors.warning,
-                      ),
-                      const SizedBox(width: 8),
-                      StatusBadge(
-                        label: '$verified verified',
-                        color: AppColors.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        StatusBadge(
+                          label: userProvider.user?.panVerified == true ? 'PAN Verified' : 'PAN Pending',
+                          color: userProvider.user?.panVerified == true
+                              ? AppColors.success
+                              : AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        StatusBadge(
+                          label: '$verified verified',
+                          color: AppColors.secondary,
                       ),
                     ],
                   ),
