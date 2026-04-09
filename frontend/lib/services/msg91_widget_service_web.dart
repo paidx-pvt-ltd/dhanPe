@@ -12,6 +12,8 @@ const _scriptUrl = 'https://verify.msg91.com/otp-provider.js';
 class WebMsg91WidgetService implements Msg91WidgetService {
   Future<void>? _scriptLoader;
   bool _initialized = false;
+  String? _widgetId;
+  String? _tokenAuth;
 
   @override
   Future<void> initialize({
@@ -19,6 +21,10 @@ class WebMsg91WidgetService implements Msg91WidgetService {
     required String tokenAuth,
   }) async {
     await _ensureScriptLoaded();
+
+    if (_initialized && _widgetId == widgetId && _tokenAuth == tokenAuth) {
+      return;
+    }
 
     // Guard against re-initialization on the same element (common during Hot Restarts)
     final host = html.document.getElementById('msg91-captcha-host');
