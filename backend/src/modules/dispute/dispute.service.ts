@@ -1,11 +1,7 @@
 import { DisputePhase, DisputeStatus, Prisma, TransactionStatus } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors.js';
 import { toDecimal, toNumber } from '../../utils/decimal.js';
-import {
-  CreateDisputeDto,
-  ResolveDisputeDto,
-  RespondDisputeDto,
-} from './dispute.schemas.js';
+import { CreateDisputeDto, ResolveDisputeDto, RespondDisputeDto } from './dispute.schemas.js';
 import { DisputeRepository } from './dispute.repository.js';
 
 const TERMINAL_DISPUTE_STATUSES: ReadonlySet<DisputeStatus> = new Set([

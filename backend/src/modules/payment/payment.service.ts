@@ -137,7 +137,10 @@ export class PaymentService {
       };
     }
 
-    const beneficiary = await this.paymentRepository.findBeneficiaryById(userId, input.beneficiaryId!);
+    const beneficiary = await this.paymentRepository.findBeneficiaryById(
+      userId,
+      input.beneficiaryId!
+    );
     if (!beneficiary) {
       throw new NotFoundError('Beneficiary');
     }

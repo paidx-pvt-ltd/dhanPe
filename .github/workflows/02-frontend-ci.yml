@@ -37,7 +37,7 @@ jobs:
           cx_client_id: dhruv-integrations
           cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
           project_name: manual-financeapp
-          additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1"
+          additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1" --async
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

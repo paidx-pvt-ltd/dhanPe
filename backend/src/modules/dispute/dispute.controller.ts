@@ -1,9 +1,5 @@
 import { Request, Response } from 'express';
-import {
-  CreateDisputeDto,
-  ResolveDisputeDto,
-  RespondDisputeDto,
-} from './dispute.schemas.js';
+import { CreateDisputeDto, ResolveDisputeDto, RespondDisputeDto } from './dispute.schemas.js';
 import { DisputeService } from './dispute.service.js';
 
 export class DisputeController {
@@ -49,7 +45,11 @@ export class DisputeController {
 
   resolve = async (req: Request, res: Response): Promise<void> => {
     const body = req.body as ResolveDisputeDto;
-    const result = await this.disputeService.resolveDispute(req.params.disputeId, req.userId!, body);
+    const result = await this.disputeService.resolveDispute(
+      req.params.disputeId,
+      req.userId!,
+      body
+    );
     res.json({
       success: true,
       data: result,
