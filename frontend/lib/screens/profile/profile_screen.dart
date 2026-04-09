@@ -71,10 +71,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user?.displayName ?? 'Profile', style: Theme.of(context).textTheme.headlineSmall),
+                      Text(
+                        user?.displayName ?? 'Profile',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                       const SizedBox(height: 4),
                       Text(
-                        user?.email ?? '',
+                        user?.mobileNumber ?? '',
                         style: Theme.of(context)
                             .textTheme
                             .bodyMedium
@@ -102,6 +105,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(width: 8),
                       if (user?.isAdmin == true)
                         const StatusBadge(label: 'Admin', color: AppColors.tertiary),
+                      const SizedBox(width: 8),
+                      StatusBadge(
+                        label: user?.panVerified == true ? 'PAN Verified' : 'PAN Pending',
+                        color: user?.panVerified == true ? AppColors.success : AppColors.warning,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -152,11 +160,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _phoneController,
-                      obscureText: true,
-                      enableSuggestions: false,
-                      autocorrect: false,
-                      enableIMEPersonalizedLearning: false,
-                      enableInteractiveSelection: false,
                       decoration: const InputDecoration(
                         labelText: 'Phone number',
                         prefixIcon: Icon(Icons.phone_iphone_rounded),
@@ -202,6 +205,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 18),
+            if (user != null)
+              KineticPanel(
+                color: AppColors.surfaceLow,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Compliance identity', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 10),
+                    Text('Mobile: ${user.mobileNumber}', style: Theme.of(context).textTheme.bodyLarge),
+                    const SizedBox(height: 6),
+                    Text(
+                      user.panVerified
+                          ? 'PAN verified as ${user.panName ?? user.panNumber ?? 'verified holder'}'
+                          : 'PAN will be collected just in time before your first transfer.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            if (user != null) const SizedBox(height: 18),
             KineticPanel(
               color: AppColors.surfaceLow,
               child: Column(

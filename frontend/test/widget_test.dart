@@ -65,7 +65,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Move money without losing the plot.'), findsOneWidget);
-    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Verify your mobile. Continue with compliance-first access.'), findsOneWidget);
+    expect(find.text('Verify and continue'), findsOneWidget);
   });
 }

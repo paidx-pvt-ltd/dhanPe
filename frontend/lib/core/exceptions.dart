@@ -25,19 +25,21 @@ class ApiError extends Error {
 
 class AuthException extends Error {
   final String message;
+  final String? code;
 
-  AuthException(this.message);
+  AuthException(this.message, {this.code});
 
   @override
-  String toString() => 'AuthException: $message';
+  String toString() => 'AuthException: $message (${code ?? 'auth'})';
 }
 
 class PaymentException extends Error {
   final String message;
   final String? paymentId;
+  final String? code;
 
-  PaymentException(this.message, {this.paymentId});
+  PaymentException(this.message, {this.paymentId, this.code});
 
   @override
-  String toString() => 'PaymentException: $message';
+  String toString() => 'PaymentException: $message (${code ?? 'payment'})';
 }

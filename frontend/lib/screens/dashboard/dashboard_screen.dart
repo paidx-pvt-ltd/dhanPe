@@ -118,6 +118,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(width: 8),
                         StatusBadge(
+                          label: user?.panVerified == true ? 'PAN Verified' : 'PAN Pending',
+                          color: user?.panVerified == true
+                              ? AppColors.success
+                              : AppColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        StatusBadge(
                           label: '${beneficiaryProvider.beneficiaries.length} beneficiaries',
                           color: AppColors.secondary,
                         ),

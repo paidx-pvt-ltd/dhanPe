@@ -97,6 +97,34 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> submitPan({
+    required String panNumber,
+    String? legalName,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _user = await _userService.submitPan(
+        panNumber: panNumber,
+        legalName: legalName,
+      );
+      _balance = _user?.balance ?? 0;
+      _syncKycPolling();
+      return true;
+    } on ApiError catch (e) {
+      _error = e.message;
+      return false;
+    } catch (_) {
+      _error = 'Failed to verify PAN';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> verifyIdentity() async {
     _isLoading = true;
     _error = null;

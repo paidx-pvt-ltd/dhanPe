@@ -126,19 +126,35 @@ class PaymentService {
     }
 
     if (e.response?.statusCode == 404) {
-      throw PaymentException(message ?? 'Transfer not found');
+      throw PaymentException(
+        message ?? 'Transfer not found',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
     } else if (e.response?.statusCode == 401) {
-      throw PaymentException(message ?? 'Unauthorized - please login again');
+      throw PaymentException(
+        message ?? 'Unauthorized - please login again',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
     } else if (e.response?.statusCode == 422) {
-      throw PaymentException(message ?? 'Transfer request was rejected');
+      throw PaymentException(
+        message ?? 'Transfer request was rejected',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
     } else if (e.response?.statusCode == 429) {
       throw PaymentException(
         message ?? 'Too many transfer requests. Please try again later.',
+        code: e.response?.data['error']?['code']?.toString(),
       );
     } else if (e.response?.statusCode == 400) {
-      throw PaymentException(message ?? 'Invalid transfer request');
+      throw PaymentException(
+        message ?? 'Invalid transfer request',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
     } else {
-      throw PaymentException(message ?? e.message ?? 'Network error');
+      throw PaymentException(
+        message ?? e.message ?? 'Network error',
+        code: e.response?.data['error']?['code']?.toString(),
+      );
     }
   }
 
