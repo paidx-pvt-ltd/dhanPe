@@ -92,9 +92,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Verify your mobile. Continue with compliance-first access.'),
+      find.text('Verify your number via OTP to access your account securely.'),
       findsOneWidget,
     );
-    expect(find.text('Verify and continue'), findsOneWidget);
+    expect(find.text('Send OTP'), findsOneWidget);
   });
 }
