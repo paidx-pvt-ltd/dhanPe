@@ -11,8 +11,10 @@ datasource db {
 
 model User {
   id           String       @id @default(cuid())
-  email        String       @unique
-  passwordHash String
+  email        String?      @unique
+  passwordHash String?
+  mobileNumber String       @unique
+  isMobileVerified Boolean  @default(false)
   firstName    String?
   lastName     String?
   phoneNumber  String?
@@ -21,6 +23,10 @@ model User {
   state        String?
   postalCode   String?
   countryCode  String       @default("+91")
+  panNumber    String?      @unique
+  panName      String?
+  panVerified  Boolean      @default(false)
+  panVerifiedAt DateTime?
   kycStatus    KYCStatus    @default(PENDING)
   balance      Decimal      @default(0) @db.Decimal(18, 2)
   createdAt    DateTime     @default(now())
@@ -32,10 +38,11 @@ model User {
   beneficiaries  Beneficiary[]
   ledgerEntries  Ledger[]
   refreshTokens  RefreshToken[]
+  otpChallenges  OtpChallenge[]
   riskProfile    RiskProfile?
   idempotencyKeys IdempotencyKey[]
 
-  @@index([email])
+  @@index([mobileNumber])
   @@index([createdAt])
 }
 
@@ -102,10 +109,12 @@ model Beneficiary {
   type              BeneficiaryType    @default(BANK_ACCOUNT)
   label             String?
   accountHolderName String
+  accountNumber     String
   accountNumberMask String
   accountNumberHash String
   ifsc              String?
   upiHandle         String?
+  isVerified        Boolean            @default(false)
   status            BeneficiaryStatus  @default(PENDING_VERIFICATION)
   rawDetails        Json
   providerBeneficiaryId String?
@@ -119,6 +128,22 @@ model Beneficiary {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@unique([userId, accountNumberHash, ifsc])
+}
+
+model OtpChallenge {
+  id             String   @id @default(cuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mobileNumber   String
+  otpHash        String
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  attemptCount   Int      @default(0)
+  lastAttemptAt  DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([mobileNumber, createdAt])
+  @@index([expiresAt])
 }
 
 model Ledger {

@@ -1,22 +1,21 @@
 import { z } from 'zod';
 
-export const signupSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(8).max(128),
-  firstName: z.string().trim().min(1).max(80).optional(),
-  lastName: z.string().trim().min(1).max(80).optional(),
-  phoneNumber: z.string().trim().min(10).max(20).optional(),
-});
+const mobileNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^\+?\d{10,15}$/, 'Mobile number must be a valid MSISDN');
 
-export const loginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(1).max(128),
+export const widgetConfigSchema = z.object({});
+
+export const verifyOtpSchema = z.object({
+  accessToken: z.string().trim().min(1),
+  mobileNumber: mobileNumberSchema.optional(),
 });
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-export type SignupDto = z.infer<typeof signupSchema>;
-export type LoginDto = z.infer<typeof loginSchema>;
+export type WidgetConfigDto = z.infer<typeof widgetConfigSchema>;
+export type VerifyOtpDto = z.infer<typeof verifyOtpSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;

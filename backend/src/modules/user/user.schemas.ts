@@ -11,4 +11,10 @@ export const updateProfileSchema = z.object({
   countryCode: z.string().trim().min(2).max(4).optional(),
 });
 
+export const submitPanSchema = z.object({
+  panNumber: z.string().trim().regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/),
+  legalName: z.string().trim().min(2).max(120).optional(),
+});
+
 export type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
+export type SubmitPanDto = z.infer<typeof submitPanSchema>;

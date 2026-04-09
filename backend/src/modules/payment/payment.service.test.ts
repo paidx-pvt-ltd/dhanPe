@@ -21,7 +21,9 @@ describe('PaymentService', () => {
 
   const cashfreeClient = {
     createOrder: vi.fn(),
-    createBeneficiary: vi.fn(),
+  };
+  const beneficiaryValidationService = {
+    validateBankAccount: vi.fn(),
   };
   const transactionStateService = {
     transitionTransactionState: vi.fn(),
@@ -36,6 +38,7 @@ describe('PaymentService', () => {
     riskService as never,
     transactionStateService as never,
     cashfreeClient as never,
+    beneficiaryValidationService as never,
     db as never
   );
 
@@ -48,6 +51,8 @@ describe('PaymentService', () => {
       id: 'user_1',
       email: 'user@example.com',
       phoneNumber: '9999999999',
+      mobileNumber: '+919999999999',
+      isMobileVerified: true,
       firstName: 'Test',
       lastName: 'User',
       addressLine1: '221B Baker Street',
@@ -55,6 +60,9 @@ describe('PaymentService', () => {
       state: 'Karnataka',
       postalCode: '560001',
       countryCode: '+91',
+      panNumber: 'ABCDE1234F',
+      panName: 'Test User',
+      panVerified: true,
       isActive: true,
       kycStatus: KYCStatus.APPROVED,
     });
@@ -66,15 +74,19 @@ describe('PaymentService', () => {
     paymentRepository.createBeneficiary.mockResolvedValue({
       id: 'beneficiary_1',
       accountHolderName: 'Test User',
+      accountNumber: '1234567890',
       accountNumberMask: 'XXXXXX7890',
       ifsc: 'HDFC0001234',
-      status: 'PENDING_VERIFICATION',
+      isVerified: true,
+      status: 'VERIFIED',
     });
     paymentRepository.updateBeneficiary.mockResolvedValue({
       id: 'beneficiary_1',
       accountHolderName: 'Test User',
+      accountNumber: '1234567890',
       accountNumberMask: 'XXXXXX7890',
       ifsc: 'HDFC0001234',
+      isVerified: true,
       status: 'VERIFIED',
     });
     paymentRepository.createTransaction.mockResolvedValue({
@@ -87,9 +99,12 @@ describe('PaymentService', () => {
       order_token: 'token_123',
       order_status: 'ACTIVE',
     });
-    cashfreeClient.createBeneficiary.mockResolvedValue({
-      beneficiary_id: 'cf_bene_1',
-      beneficiary_status: 'VERIFIED',
+    beneficiaryValidationService.validateBankAccount.mockResolvedValue({
+      accountNumber: '1234567890',
+      ifsc: 'HDFC0001234',
+      accountHolderName: 'Test User',
+      isVerified: true,
+      verificationMetadata: { referenceId: 'bank_val_1' },
     });
 
     const result = (await service.createTransfer(
@@ -142,6 +157,8 @@ describe('PaymentService', () => {
       id: 'user_1',
       email: 'user@example.com',
       phoneNumber: '9999999999',
+      mobileNumber: '+919999999999',
+      isMobileVerified: true,
       firstName: 'Test',
       lastName: 'User',
       addressLine1: '221B Baker Street',
@@ -149,6 +166,9 @@ describe('PaymentService', () => {
       state: 'Karnataka',
       postalCode: '560001',
       countryCode: '+91',
+      panNumber: 'ABCDE1234F',
+      panName: 'Test User',
+      panVerified: true,
       isActive: true,
       kycStatus: KYCStatus.APPROVED,
     });

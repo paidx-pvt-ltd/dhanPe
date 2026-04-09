@@ -1,4 +1,5 @@
 import { prisma } from '../../db/prisma.js';
+import { BeneficiaryValidationService } from '../compliance/beneficiary-validation.service.js';
 import { DisputeRepository } from '../dispute/dispute.repository.js';
 import { DisputeService } from '../dispute/dispute.service.js';
 import { LedgerRepository } from '../ledger/ledger.repository.js';
@@ -24,6 +25,7 @@ const ledgerRepository = new LedgerRepository(prisma);
 const ledgerService = new LedgerService(ledgerRepository, prisma);
 const payoutRepository = new PayoutRepository(prisma);
 const cashfreeClient = new CashfreeClient();
+const beneficiaryValidationService = new BeneficiaryValidationService(cashfreeClient);
 const paymentRepository = new PaymentRepository(prisma);
 const riskRepository = new RiskRepository(prisma);
 const riskService = new RiskService(riskRepository);
@@ -40,6 +42,7 @@ const paymentService = new PaymentService(
   riskService,
   transactionStateService,
   cashfreeClient,
+  beneficiaryValidationService,
   prisma
 );
 const disputeRepository = new DisputeRepository(prisma);
@@ -76,6 +79,7 @@ const transactionService = new TransactionService(transactionRepository, payoutS
 
 export const fintechRuntime = {
   cashfreeClient,
+  beneficiaryValidationService,
   disputeRepository,
   disputeService,
   ledgerRepository,

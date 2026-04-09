@@ -4,7 +4,7 @@ declare global {
       userId?: string;
       user?: {
         id: string;
-        email: string;
+        mobileNumber: string;
       };
       rawBody?: string;
     }

@@ -21,6 +21,7 @@ DhanPe is a fintech application for compliant, bill-payment-based fund flows wit
 - Integrations:
   - Cashfree (payments, payouts, payment/payout webhooks)
   - Didit (KYC session + webhook)
+  - MSG91 (mobile OTP widget)
 
 ## Quick Start
 
@@ -148,14 +149,15 @@ Scheduled reconciliation is controlled by backend config (`RECONCILIATION_ENABLE
 
 ### Auth
 
-- `POST /api/auth/signup`
-- `POST /api/auth/login`
+- `GET /api/auth/widget-config`
+- `POST /api/auth/verify-otp`
 - `POST /api/auth/refresh`
 
 ### User and beneficiary
 
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
+- `POST /api/users/pan`
 - `GET /api/users/beneficiaries`
 - `POST /api/users/beneficiaries`
 

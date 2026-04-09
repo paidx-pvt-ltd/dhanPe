@@ -2,11 +2,15 @@ import axios, { AxiosInstance } from 'axios';
 import { config } from '../../config/index.js';
 import { ExternalServiceError } from '../../shared/errors.js';
 import {
+  CashfreeBankValidationRequest,
+  CashfreeBankValidationResponse,
   CashfreeBeneficiaryRequest,
   CashfreeBeneficiaryResponse,
   CashfreeCreateRefundRequest,
   CashfreeOrderRequest,
   CashfreeOrderResponse,
+  CashfreePanVerificationRequest,
+  CashfreePanVerificationResponse,
   CashfreePayoutRequest,
   CashfreePayoutResponse,
   CashfreeRefundResponse,
@@ -123,6 +127,62 @@ export class CashfreeClient {
       return data;
     } catch (error) {
       throw new ExternalServiceError('Failed to fetch Cashfree refund status', error);
+    }
+  }
+
+  async verifyPan(
+    payload: CashfreePanVerificationRequest
+  ): Promise<CashfreePanVerificationResponse> {
+    try {
+      const { data } = await this.orderClient.post<Record<string, unknown>>(
+        '/verification/pan',
+        payload
+      );
+
+      return {
+        valid: Boolean(data.valid ?? data.success ?? data.verified),
+        name:
+          (data.name as string | undefined) ??
+          (data.registered_name as string | undefined) ??
+          (data.pan_name as string | undefined),
+        pan: (data.pan as string | undefined) ?? payload.pan,
+        status: (data.status as string | undefined) ?? (data.message as string | undefined),
+        referenceId:
+          (data.reference_id as string | undefined) ?? (data.ref_id as string | undefined),
+        raw: data,
+      };
+    } catch (error) {
+      throw new ExternalServiceError('Failed to verify PAN with Cashfree', error);
+    }
+  }
+
+  async validateBankAccount(
+    payload: CashfreeBankValidationRequest
+  ): Promise<CashfreeBankValidationResponse> {
+    try {
+      const { data } = await this.payoutClient.post<Record<string, unknown>>(
+        '/payout/validate/bank-account',
+        payload
+      );
+
+      return {
+        valid: Boolean(data.valid ?? data.success ?? data.verified),
+        accountHolderName:
+          (data.accountHolderName as string | undefined) ??
+          (data.account_holder_name as string | undefined) ??
+          (data.name_at_bank as string | undefined),
+        bankAccount:
+          (data.bankAccount as string | undefined) ??
+          (data.account_number as string | undefined) ??
+          payload.bankAccount,
+        ifsc: (data.ifsc as string | undefined) ?? payload.ifsc,
+        status: (data.status as string | undefined) ?? (data.message as string | undefined),
+        referenceId:
+          (data.reference_id as string | undefined) ?? (data.ref_id as string | undefined),
+        raw: data,
+      };
+    } catch (error) {
+      throw new ExternalServiceError('Failed to validate beneficiary bank account', error);
     }
   }
 }

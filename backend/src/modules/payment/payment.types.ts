@@ -5,7 +5,7 @@ export interface CashfreeOrderRequest {
   order_note?: string;
   customer_details: {
     customer_id: string;
-    customer_email: string;
+    customer_email?: string;
     customer_phone?: string;
   };
   order_meta?: {
@@ -99,4 +99,34 @@ export interface CashfreeRefundResponse {
   refund_status: string;
   status_description?: string;
   created_at?: string;
+}
+
+export interface CashfreePanVerificationRequest {
+  pan: string;
+  name?: string;
+}
+
+export interface CashfreePanVerificationResponse {
+  valid: boolean;
+  name?: string;
+  pan?: string;
+  status?: string;
+  referenceId?: string;
+  raw?: unknown;
+}
+
+export interface CashfreeBankValidationRequest {
+  bankAccount: string;
+  ifsc: string;
+  name?: string;
+}
+
+export interface CashfreeBankValidationResponse {
+  valid: boolean;
+  accountHolderName?: string;
+  bankAccount?: string;
+  ifsc?: string;
+  status?: string;
+  referenceId?: string;
+  raw?: unknown;
 }

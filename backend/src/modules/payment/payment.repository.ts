@@ -26,9 +26,14 @@ export class PaymentRepository {
         userId,
         accountNumberHash,
         ifsc,
-        status: {
-          in: [BeneficiaryStatus.PENDING_VERIFICATION, BeneficiaryStatus.VERIFIED],
-        },
+        OR: [
+          { isVerified: true },
+          {
+            status: {
+              in: [BeneficiaryStatus.PENDING_VERIFICATION, BeneficiaryStatus.VERIFIED],
+            },
+          },
+        ],
       },
     });
   }

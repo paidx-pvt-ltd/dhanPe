@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createBeneficiarySchema = z.object({
-  accountHolderName: z.string().trim().min(2).max(120),
+  accountHolderName: z.string().trim().min(2).max(120).optional(),
   accountNumber: z.string().trim().min(6).max(34),
   ifsc: z.string().trim().min(4).max(20),
   bankName: z.string().trim().min(2).max(120).optional(),

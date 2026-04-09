@@ -86,6 +86,19 @@ export const config = {
     concurrency: parseNumber(process.env.PAYOUT_QUEUE_CONCURRENCY, 1),
     pollIntervalMs: parseNumber(process.env.PAYOUT_QUEUE_POLL_INTERVAL_MS, 15000),
   },
+  auth: {
+    otpExpiryMinutes: parseNumber(process.env.OTP_EXPIRY_MINUTES, 5),
+    otpMaxAttempts: parseNumber(process.env.OTP_MAX_ATTEMPTS, 5),
+  },
+  msg91: {
+    authKey: process.env.MSG91_AUTH_KEY ?? '',
+    widgetId: process.env.MSG91_WIDGET_ID ?? '',
+    widgetEnabled: parseBoolean(
+      process.env.MSG91_WIDGET_ENABLED,
+      process.env.NODE_ENV === 'production'
+    ),
+    baseUrl: process.env.MSG91_BASE_URL ?? 'https://api.msg91.com',
+  },
   reconciliation: {
     enabled: parseBoolean(process.env.RECONCILIATION_ENABLED, true),
     intervalMs: parseNumber(process.env.RECONCILIATION_INTERVAL_MS, 300000),
@@ -129,17 +142,25 @@ export const validateConfig = (): void => {
     throw new Error('Didit credentials must be real values, placeholder values are not allowed');
   }
 
+  if (config.msg91.widgetEnabled) {
+    const msg91Required = ['MSG91_AUTH_KEY', 'MSG91_WIDGET_ID'];
+    const msg91Missing = msg91Required.filter((key) => !process.env[key]);
+    if (msg91Missing.length > 0) {
+      throw new Error(
+        `Missing required MSG91 widget environment variables: ${msg91Missing.join(', ')}`
+      );
+    }
+  }
+
   // Fail fast on invalid JWT configuration instead of surfacing 500s on login/signup.
   try {
-    jwt.sign({ userId: 'config-check', email: 'config-check@example.com' }, config.jwt.secret, {
+    jwt.sign({ userId: 'config-check', mobileNumber: '9999999999' }, config.jwt.secret, {
       expiresIn: config.jwt.expiry,
     } as SignOptions);
 
-    jwt.sign(
-      { userId: 'config-check', email: 'config-check@example.com' },
-      config.jwt.refreshSecret,
-      { expiresIn: config.jwt.refreshExpiry } as SignOptions
-    );
+    jwt.sign({ userId: 'config-check', mobileNumber: '9999999999' }, config.jwt.refreshSecret, {
+      expiresIn: config.jwt.refreshExpiry,
+    } as SignOptions);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown JWT config error';
     throw new Error(`Invalid JWT configuration: ${message}`);

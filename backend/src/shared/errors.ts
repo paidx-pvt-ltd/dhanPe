@@ -15,6 +15,30 @@ export class ValidationError extends AppError {
   }
 }
 
+export class PanRequiredError extends AppError {
+  constructor(message = 'PAN verification required before initiating transfer') {
+    super(400, message, 'PAN_REQUIRED');
+  }
+}
+
+export class PanInvalidError extends AppError {
+  constructor(message = 'PAN verification failed', details?: unknown) {
+    super(422, message, 'PAN_INVALID', details);
+  }
+}
+
+export class BeneficiaryInvalidError extends AppError {
+  constructor(message = 'Beneficiary validation failed', details?: unknown) {
+    super(422, message, 'BENEFICIARY_INVALID', details);
+  }
+}
+
+export class SelfTransferNotAllowedError extends AppError {
+  constructor(message = 'Self transfer is not allowed', details?: unknown) {
+    super(422, message, 'SELF_TRANSFER_NOT_ALLOWED', details);
+  }
+}
+
 export class AuthenticationError extends AppError {
   constructor(message = 'Authentication required') {
     super(401, message, 'AUTHENTICATION_ERROR');
