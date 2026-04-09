@@ -23,6 +23,7 @@ export class UserService {
       postalCode: user.postalCode,
       countryCode: user.countryCode,
       kycStatus: user.kycStatus,
+      isAdmin: user.isAdmin,
       balance: toNumber(user.balance),
       createdAt: user.createdAt,
     };
@@ -54,6 +55,7 @@ export class UserService {
       postalCode: user.postalCode,
       countryCode: user.countryCode,
       kycStatus: user.kycStatus,
+      isAdmin: user.isAdmin,
       balance: toNumber(user.balance),
       createdAt: user.createdAt,
     };

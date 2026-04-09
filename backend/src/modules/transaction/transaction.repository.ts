@@ -15,6 +15,16 @@ export class TransactionRepository {
           orderBy: { createdAt: 'asc' },
         },
         payout: true,
+        refunds: {
+          orderBy: { createdAt: 'asc' },
+        },
+        disputes: {
+          orderBy: { createdAt: 'asc' },
+        },
+        reconciliationItems: {
+          orderBy: { createdAt: 'asc' },
+          take: 20,
+        },
         journalEntries: {
           include: {
             lines: true,

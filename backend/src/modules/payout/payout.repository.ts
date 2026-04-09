@@ -41,6 +41,9 @@ export class PayoutRepository {
         transaction: {
           include: {
             beneficiary: true,
+            refunds: {
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
       },
@@ -70,6 +73,9 @@ export class PayoutRepository {
         transaction: {
           include: {
             beneficiary: true,
+            refunds: {
+              orderBy: { createdAt: 'desc' },
+            },
           },
         },
       },

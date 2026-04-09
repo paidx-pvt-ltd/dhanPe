@@ -9,6 +9,7 @@ validateConfig();
 const start = async (): Promise<void> => {
   await connectDatabase();
   fintechRuntime.payoutService.startWorker();
+  fintechRuntime.reconciliationService.startScheduler();
 
   const server = app.listen(config.server.port, () => {
     logger.info({ port: config.server.port }, 'Server started');
@@ -16,7 +17,8 @@ const start = async (): Promise<void> => {
 
   const shutdown = async (): Promise<void> => {
     logger.info('Shutting down');
-    fintechRuntime.payoutService.stopWorker();
+    fintechRuntime.reconciliationService.stopScheduler();
+    await fintechRuntime.payoutService.stopWorker();
     server.close(() => {
       void disconnectDatabase().finally(() => {
         process.exit(0);

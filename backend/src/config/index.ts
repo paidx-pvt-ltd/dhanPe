@@ -19,6 +19,22 @@ const parseOrigins = (value: string | undefined): string[] => {
     .filter(Boolean);
 };
 
+const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
+  if (!value) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+};
+
 export const config = {
   server: {
     env: process.env.NODE_ENV ?? 'development',
@@ -63,9 +79,16 @@ export const config = {
   logging: {
     level: process.env.LOG_LEVEL ?? 'info',
   },
+  redis: {
+    url: process.env.REDIS_URL ?? 'redis://127.0.0.1:6379',
+  },
   queue: {
     concurrency: parseNumber(process.env.PAYOUT_QUEUE_CONCURRENCY, 1),
     pollIntervalMs: parseNumber(process.env.PAYOUT_QUEUE_POLL_INTERVAL_MS, 15000),
+  },
+  reconciliation: {
+    enabled: parseBoolean(process.env.RECONCILIATION_ENABLED, true),
+    intervalMs: parseNumber(process.env.RECONCILIATION_INTERVAL_MS, 300000),
   },
 };
 
@@ -77,6 +100,7 @@ export const validateConfig = (): void => {
     'CASHFREE_CLIENT_ID',
     'CASHFREE_CLIENT_SECRET',
     'CASHFREE_WEBHOOK_SECRET',
+    'REDIS_URL',
   ];
   const missing = required.filter((key) => !process.env[key]);
 

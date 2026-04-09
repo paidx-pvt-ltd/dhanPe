@@ -11,10 +11,11 @@ This repository is set up for local development first. Production values should 
 ## What Exists Today
 
 - Auth endpoints for signup, login, and refresh
-- Transfer creation through Cashfree-backed backend routes
+- Beneficiary-backed transfer creation through Cashfree-backed backend routes
 - Didit native identity verification before transfer confirmation
-- Cashfree webhook ingestion and transaction lifecycle tracking
+- Cashfree webhook ingestion, payout execution, refund handling, dispute/chargeback control-plane ops, and reconciliation tracking
 - PostgreSQL with Prisma migrations
+- Redis + BullMQ payout queueing
 - Flutter app configured for local and deployed backend targets
 
 ## Repository Layout
@@ -90,11 +91,26 @@ Primary routes exposed by the app today:
 - `POST /api/auth/refresh`
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
+- `GET /api/users/beneficiaries`
+- `POST /api/users/beneficiaries`
 - `POST /api/users/kyc/session`
 - `POST /api/users/kyc/session/:sessionId/sync`
 - `POST /api/transfer`
 - `GET /api/transaction/:id`
+- `POST /api/payout/:transactionId/sync`
+- `POST /api/refund/:transactionId`
+- `POST /api/refund/:refundId/sync`
+- `POST /api/disputes`
+- `GET /api/disputes`
+- `GET /api/disputes/:disputeId`
+- `POST /api/disputes/:disputeId/respond`
+- `POST /api/disputes/:disputeId/resolve`
+- `POST /api/reconciliation/run`
+- `GET /api/reconciliation/runs/:runId`
+- `GET /api/reconciliation/items`
+- `POST /api/reconciliation/items/:itemId/resolve`
 - `POST /api/webhook/cashfree`
+- `POST /api/webhook/cashfree/payout`
 - `POST /api/webhook/didit`
 
 ## Contributor Docs
@@ -110,6 +126,3 @@ Primary routes exposed by the app today:
 - Inject production env vars from the deployment platform.
 - Use `backend/.env.production` only as a checklist/template, not as a committed secrets file.
 - Set Flutter production API endpoints with `--dart-define=DHANPE_API_BASE_URL=...`.
-
-/////////////////////////////////////////////////////////////////
-flutter run --dart-define=DHANPE_API_ENV=production --dart-define=DHANPE_CASHFREE_ENV=sandbox

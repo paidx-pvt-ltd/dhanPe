@@ -1,24 +1,34 @@
 import { LedgerEntryType, PayoutStatus, Prisma, PrismaClient } from '@prisma/client';
+import { Job, Queue, QueueEvents, Worker } from 'bullmq';
+import IORedis from 'ioredis';
 import { config } from '../../config/index.js';
 import { logger } from '../../config/logger.js';
 import { NotFoundError, ValidationError } from '../../shared/errors.js';
-import { InMemoryQueue } from '../../shared/in-memory-queue.js';
 import { sha256 } from '../../utils/hash.js';
 import { toNumber } from '../../utils/decimal.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { CashfreeClient } from '../payment/cashfree.client.js';
+import {
+  createPayoutQueue,
+  createPayoutQueueEvents,
+  createPayoutWorker,
+  createRedisConnection,
+  PAYOUT_JOB_NAME,
+  PayoutJobPayload,
+} from './payout.queue.js';
 import { PayoutRepository } from './payout.repository.js';
-
-interface PayoutJob {
-  transactionId: string;
-}
 
 const TERMINAL_SUCCESS = new Set(['SUCCESS', 'COMPLETED', 'SETTLED']);
 const TERMINAL_FAILURE = new Set(['FAILED', 'REJECTED', 'REVERSED', 'CANCELLED']);
 const IN_FLIGHT = new Set(['RECEIVED', 'PENDING', 'PROCESSING', 'QUEUED', 'SUBMITTED']);
 
 export class PayoutService {
-  private readonly queue: InMemoryQueue<PayoutJob>;
+  private readonly queueConnection: IORedis;
+  private readonly workerConnection: IORedis;
+  private readonly eventsConnection: IORedis;
+  private readonly queue: Queue<PayoutJobPayload>;
+  private readonly queueEvents: QueueEvents;
+  private worker?: Worker<PayoutJobPayload>;
   private pollTimer?: NodeJS.Timeout;
 
   constructor(
@@ -27,16 +37,29 @@ export class PayoutService {
     private readonly cashfreeClient: CashfreeClient,
     private readonly db: PrismaClient
   ) {
-    this.queue = new InMemoryQueue(
-      async (job) => this.processPayout(job.transactionId),
-      config.queue.concurrency
-    );
+    this.queueConnection = createRedisConnection();
+    this.workerConnection = createRedisConnection();
+    this.eventsConnection = createRedisConnection();
+    this.queue = createPayoutQueue(this.queueConnection);
+    this.queueEvents = createPayoutQueueEvents(this.eventsConnection);
   }
 
   startWorker(): void {
-    if (this.pollTimer) {
+    if (this.worker) {
       return;
     }
+
+    this.worker = createPayoutWorker(this.workerConnection, async (job: Job<PayoutJobPayload>) => {
+      await this.processPayout(job.data.transactionId);
+    });
+
+    this.worker.on('completed', (job) => {
+      logger.info({ jobId: job.id }, 'Payout queue job completed');
+    });
+
+    this.worker.on('failed', (job, error) => {
+      logger.error({ error, jobId: job?.id }, 'Payout queue job failed');
+    });
 
     this.pollTimer = setInterval(() => {
       void this.resumePendingWork();
@@ -45,17 +68,33 @@ export class PayoutService {
     void this.resumePendingWork();
   }
 
-  stopWorker(): void {
-    if (!this.pollTimer) {
-      return;
+  async stopWorker(): Promise<void> {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = undefined;
     }
 
-    clearInterval(this.pollTimer);
-    this.pollTimer = undefined;
+    await Promise.all([
+      this.worker?.close(),
+      this.queueEvents.close(),
+      this.queue.close(),
+      this.queueConnection.quit(),
+      this.workerConnection.quit(),
+      this.eventsConnection.quit(),
+    ]);
+    this.worker = undefined;
   }
 
   enqueue(transactionId: string): Promise<void> {
-    return this.queue.enqueue({ transactionId });
+    return this.queue
+      .add(
+        PAYOUT_JOB_NAME,
+        { transactionId },
+        {
+          jobId: transactionId,
+        }
+      )
+      .then(() => undefined);
   }
 
   async resumePendingWork(): Promise<void> {
@@ -67,6 +106,20 @@ export class PayoutService {
     const payoutRecord = await this.payoutRepository.findByTransactionId(transactionId);
     if (!payoutRecord) {
       throw new NotFoundError('Payout');
+    }
+
+    const blockingRefund = payoutRecord.transaction.refunds.find((refund) =>
+      ['PENDING', 'PROCESSING', 'SUCCESS'].includes(refund.status)
+    );
+    if (blockingRefund) {
+      await this.markPayoutFailed(
+        payoutRecord.id,
+        transactionId,
+        payoutRecord.syncAttempts + 1,
+        `Refund ${blockingRefund.refundId} is ${blockingRefund.status.toLowerCase()}`,
+        undefined
+      );
+      return;
     }
 
     if (payoutRecord.status === PayoutStatus.SUCCESS) {
@@ -192,36 +245,65 @@ export class PayoutService {
       transactionId,
       payoutRecord.providerRef
     );
-    const mappedStatus = this.mapProviderStatus(statusResponse.status);
 
+    return this.applyTransferUpdate(transactionId, {
+      providerRef: statusResponse.cf_transfer_id ?? payoutRecord.providerRef ?? undefined,
+      providerStatus: statusResponse.status,
+      providerStatusCode: statusResponse.status_code,
+      failureReason: statusResponse.status_description,
+      details: statusResponse as unknown as Prisma.InputJsonValue,
+    });
+  }
+
+  async applyTransferUpdate(
+    transactionId: string,
+    input: {
+      providerRef?: string;
+      providerStatus?: string;
+      providerStatusCode?: string;
+      failureReason?: string;
+      details: Prisma.InputJsonValue;
+    }
+  ): Promise<PayoutStatus | null> {
+    const payoutRecord = await this.payoutRepository.findByTransactionId(transactionId);
+    if (!payoutRecord) {
+      throw new NotFoundError('Payout');
+    }
+
+    const mappedStatus = this.mapTransferState(input.providerStatus, input.providerStatusCode);
     const latestAttempt = payoutRecord.attempts[0];
+
+    if (payoutRecord.status === PayoutStatus.SUCCESS && mappedStatus === PayoutStatus.SUCCESS) {
+      return PayoutStatus.SUCCESS;
+    }
+
     await this.db.$transaction(async (tx) => {
       if (latestAttempt) {
         await this.payoutRepository.updateAttempt(tx, latestAttempt.id, {
           status: mappedStatus,
-          providerStatus: statusResponse.status,
-          providerRef: statusResponse.cf_transfer_id ?? payoutRecord.providerRef,
-          responsePayload: statusResponse as unknown as Prisma.InputJsonValue,
+          providerStatus: input.providerStatus,
+          providerRef: input.providerRef,
+          responsePayload: input.details,
+          errorMessage: mappedStatus === PayoutStatus.FAILED ? input.failureReason : undefined,
         });
       }
 
       await this.payoutRepository.updateStatus(tx, payoutRecord.id, {
         status: mappedStatus,
-        providerRef: statusResponse.cf_transfer_id ?? payoutRecord.providerRef ?? undefined,
-        providerStatus: statusResponse.status,
+        providerRef: input.providerRef,
+        providerStatus: input.providerStatus,
         lastSyncAt: new Date(),
         syncAttempts: payoutRecord.syncAttempts + 1,
         nextRetryAt:
           mappedStatus === PayoutStatus.SUCCESS
             ? null
             : this.computeRetryAt(payoutRecord.syncAttempts + 1),
-        statusDetails: statusResponse as unknown as Prisma.InputJsonValue,
-        failureReason:
-          mappedStatus === PayoutStatus.FAILED ? statusResponse.status_description : undefined,
+        statusDetails: input.details,
+        failureReason: mappedStatus === PayoutStatus.FAILED ? input.failureReason : undefined,
       });
       await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, mappedStatus);
 
-      if (mappedStatus === PayoutStatus.SUCCESS) {
+      if (mappedStatus === PayoutStatus.SUCCESS && payoutRecord.status !== PayoutStatus.SUCCESS) {
         await this.finalizeSuccessfulPayout(
           tx,
           payoutRecord.transaction.userId,
@@ -297,6 +379,17 @@ export class PayoutService {
       return PayoutStatus.SUBMITTED;
     }
     return PayoutStatus.PROCESSING;
+  }
+
+  private mapTransferState(providerStatus?: string, providerStatusCode?: string): PayoutStatus {
+    const normalizedStatus = providerStatus?.trim().toUpperCase() ?? 'UNKNOWN';
+    const normalizedCode = providerStatusCode?.trim().toUpperCase();
+
+    if (normalizedStatus === 'SUCCESS' && normalizedCode === 'COMPLETED') {
+      return PayoutStatus.SUCCESS;
+    }
+
+    return this.mapProviderStatus(normalizedStatus);
   }
 
   private computeRetryAt(attempts: number) {

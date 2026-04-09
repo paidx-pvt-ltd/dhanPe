@@ -68,6 +68,7 @@ export class AuthService {
       postalCode?: string | null;
       countryCode?: string | null;
       kycStatus?: string;
+      isAdmin?: boolean;
       balance?: { toString(): string } | number | string;
       createdAt?: Date;
     },
@@ -106,6 +107,7 @@ export class AuthService {
         postalCode: user.postalCode ?? null,
         countryCode: user.countryCode ?? '+91',
         kycStatus: user.kycStatus ?? 'PENDING',
+        isAdmin: user.isAdmin ?? false,
         balance: Number(user.balance ?? 0),
         createdAt: user.createdAt ?? new Date(),
       },
