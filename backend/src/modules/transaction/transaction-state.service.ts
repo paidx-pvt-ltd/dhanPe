@@ -7,29 +7,34 @@ import {
   TransactionStatus,
 } from '@prisma/client';
 import { logger } from '../../config/logger.js';
-import { ConflictError, NotFoundError, InvalidTransactionTransitionError } from '../../shared/errors.js';
+import {
+  ConflictError,
+  NotFoundError,
+  InvalidTransactionTransitionError,
+} from '../../shared/errors.js';
 
 type TxLike = PrismaClient | Prisma.TransactionClient;
 
-const ALLOWED_TRANSITIONS: Readonly<Record<TransactionLifecycleState, ReadonlySet<TransactionLifecycleState>>> =
-  {
-    INITIATED: new Set([TransactionLifecycleState.PAYMENT_PENDING]),
-    PAYMENT_PENDING: new Set([
-      TransactionLifecycleState.PAYMENT_SUCCESS,
-      TransactionLifecycleState.PAYMENT_FAILED,
-    ]),
-    PAYMENT_SUCCESS: new Set([TransactionLifecycleState.PAYOUT_PENDING]),
-    PAYMENT_FAILED: new Set(),
-    PAYOUT_PENDING: new Set([
-      TransactionLifecycleState.PAYOUT_SUCCESS,
-      TransactionLifecycleState.PAYOUT_FAILED,
-    ]),
-    PAYOUT_SUCCESS: new Set([TransactionLifecycleState.COMPLETED]),
-    PAYOUT_FAILED: new Set(),
-    COMPLETED: new Set([TransactionLifecycleState.REFUNDED, TransactionLifecycleState.DISPUTED]),
-    REFUNDED: new Set(),
-    DISPUTED: new Set(),
-  };
+const ALLOWED_TRANSITIONS: Readonly<
+  Record<TransactionLifecycleState, ReadonlySet<TransactionLifecycleState>>
+> = {
+  INITIATED: new Set([TransactionLifecycleState.PAYMENT_PENDING]),
+  PAYMENT_PENDING: new Set([
+    TransactionLifecycleState.PAYMENT_SUCCESS,
+    TransactionLifecycleState.PAYMENT_FAILED,
+  ]),
+  PAYMENT_SUCCESS: new Set([TransactionLifecycleState.PAYOUT_PENDING]),
+  PAYMENT_FAILED: new Set(),
+  PAYOUT_PENDING: new Set([
+    TransactionLifecycleState.PAYOUT_SUCCESS,
+    TransactionLifecycleState.PAYOUT_FAILED,
+  ]),
+  PAYOUT_SUCCESS: new Set([TransactionLifecycleState.COMPLETED]),
+  PAYOUT_FAILED: new Set(),
+  COMPLETED: new Set([TransactionLifecycleState.REFUNDED, TransactionLifecycleState.DISPUTED]),
+  REFUNDED: new Set(),
+  DISPUTED: new Set(),
+};
 
 export class TransactionStateService {
   constructor(private readonly db: PrismaClient) {}

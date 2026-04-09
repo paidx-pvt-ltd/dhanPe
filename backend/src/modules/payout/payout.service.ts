@@ -177,9 +177,7 @@ export class PayoutService {
     );
 
     const attempt = await this.db.$transaction(async (tx) => {
-      if (
-        payoutRecord.transaction.lifecycleState === TransactionLifecycleState.PAYMENT_SUCCESS
-      ) {
+      if (payoutRecord.transaction.lifecycleState === TransactionLifecycleState.PAYMENT_SUCCESS) {
         await this.transactionStateService.transitionTransactionState(
           transactionId,
           TransactionLifecycleState.PAYOUT_PENDING,
