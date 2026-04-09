@@ -4,7 +4,7 @@ import { AuthenticationError } from '../shared/errors.js';
 
 export interface JwtPayload {
   userId: string;
-  email: string;
+  mobileNumber: string;
 }
 
 export class JwtService {

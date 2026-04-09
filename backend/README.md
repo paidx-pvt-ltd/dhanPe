@@ -38,6 +38,12 @@ Also parsed by config:
 - `DIRECT_URL`
 - `JWT_EXPIRY`
 - `JWT_REFRESH_EXPIRY`
+- `OTP_EXPIRY_MINUTES`
+- `OTP_MAX_ATTEMPTS`
+- `MSG91_WIDGET_ENABLED`
+- `MSG91_AUTH_KEY`
+- `MSG91_WIDGET_ID`
+- `MSG91_BASE_URL`
 - `CASHFREE_API_BASE_URL`
 - `CASHFREE_PAYOUT_BASE_URL`
 - `CASHFREE_WEBHOOK_SIGNATURE_HEADER`
@@ -75,11 +81,12 @@ Primary API routes:
 - `GET /healthz`
 - `GET /api/healthz`
 - `GET /docs/openapi.json`
-- `POST /api/auth/signup`
-- `POST /api/auth/login`
+- `GET /api/auth/widget-config`
+- `POST /api/auth/verify-otp`
 - `POST /api/auth/refresh`
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
+- `POST /api/users/pan`
 - `GET /api/users/beneficiaries`
 - `POST /api/users/beneficiaries`
 - `POST /api/users/kyc/session`
@@ -177,17 +184,22 @@ Operational visibility and maintenance:
 
 ## Current Transfer Flow
 
-1. Authenticated user updates or confirms profile data.
-2. User can register or reuse a beneficiary through `GET/POST /api/users/beneficiaries`.
-3. Frontend requests a Didit session token through `POST /api/users/kyc/session`.
-4. Flutter launches the native Didit SDK with the returned `sessionToken`.
-5. Frontend syncs the final SDK session through `POST /api/users/kyc/session/:sessionId/sync`.
-6. Backend updates `kycStatus` from Didit and only then allows `POST /api/transfer`.
-7. Cashfree payment webhook updates the payment lifecycle through `POST /api/webhook/cashfree`.
-8. BullMQ-backed payout worker submits payouts and status can be synced through `POST /api/payout/:transactionId/sync`.
-9. Refunds are created through `POST /api/refund/:transactionId` and synced through `POST /api/refund/:refundId/sync`.
-10. Admin operators can open and work dispute or chargeback cases through `/api/disputes/*`.
-11. Scheduled or manual reconciliation compares internal state against Cashfree and stores findings for admin review.
+1. Frontend loads MSG91 widget configuration through `GET /api/auth/widget-config`.
+2. Frontend launches the MSG91 widget directly for OTP authentication.
+3. Frontend submits the MSG91 widget access token to `POST /api/auth/verify-otp`.
+4. Backend verifies that access token with MSG91, resolves the verified mobile number, and issues JWT tokens.
+5. Authenticated user updates or confirms profile data.
+6. Frontend requests a Didit session token through `POST /api/users/kyc/session`.
+7. Flutter launches the native Didit SDK with the returned `sessionToken`.
+8. Frontend syncs the final SDK session through `POST /api/users/kyc/session/:sessionId/sync`.
+9. On the first transfer attempt, frontend collects PAN if backend returns `PAN_REQUIRED`, then submits it through `POST /api/users/pan`.
+10. User can register or reuse a beneficiary through `GET/POST /api/users/beneficiaries`; backend validates the bank account and blocks self-transfers.
+11. Backend only allows `POST /api/transfer` after mobile verification, KYC approval, PAN verification, beneficiary verification, and risk checks.
+12. Cashfree payment webhook updates the payment lifecycle through `POST /api/webhook/cashfree`.
+13. BullMQ-backed payout worker submits payouts and status can be synced through `POST /api/payout/:transactionId/sync`.
+14. Refunds are created through `POST /api/refund/:transactionId` and synced through `POST /api/refund/:refundId/sync`.
+15. Admin operators can open and work dispute or chargeback cases through `/api/disputes/*`.
+16. Scheduled or manual reconciliation compares internal state against Cashfree and stores findings for admin review.
 
 ## Validation
 

@@ -1,14 +1,15 @@
 import { Prisma, PrismaClient } from '@prisma/client';
+import { logger } from '../../config/logger.js';
+import { BeneficiaryValidationService } from '../compliance/beneficiary-validation.service.js';
 import { NotFoundError, ValidationError } from '../../shared/errors.js';
 import { sha256 } from '../../utils/hash.js';
-import { CashfreeClient } from '../payment/cashfree.client.js';
 import { PaymentRepository } from '../payment/payment.repository.js';
 import { CreateBeneficiaryDto } from './beneficiary.schemas.js';
 
 export class BeneficiaryService {
   constructor(
     private readonly paymentRepository: PaymentRepository,
-    private readonly cashfreeClient: CashfreeClient,
+    private readonly beneficiaryValidationService: BeneficiaryValidationService,
     private readonly db: PrismaClient
   ) {}
 
@@ -20,6 +21,7 @@ export class BeneficiaryService {
       accountHolderName: beneficiary.accountHolderName,
       accountNumberMask: beneficiary.accountNumberMask,
       ifsc: beneficiary.ifsc,
+      isVerified: beneficiary.isVerified,
       status: beneficiary.status,
       providerStatus: beneficiary.providerStatus,
       createdAt: beneficiary.createdAt,
@@ -61,54 +63,54 @@ export class BeneficiaryService {
         accountHolderName: existing.accountHolderName,
         accountNumberMask: existing.accountNumberMask,
         ifsc: existing.ifsc,
+        isVerified: existing.isVerified,
         status: existing.status,
         providerStatus: existing.providerStatus,
       };
     }
 
+    const validated = await this.beneficiaryValidationService.validateBankAccount({
+      accountNumber: input.accountNumber,
+      ifsc: input.ifsc,
+      accountHolderName: input.accountHolderName,
+      userPanName: user.panVerified ? user.panName : null,
+    });
+
     const beneficiary = await this.db.$transaction((tx) =>
       this.paymentRepository.createBeneficiary(tx, {
         userId,
         status: 'PENDING_VERIFICATION',
-        accountHolderName: input.accountHolderName.trim(),
+        accountHolderName: validated.accountHolderName,
+        accountNumber: validated.accountNumber,
         accountNumberMask: this.maskAccountNumber(input.accountNumber),
         accountNumberHash,
-        ifsc: input.ifsc.trim().toUpperCase(),
-        label: input.label ?? input.bankName ?? input.accountHolderName,
+        ifsc: validated.ifsc,
+        isVerified: validated.isVerified,
+        label: input.label ?? input.bankName ?? validated.accountHolderName,
         rawDetails: {
-          accountHolderName: input.accountHolderName,
-          accountNumber: input.accountNumber,
-          ifsc: input.ifsc,
+          accountHolderName: validated.accountHolderName,
+          accountNumber: validated.accountNumber,
+          ifsc: validated.ifsc,
           bankName: input.bankName,
         },
       })
     );
 
-    const providerBeneficiaryId = `bene_${beneficiary.id.slice(-18)}`;
-    const providerBeneficiary = await this.cashfreeClient.createBeneficiary({
-      beneficiary_id: providerBeneficiaryId,
-      beneficiary_name: input.accountHolderName.trim(),
-      beneficiary_instrument_details: {
-        bank_account_number: input.accountNumber.trim(),
-        bank_ifsc: input.ifsc.trim().toUpperCase(),
+    logger.info(
+      {
+        userId,
+        beneficiaryId: beneficiary.id,
+        accountNumberMask: beneficiary.accountNumberMask,
+        ifsc: beneficiary.ifsc,
       },
-      beneficiary_contact_details: {
-        beneficiary_email: user.email,
-        beneficiary_phone: user.phoneNumber!,
-        beneficiary_country_code: user.countryCode ?? '+91',
-        beneficiary_address: user.addressLine1!,
-        beneficiary_city: user.city!,
-        beneficiary_state: user.state!,
-        beneficiary_postal_code: user.postalCode!,
-      },
-    });
+      'Beneficiary added after bank validation'
+    );
 
     const updated = await this.paymentRepository.updateBeneficiary(beneficiary.id, {
-      providerBeneficiaryId: providerBeneficiary.beneficiary_id,
-      providerStatus: providerBeneficiary.beneficiary_status,
-      status:
-        providerBeneficiary.beneficiary_status === 'VERIFIED' ? 'VERIFIED' : 'PENDING_VERIFICATION',
-      verificationMetadata: providerBeneficiary as unknown as Prisma.JsonObject,
+      status: 'VERIFIED',
+      providerStatus: 'VERIFIED',
+      isVerified: true,
+      verificationMetadata: validated.verificationMetadata as unknown as Prisma.JsonObject,
     });
 
     return {
@@ -117,6 +119,7 @@ export class BeneficiaryService {
       accountHolderName: updated.accountHolderName,
       accountNumberMask: updated.accountNumberMask,
       ifsc: updated.ifsc,
+      isVerified: updated.isVerified,
       status: updated.status,
       providerStatus: updated.providerStatus,
     };

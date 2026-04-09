@@ -9,7 +9,14 @@ import {
   TransactionStatus,
 } from '@prisma/client';
 import { config } from '../../config/index.js';
-import { ExternalServiceError, NotFoundError, ValidationError } from '../../shared/errors.js';
+import { logger } from '../../config/logger.js';
+import { BeneficiaryValidationService } from '../compliance/beneficiary-validation.service.js';
+import {
+  BeneficiaryInvalidError,
+  NotFoundError,
+  PanRequiredError,
+  ValidationError,
+} from '../../shared/errors.js';
 import { sha256 } from '../../utils/hash.js';
 import { RiskService } from '../risk/risk.service.js';
 import { TransactionStateService } from '../transaction/transaction-state.service.js';
@@ -23,6 +30,7 @@ export class PaymentService {
     private readonly riskService: RiskService,
     private readonly transactionStateService: TransactionStateService,
     private readonly cashfreeClient: CashfreeClient,
+    private readonly beneficiaryValidationService: BeneficiaryValidationService,
     private readonly db: PrismaClient
   ) {}
 
@@ -32,12 +40,16 @@ export class PaymentService {
       throw new NotFoundError('User');
     }
 
+    if (!user.isMobileVerified) {
+      throw new ValidationError('Mobile number must be verified before initiating transfer');
+    }
+
     if (user.kycStatus !== KYCStatus.APPROVED) {
       throw new ValidationError('User KYC is not approved');
     }
 
-    if (!user.phoneNumber?.trim()) {
-      throw new ValidationError('Add a phone number to your profile before starting a transfer');
+    if (!user.panVerified || !user.panName || !user.panNumber) {
+      throw new PanRequiredError();
     }
 
     this.assertBeneficiaryProfile(user);
@@ -55,6 +67,9 @@ export class PaymentService {
     const pricing = this.calculatePricing(input.amount);
     const merchantOrderId = `txn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const { beneficiary, bankAccount } = await this.resolveTransferInstrument(userId, input);
+    if (!beneficiary.isVerified || beneficiary.status !== 'VERIFIED') {
+      throw new BeneficiaryInvalidError('Beneficiary must be verified before transfer');
+    }
 
     const transaction = await this.db.$transaction((tx) =>
       this.paymentRepository.createTransaction(tx, {
@@ -92,7 +107,7 @@ export class PaymentService {
       order_note: input.description,
       customer_details: {
         customer_id: user.id,
-        customer_email: user.email,
+        customer_email: user.email ?? undefined,
         customer_phone: user.phoneNumber ?? undefined,
       },
       order_meta: {
@@ -120,6 +135,7 @@ export class PaymentService {
         accountHolderName: beneficiary.accountHolderName,
         accountNumberMask: beneficiary.accountNumberMask,
         ifsc: beneficiary.ifsc,
+        isVerified: beneficiary.isVerified,
         status: beneficiary.status,
       },
       status: transaction.status,
@@ -157,18 +173,9 @@ export class PaymentService {
     }
 
     const bankAccount = this.extractBankAccountFromBeneficiary(beneficiary);
-    const resolvedBeneficiary =
-      !beneficiary.providerBeneficiaryId || beneficiary.providerStatus !== 'VERIFIED'
-        ? await this.syncCashfreeBeneficiary(beneficiary, {
-            userId,
-            accountHolderName: bankAccount.accountHolderName,
-            accountNumber: bankAccount.accountNumber,
-            ifsc: bankAccount.ifsc,
-          })
-        : beneficiary;
 
     return {
-      beneficiary: resolvedBeneficiary,
+      beneficiary,
       bankAccount,
     };
   }
@@ -190,6 +197,11 @@ export class PaymentService {
   }
 
   private async ensureBeneficiary(userId: string, bankAccount: BankAccountDto) {
+    const user = await this.paymentRepository.findUser(userId);
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
     const accountNumberHash = sha256(
       `${bankAccount.accountNumber.trim()}|${bankAccount.ifsc.trim().toUpperCase()}`
     );
@@ -200,36 +212,43 @@ export class PaymentService {
     );
 
     if (existing) {
-      if (!existing.providerBeneficiaryId || existing.providerStatus !== 'VERIFIED') {
-        return this.syncCashfreeBeneficiary(existing, {
-          userId,
-          accountHolderName: bankAccount.accountHolderName,
-          accountNumber: bankAccount.accountNumber,
-          ifsc: bankAccount.ifsc,
-        });
-      }
       return existing;
     }
+
+    const validated = await this.beneficiaryValidationService.validateBankAccount({
+      accountNumber: bankAccount.accountNumber,
+      ifsc: bankAccount.ifsc,
+      accountHolderName: bankAccount.accountHolderName,
+      userPanName: user.panName,
+    });
 
     const beneficiary = await this.db.$transaction((tx) =>
       this.paymentRepository.createBeneficiary(tx, {
         userId,
-        status: 'PENDING_VERIFICATION',
-        accountHolderName: bankAccount.accountHolderName.trim(),
+        status: 'VERIFIED',
+        accountHolderName: validated.accountHolderName,
+        accountNumber: validated.accountNumber,
         accountNumberMask: this.maskAccountNumber(bankAccount.accountNumber),
         accountNumberHash,
-        ifsc: bankAccount.ifsc.trim().toUpperCase(),
-        label: bankAccount.bankName ?? bankAccount.accountHolderName,
+        ifsc: validated.ifsc,
+        isVerified: true,
+        label: bankAccount.bankName ?? validated.accountHolderName,
         rawDetails: bankAccount as unknown as Prisma.InputJsonValue,
+        providerStatus: 'VERIFIED',
+        verificationMetadata: validated.verificationMetadata as unknown as Prisma.InputJsonValue,
       })
     );
 
-    return this.syncCashfreeBeneficiary(beneficiary, {
-      userId,
-      accountHolderName: bankAccount.accountHolderName,
-      accountNumber: bankAccount.accountNumber,
-      ifsc: bankAccount.ifsc,
-    });
+    logger.info(
+      {
+        userId,
+        beneficiaryId: beneficiary.id,
+        accountNumberMask: beneficiary.accountNumberMask,
+      },
+      'Inline beneficiary validated during transfer'
+    );
+
+    return beneficiary;
   }
 
   private maskBankAccount(input: BankAccountDto) {
@@ -275,73 +294,14 @@ export class PaymentService {
     }
   }
 
-  private async syncCashfreeBeneficiary(
-    beneficiary: Pick<
-      Beneficiary,
-      'id' | 'userId' | 'accountHolderName' | 'providerBeneficiaryId' | 'status'
-    >,
-    instrument: {
-      userId: string;
-      accountHolderName: string;
-      accountNumber: string;
-      ifsc: string;
-    }
-  ) {
-    const user = await this.paymentRepository.findUser(instrument.userId);
-    if (!user) {
-      throw new NotFoundError('User');
-    }
-
-    const providerBeneficiaryId =
-      beneficiary.providerBeneficiaryId ?? `bene_${beneficiary.id.slice(-18)}`;
-
-    try {
-      const providerBeneficiary = await this.cashfreeClient.createBeneficiary({
-        beneficiary_id: providerBeneficiaryId,
-        beneficiary_name: instrument.accountHolderName.trim(),
-        beneficiary_instrument_details: {
-          bank_account_number: instrument.accountNumber.trim(),
-          bank_ifsc: instrument.ifsc.trim().toUpperCase(),
-        },
-        beneficiary_contact_details: {
-          beneficiary_email: user.email,
-          beneficiary_phone: user.phoneNumber!,
-          beneficiary_country_code: user.countryCode ?? '+91',
-          beneficiary_address: user.addressLine1!,
-          beneficiary_city: user.city!,
-          beneficiary_state: user.state!,
-          beneficiary_postal_code: user.postalCode!,
-        },
-      });
-
-      return this.paymentRepository.updateBeneficiary(beneficiary.id, {
-        providerBeneficiaryId: providerBeneficiary.beneficiary_id,
-        providerStatus: providerBeneficiary.beneficiary_status,
-        status:
-          providerBeneficiary.beneficiary_status === 'VERIFIED'
-            ? 'VERIFIED'
-            : 'PENDING_VERIFICATION',
-        verificationMetadata: providerBeneficiary as unknown as Prisma.InputJsonValue,
-      });
-    } catch (error) {
-      if (error instanceof ExternalServiceError) {
-        await this.paymentRepository.updateBeneficiary(beneficiary.id, {
-          providerBeneficiaryId,
-          providerStatus: 'PENDING',
-        });
-      }
-
-      throw error;
-    }
-  }
-
   private extractBankAccountFromBeneficiary(beneficiary: Beneficiary) {
     const rawDetails =
       typeof beneficiary.rawDetails === 'object' && beneficiary.rawDetails !== null
         ? (beneficiary.rawDetails as Record<string, unknown>)
         : null;
     const accountHolderName = rawDetails?.accountHolderName?.toString().trim();
-    const accountNumber = rawDetails?.accountNumber?.toString().trim();
+    const accountNumber =
+      rawDetails?.accountNumber?.toString().trim() ?? beneficiary.accountNumber.trim();
     const ifsc = rawDetails?.ifsc?.toString().trim();
     const bankName = rawDetails?.bankName?.toString().trim();
 

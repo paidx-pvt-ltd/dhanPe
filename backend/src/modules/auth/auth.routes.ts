@@ -5,15 +5,25 @@ import { authLimiter } from '../../middleware/rate-limit.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
-import { loginSchema, refreshSchema, signupSchema } from './auth.schemas.js';
+import { Msg91WidgetService } from './msg91-widget.service.js';
+import { refreshSchema, widgetConfigSchema, verifyOtpSchema } from './auth.schemas.js';
 import { asHandler } from '../../shared/http.js';
 
 const repository = new AuthRepository(prisma);
-const service = new AuthService(repository);
+const service = new AuthService(repository, new Msg91WidgetService());
 const controller = new AuthController(service);
 
 export const authRoutes = Router();
 
-authRoutes.post('/signup', authLimiter, validate(signupSchema), asHandler(controller.signup));
-authRoutes.post('/login', authLimiter, validate(loginSchema), asHandler(controller.login));
+authRoutes.get(
+  '/widget-config',
+  validate(widgetConfigSchema),
+  asHandler(controller.getWidgetConfig)
+);
+authRoutes.post(
+  '/verify-otp',
+  authLimiter,
+  validate(verifyOtpSchema),
+  asHandler(controller.verifyOtp)
+);
 authRoutes.post('/refresh', validate(refreshSchema), asHandler(controller.refresh));

@@ -1,42 +1,49 @@
 import { AuthRepository } from './auth.repository.js';
-import { SignupDto, LoginDto } from './auth.schemas.js';
-import { ConflictError, AuthenticationError } from '../../shared/errors.js';
-import { PasswordService } from '../../utils/password.js';
+import { VerifyOtpDto } from './auth.schemas.js';
+import { AuthenticationError, ValidationError } from '../../shared/errors.js';
 import { JwtService } from '../../utils/jwt.js';
 import { sha256 } from '../../utils/hash.js';
+import { logger } from '../../config/logger.js';
+import { Msg91WidgetService } from './msg91-widget.service.js';
 
 export class AuthService {
-  constructor(private readonly authRepository: AuthRepository) {}
+  constructor(
+    private readonly authRepository: AuthRepository,
+    private readonly msg91WidgetService: Msg91WidgetService
+  ) {}
 
-  async signup(input: SignupDto) {
-    const existing = await this.authRepository.findByEmail(input.email);
-    if (existing) {
-      throw new ConflictError('User with this email already exists');
-    }
-
-    const user = await this.authRepository.createUser({
-      email: input.email,
-      passwordHash: await PasswordService.hash(input.password),
-      firstName: input.firstName,
-      lastName: input.lastName,
-      phoneNumber: input.phoneNumber,
-    });
-
-    return this.buildAuthResponse(user);
+  async getWidgetConfig() {
+    return {
+      success: true,
+      data: this.msg91WidgetService.getWidgetConfig(),
+    };
   }
 
-  async login(input: LoginDto) {
-    const user = await this.authRepository.findByEmail(input.email);
-    if (!user || !user.isActive) {
-      throw new AuthenticationError('Invalid credentials');
+  async verifyOtp(input: VerifyOtpDto) {
+    const verified = await this.msg91WidgetService.verifyAccessToken(input.accessToken);
+    const mobileNumber = this.normalizeMobileNumber(verified.mobileNumber);
+    if (input.mobileNumber) {
+      const claimedMobileNumber = this.normalizeMobileNumber(input.mobileNumber);
+      if (claimedMobileNumber !== mobileNumber) {
+        throw new AuthenticationError('Verified mobile number does not match the supplied number');
+      }
     }
 
-    const isValid = await PasswordService.compare(input.password, user.passwordHash);
-    if (!isValid) {
-      throw new AuthenticationError('Invalid credentials');
-    }
+    const user =
+      (await this.authRepository.findByMobileNumber(mobileNumber)) ??
+      (await this.authRepository.createUser({
+        mobileNumber,
+        isMobileVerified: true,
+      }));
 
-    return this.buildAuthResponse(user);
+    const updatedUser = await this.authRepository.updateUser(user.id, {
+      isMobileVerified: true,
+      phoneNumber: user.phoneNumber ?? mobileNumber,
+    });
+
+    logger.info({ userId: updatedUser.id, mobileNumber }, 'Mobile OTP verified');
+
+    return this.buildAuthResponse(updatedUser);
   }
 
   async refresh(refreshToken: string) {
@@ -58,7 +65,9 @@ export class AuthService {
   private async buildAuthResponse(
     user: {
       id: string;
-      email: string;
+      mobileNumber: string;
+      isMobileVerified?: boolean;
+      email?: string | null;
       firstName: string | null;
       lastName: string | null;
       phoneNumber?: string | null;
@@ -76,7 +85,7 @@ export class AuthService {
   ) {
     const payload = {
       userId: user.id,
-      email: user.email,
+      mobileNumber: user.mobileNumber,
     };
     const accessToken = JwtService.signAccessToken(payload);
     const refreshToken = JwtService.signRefreshToken(payload);
@@ -97,7 +106,9 @@ export class AuthService {
       refreshToken,
       user: {
         id: user.id,
-        email: user.email,
+        mobileNumber: user.mobileNumber,
+        isMobileVerified: user.isMobileVerified ?? true,
+        email: user.email ?? null,
         firstName: user.firstName,
         lastName: user.lastName,
         phoneNumber: user.phoneNumber ?? null,
@@ -112,5 +123,14 @@ export class AuthService {
         createdAt: user.createdAt ?? new Date(),
       },
     };
+  }
+
+  private normalizeMobileNumber(mobileNumber: string) {
+    const normalized = mobileNumber.replace(/[^\d+]/g, '');
+    if (!/^\+?\d{10,15}$/.test(normalized)) {
+      throw new ValidationError('Mobile number must be a valid MSISDN');
+    }
+
+    return normalized.startsWith('+') ? normalized : `+91${normalized.slice(-10)}`;
   }
 }

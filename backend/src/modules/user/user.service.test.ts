@@ -6,8 +6,11 @@ describe('UserService', () => {
     findById: vi.fn(),
     updateProfile: vi.fn(),
   };
+  const panVerificationService = {
+    verifyPan: vi.fn(),
+  };
 
-  const service = new UserService(userRepository as never);
+  const service = new UserService(userRepository as never, panVerificationService as never);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -17,9 +20,15 @@ describe('UserService', () => {
     userRepository.findById.mockResolvedValue({
       id: 'user_1',
       email: 'user@example.com',
+      mobileNumber: '+919999999999',
+      isMobileVerified: true,
       firstName: 'Alex',
       lastName: 'Mercer',
       phoneNumber: '9999999999',
+      panNumber: null,
+      panName: null,
+      panVerified: false,
+      panVerifiedAt: null,
       kycStatus: 'PENDING',
       balance: '2500.00',
       createdAt: new Date('2026-04-05T00:00:00.000Z'),

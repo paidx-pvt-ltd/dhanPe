@@ -32,4 +32,19 @@ export class UserRepository {
       data: { kycStatus },
     });
   }
+
+  updatePan(
+    id: string,
+    data: {
+      panNumber: string;
+      panName: string;
+      panVerified: boolean;
+      panVerifiedAt: Date;
+    }
+  ): Promise<User> {
+    return this.db.user.update({
+      where: { id },
+      data,
+    });
+  }
 }

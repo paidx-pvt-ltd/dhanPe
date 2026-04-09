@@ -12,7 +12,7 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction): 
   req.userId = payload.userId;
   req.user = {
     id: payload.userId,
-    email: payload.email,
+    mobileNumber: payload.mobileNumber,
   };
   next();
 };

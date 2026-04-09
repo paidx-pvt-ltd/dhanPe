@@ -343,6 +343,7 @@ export class DiditService {
   private serializeUser(user: User) {
     return {
       id: user.id,
+      mobileNumber: user.mobileNumber,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
