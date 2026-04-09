@@ -7,6 +7,24 @@ class TransactionService {
 
   TransactionService(this._dio);
 
+  Future<List<TransactionSummary>> listTransactions({int limit = 12}) async {
+    try {
+      final response = await _dio.get(
+        '/transaction',
+        queryParameters: {'limit': limit},
+      );
+
+      final items = response.data['data'] as List<dynamic>? ?? const [];
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(TransactionSummary.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
   Future<Transaction> getTransaction(String transactionId) async {
     try {
       final response = await _dio.get('/transaction/$transactionId');

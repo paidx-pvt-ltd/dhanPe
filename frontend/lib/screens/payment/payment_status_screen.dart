@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
+import '../../models/transaction.dart';
 import '../../providers/payment_provider.dart';
+import '../../services/service_locator.dart';
+import '../../services/transaction_service.dart';
+import '../../widgets/kinetic_primitives.dart';
 
 class PaymentStatusScreen extends StatefulWidget {
   const PaymentStatusScreen({super.key, required this.paymentId});
@@ -17,233 +19,300 @@ class PaymentStatusScreen extends StatefulWidget {
 }
 
 class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
-  late Future<void> _paymentStatusFuture;
-  Timer? _pollingTimer;
+  late Future<Transaction> _future;
+  final _transactionService = getIt<TransactionService>();
 
   @override
   void initState() {
     super.initState();
-    _paymentStatusFuture =
-        context.read<PaymentProvider>().getPaymentStatus(widget.paymentId);
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      final payment = context.read<PaymentProvider>().currentPayment;
-      if (payment == null || payment.isSuccess || payment.isFailed) {
-        return;
-      }
-      context.read<PaymentProvider>().refreshPaymentStatus();
-    });
-  }
-
-  @override
-  void dispose() {
-    _pollingTimer?.cancel();
-    super.dispose();
+    _future = _transactionService.getTransaction(widget.paymentId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: FutureBuilder<void>(
-        future: _paymentStatusFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            ),
+            const Expanded(
+              child: SectionHeading(
+                title: 'Transfer detail',
+                subtitle: 'Lifecycle, payout, and operations status',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        FutureBuilder<Transaction>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                height: 320,
+                decoration: AppTheme.panel(color: AppColors.surfaceLow),
+              );
+            }
 
-          return Consumer<PaymentProvider>(
-            builder: (context, paymentProvider, _) {
-              final payment = paymentProvider.currentPayment;
-              if (payment == null) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          size: 64,
-                          color: AppColors.warning,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'We couldn'
-                          't find that transfer.',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () => context.go('/dashboard'),
-                          child: const Text('Back to Dashboard'),
-                        ),
-                      ],
+            if (snapshot.hasError || !snapshot.hasData) {
+              return KineticPanel(
+                color: AppColors.surfaceLow,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Transfer unavailable',
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                  ),
-                );
-              }
+                    const SizedBox(height: 8),
+                    Text(
+                      'We could not load this transfer right now.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-              final expected = payment.createdAt.add(const Duration(days: 2));
-              final progress = payment.isSuccess
-                  ? 1.0
-                  : payment.isFailed
-                      ? 0.2
-                      : 0.62;
-
-              return SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 36, 20, 28),
+            final transaction = snapshot.data!;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                KineticPanel(
+                  glass: true,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Spacer(),
-                      Container(
-                        width: 190,
-                        height: 190,
-                        decoration: BoxDecoration(
-                          color: AppColors.lightBlue,
-                          shape: BoxShape.circle,
-                          boxShadow: AppTheme.softShadow(),
-                        ),
-                        child: const Icon(
-                          Icons.near_me_rounded,
-                          size: 76,
-                          color: AppColors.primaryBright,
-                        ),
+                      Row(
+                        children: [
+                          StatusBadge(
+                            label: transaction.status,
+                            color: transaction.isFailed
+                                ? AppColors.warning
+                                : transaction.isCompleted
+                                    ? AppColors.success
+                                    : AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          StatusBadge(
+                            label: transaction.payoutStatus,
+                            color: AppColors.secondary,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
                       Text(
-                        payment.isFailed
-                            ? 'This one needs another try'
-                            : 'It\'s on the way!',
+                        NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
+                            .format(transaction.amount),
+                        style: Theme.of(context).textTheme.displayMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        transaction.title,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Created ${DateFormat('MMM d, yyyy • h:mm a').format(transaction.createdAt)}',
                         style: Theme.of(context)
                             .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 28),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(22),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: AppTheme.softShadow(),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.event_available_rounded,
-                                  color: AppColors.primaryBright,
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  payment.isFailed
-                                      ? 'TRANSFER STATUS'
-                                      : 'EXPECTED ARRIVAL',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        letterSpacing: 0.8,
-                                        color: AppColors.muted,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              payment.isFailed
-                                  ? payment.status
-                                  : DateFormat(
-                                      'EEE, MMM d \'at\' h a',
-                                    ).format(expected),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 16),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                minHeight: 6,
-                                value: progress,
-                                backgroundColor: AppColors.border,
-                                color: payment.isFailed
-                                    ? AppColors.warning
-                                    : AppColors.primaryBright,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              payment.isFailed
-                                  ? 'Your transfer was not completed. Review the details and try again.'
-                                  : payment.isSuccess
-                                      ? 'Funds have been initiated and are moving to your bank.'
-                                      : 'Transfer initiated',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: AppColors.muted),
-                            ),
-                            const SizedBox(height: 16),
-                            _StatusDetailRow(
-                              label: 'Amount',
-                              value: NumberFormat.currency(
-                                symbol: '\$',
-                                decimalDigits: 2,
-                              ).format(payment.amount),
-                            ),
-                            _StatusDetailRow(
-                              label: 'Transfer ID',
-                              value: payment.id,
-                            ),
-                            _StatusDetailRow(
-                              label: 'Order',
-                              value: payment.orderId.isEmpty
-                                  ? 'Pending'
-                                  : payment.orderId,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      if (payment.isPending) ...[
-                        OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _paymentStatusFuture = context
-                                  .read<PaymentProvider>()
-                                  .getPaymentStatus(widget.paymentId);
-                            });
-                          },
-                          child: const Text('Refresh status'),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      TextButton(
-                        onPressed: () => context.go('/dashboard'),
-                        child: const Text('Back to Dashboard'),
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.textMuted),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          );
-        },
-      ),
+                const SizedBox(height: 16),
+                KineticPanel(
+                  color: AppColors.surfaceHigh,
+                  child: Column(
+                    children: [
+                      _DetailRow(label: 'Order ID', value: transaction.orderId),
+                      _DetailRow(label: 'Gateway', value: transaction.paymentProvider),
+                      _DetailRow(
+                        label: 'Net payout',
+                        value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
+                            .format(transaction.netPayoutAmount),
+                      ),
+                      _DetailRow(
+                        label: 'Platform fee',
+                        value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
+                            .format(transaction.platformFeeAmount),
+                      ),
+                      if (transaction.beneficiary != null)
+                        _DetailRow(
+                          label: 'Beneficiary',
+                          value:
+                              '${transaction.beneficiary!.title} • ${transaction.beneficiary!.accountNumberMask}',
+                        ),
+                    ],
+                  ),
+                ),
+                if (transaction.payout != null) ...[
+                  const SizedBox(height: 16),
+                  KineticPanel(
+                    color: AppColors.surfaceLow,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Payout status', style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 8),
+                        Text(
+                          transaction.payout!.providerStatus ?? transaction.payout!.status,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(color: AppColors.textMuted),
+                        ),
+                        if (transaction.payout!.failureReason != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            transaction.payout!.failureReason!,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: AppColors.warning),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                if (transaction.refunds.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  KineticPanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Refunds', style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 10),
+                        ...transaction.refunds.map(
+                          (refund) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _MiniStatusRow(
+                              title: refund.status,
+                              subtitle: refund.reason ?? refund.refundId,
+                              value: NumberFormat.currency(
+                                symbol: 'INR ',
+                                decimalDigits: 2,
+                              ).format(refund.amount),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (transaction.disputes.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  KineticPanel(
+                    color: AppColors.surfaceLow,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Disputes', style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 10),
+                        ...transaction.disputes.map(
+                          (dispute) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _MiniStatusRow(
+                              title: '${dispute.phase} • ${dispute.status}',
+                              subtitle: dispute.reasonMessage ?? dispute.disputeId,
+                              value: NumberFormat.currency(
+                                symbol: 'INR ',
+                                decimalDigits: 2,
+                              ).format(dispute.amount),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (transaction.reconciliation.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  KineticPanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Reconciliation', style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 10),
+                        ...transaction.reconciliation.map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _MiniStatusRow(
+                              title: '${item.severity} • ${item.status}',
+                              subtitle: item.message,
+                              value: item.scope,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (transaction.isCompleted && transaction.refunds.isEmpty) ...[
+                  const SizedBox(height: 16),
+                  Consumer<PaymentProvider>(
+                    builder: (context, paymentProvider, _) {
+                      return GradientButton(
+                        label: 'Request full refund',
+                        icon: Icons.keyboard_return_rounded,
+                        isLoading: paymentProvider.isLoading,
+                        onPressed: () => _requestRefund(transaction),
+                      );
+                    },
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _requestRefund(Transaction transaction) async {
+    final paymentProvider = context.read<PaymentProvider>();
+    await paymentProvider.createRefund(
+      transactionId: transaction.id,
+      amount: transaction.amount,
+      reason: 'Requested from the mobile app',
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (paymentProvider.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(paymentProvider.error!)),
+      );
+      return;
+    }
+
+    setState(() {
+      _future = _transactionService.getTransaction(widget.paymentId);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Refund request submitted')),
     );
   }
 }
 
-class _StatusDetailRow extends StatelessWidget {
-  const _StatusDetailRow({required this.label, required this.value});
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+  });
 
   final String label;
   final String value;
@@ -251,31 +320,67 @@ class _StatusDetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 88,
+          Expanded(
             child: Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.textMuted),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MiniStatusRow extends StatelessWidget {
+  const _MiniStatusRow({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+  });
+
+  final String title;
+  final String subtitle;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(value, style: Theme.of(context).textTheme.labelLarge),
+      ],
     );
   }
 }

@@ -9,28 +9,37 @@ class PaymentService {
 
   Future<Payment> createPayment({
     required double amount,
-    required String accountHolderName,
-    required String accountNumber,
-    required String ifsc,
+    String? beneficiaryId,
+    String? accountHolderName,
+    String? accountNumber,
+    String? ifsc,
     String? bankName,
     String? description,
   }) async {
     try {
+      final hasBeneficiary = beneficiaryId != null && beneficiaryId.trim().isNotEmpty;
       final response = await _dio.post(
         '/transfer',
         data: {
           'amount': amount,
           'description': description,
-          'bankAccount': {
-            'accountHolderName': accountHolderName,
-            'accountNumber': accountNumber,
-            'ifsc': ifsc,
-            if (bankName != null && bankName.isNotEmpty) 'bankName': bankName,
-          },
+          if (hasBeneficiary)
+            'beneficiaryId': beneficiaryId.trim()
+          else
+            'bankAccount': {
+              'accountHolderName': accountHolderName,
+              'accountNumber': accountNumber,
+              'ifsc': ifsc,
+              if (bankName != null && bankName.isNotEmpty) 'bankName': bankName,
+            },
         },
         options: Options(
           headers: {
-            'x-idempotency-key': _buildIdempotencyKey(amount, accountNumber),
+            'x-idempotency-key': _buildIdempotencyKey(
+              amount,
+              beneficiaryId: beneficiaryId,
+              accountNumber: accountNumber,
+            ),
           },
         ),
       );
@@ -80,11 +89,37 @@ class PaymentService {
     return getPaymentStatus(transactionId);
   }
 
-  String _buildIdempotencyKey(double amount, String accountNumber) {
+  Future<void> createRefund({
+    required String transactionId,
+    double? amount,
+    String? reason,
+  }) async {
+    try {
+      await _dio.post(
+        '/refund/$transactionId',
+        data: {
+          if (amount != null) 'amount': amount,
+          if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+        },
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  String _buildIdempotencyKey(
+    double amount, {
+    String? beneficiaryId,
+    String? accountNumber,
+  }) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final lastDigits = accountNumber.length <= 4
-        ? accountNumber
-        : accountNumber.substring(accountNumber.length - 4);
+    final identitySource = beneficiaryId?.trim().isNotEmpty == true
+        ? beneficiaryId!.trim()
+        : (accountNumber ?? '');
+    final lastDigits = identitySource.length <= 4
+        ? identitySource
+        : identitySource.substring(identitySource.length - 4);
     return 'transfer-$timestamp-$lastDigits-${amount.toStringAsFixed(2)}';
   }
 

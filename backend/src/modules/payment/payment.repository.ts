@@ -57,6 +57,15 @@ export class PaymentRepository {
     });
   }
 
+  findBeneficiaryById(userId: string, beneficiaryId: string) {
+    return this.db.beneficiary.findFirst({
+      where: {
+        id: beneficiaryId,
+        userId,
+      },
+    });
+  }
+
   createTransaction(
     tx: TxLike,
     data: Prisma.TransactionUncheckedCreateInput

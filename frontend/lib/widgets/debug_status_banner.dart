@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/config.dart';
+import '../core/app_theme.dart';
 import '../providers/user_provider.dart';
 
 class DebugStatusBanner extends StatelessWidget {
@@ -18,11 +19,12 @@ class DebugStatusBanner extends StatelessWidget {
         final kycStatus = userProvider.user?.kycStatus ?? 'unknown';
         return Container(
           width: double.infinity,
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF111827),
+            color: AppColors.surfaceLow,
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.outline),
           ),
           child: DefaultTextStyle(
             style: const TextStyle(

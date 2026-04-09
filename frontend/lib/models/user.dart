@@ -10,6 +10,7 @@ class User {
   final String? postalCode;
   final String countryCode;
   final String kycStatus;
+  final bool isAdmin;
   final double balance;
   final DateTime createdAt;
 
@@ -25,6 +26,7 @@ class User {
     this.postalCode,
     required this.countryCode,
     required this.kycStatus,
+    required this.isAdmin,
     required this.balance,
     required this.createdAt,
   });
@@ -45,6 +47,7 @@ class User {
       postalCode: json['postalCode'] as String?,
       countryCode: json['countryCode'] as String? ?? '+91',
       kycStatus: json['kycStatus'] as String? ?? 'PENDING',
+      isAdmin: json['isAdmin'] as bool? ?? false,
       balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
       createdAt: DateTime.parse(createdAtValue),
     );
@@ -63,6 +66,7 @@ class User {
       'postalCode': postalCode,
       'countryCode': countryCode,
       'kycStatus': kycStatus,
+      'isAdmin': isAdmin,
       'balance': balance,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -80,6 +84,7 @@ class User {
     String? postalCode,
     String? countryCode,
     String? kycStatus,
+    bool? isAdmin,
     double? balance,
     DateTime? createdAt,
   }) {
@@ -95,8 +100,34 @@ class User {
       postalCode: postalCode ?? this.postalCode,
       countryCode: countryCode ?? this.countryCode,
       kycStatus: kycStatus ?? this.kycStatus,
+      isAdmin: isAdmin ?? this.isAdmin,
       balance: balance ?? this.balance,
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  String get displayName {
+    final fullName = '${firstName ?? ''} ${lastName ?? ''}'.trim();
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+    return email;
+  }
+
+  String get initials {
+    final source = displayName.trim();
+    if (source.isEmpty) {
+      return 'DP';
+    }
+
+    final parts = source.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    if (parts.length == 1) {
+      final end = parts.first.length < 2 ? parts.first.length : 2;
+      return parts.first.substring(0, end).toUpperCase();
+    }
+
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  bool get isKycApproved => kycStatus == 'APPROVED';
 }

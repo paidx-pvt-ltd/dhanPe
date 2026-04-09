@@ -9,6 +9,37 @@ export class TransactionService {
     private readonly payoutService: PayoutService
   ) {}
 
+  async listSummaries(userId: string, limit: number) {
+    const transactions = await this.transactionRepository.listSummaries(userId, limit);
+
+    return transactions.map((transaction) => ({
+      id: transaction.id,
+      orderId: transaction.orderId,
+      status: transaction.status,
+      payoutStatus: transaction.payoutStatus,
+      amount: toNumber(transaction.amount),
+      grossAmount: toNumber(transaction.grossAmount),
+      netPayoutAmount: toNumber(transaction.netPayoutAmount),
+      currency: transaction.currency,
+      description: transaction.description,
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+      beneficiary: transaction.beneficiary
+        ? {
+            id: transaction.beneficiary.id,
+            label: transaction.beneficiary.label,
+            accountHolderName: transaction.beneficiary.accountHolderName,
+            accountNumberMask: transaction.beneficiary.accountNumberMask,
+            ifsc: transaction.beneficiary.ifsc,
+            status: transaction.beneficiary.status,
+          }
+        : null,
+      latestRefundStatus: transaction.refunds[0]?.status ?? null,
+      latestDisputeStatus: transaction.disputes[0]?.status ?? null,
+      openReconciliationCount: transaction.reconciliationItems.length,
+    }));
+  }
+
   async getLifecycle(transactionId: string, userId: string) {
     const transaction = await this.transactionRepository.findLifecycle(transactionId, userId);
     if (!transaction) {
