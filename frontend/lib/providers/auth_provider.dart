@@ -15,6 +15,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isReady = false;
   String? _error;
   String? _widgetId;
+  String? _widgetTokenAuth;
 
   AuthProvider(this._authService, [HttpClient? httpClient])
       : _httpClient = httpClient ?? (getIt.isRegistered<HttpClient>() ? getIt<HttpClient>() : null) {
@@ -29,6 +30,12 @@ class AuthProvider extends ChangeNotifier {
   bool get isReady => _isReady;
   String? get error => _error;
   String? get widgetId => _widgetId;
+  String? get widgetTokenAuth => _widgetTokenAuth;
+  bool get isWidgetConfigured =>
+      _widgetId != null &&
+      _widgetId!.isNotEmpty &&
+      _widgetTokenAuth != null &&
+      _widgetTokenAuth!.isNotEmpty;
 
   /// Check if user is authenticated and restore session
   Future<void> checkAuthentication() async {
@@ -93,9 +100,11 @@ class AuthProvider extends ChangeNotifier {
     try {
       final result = await _authService.getWidgetConfig();
       _widgetId = result['widgetId'] as String?;
+      _widgetTokenAuth = result['tokenAuth'] as String?;
       notifyListeners();
     } catch (_) {
       _widgetId = null;
+      _widgetTokenAuth = null;
     }
   }
 
@@ -117,6 +126,8 @@ class AuthProvider extends ChangeNotifier {
       await _httpClient?.setAuthToken(_accessToken!);
       _user = User.fromJson(result['user']);
       _error = null;
+    } on ApiError catch (e) {
+      _error = e.message;
     } on AuthException catch (e) {
       _error = e.message;
     } catch (e) {

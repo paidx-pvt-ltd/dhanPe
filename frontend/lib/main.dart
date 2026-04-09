@@ -55,16 +55,35 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BeneficiaryProvider(getIt())),
         ChangeNotifierProvider(create: (_) => TransactionsProvider(getIt())),
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          return MaterialApp.router(
-            title: Config.appName,
-            theme: AppTheme.buildTheme(),
-            debugShowCheckedModeBanner: false,
-            routerConfig: _router(authProvider),
-          );
-        },
-      ),
+      child: const _AppRouter(),
+    );
+  }
+}
+
+class _AppRouter extends StatefulWidget {
+  const _AppRouter();
+
+  @override
+  State<_AppRouter> createState() => _AppRouterState();
+}
+
+class _AppRouterState extends State<_AppRouter> {
+  late final GoRouter _goRouter;
+
+  @override
+  void initState() {
+    super.initState();
+    final authProvider = context.read<AuthProvider>();
+    _goRouter = _router(authProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: Config.appName,
+      theme: AppTheme.buildTheme(),
+      debugShowCheckedModeBanner: false,
+      routerConfig: _goRouter,
     );
   }
 

@@ -93,6 +93,7 @@ export const config = {
   msg91: {
     authKey: process.env.MSG91_AUTH_KEY ?? '',
     widgetId: process.env.MSG91_WIDGET_ID ?? '',
+    widgetToken: process.env.MSG91_WIDGET_TOKEN ?? '',
     widgetEnabled: parseBoolean(
       process.env.MSG91_WIDGET_ENABLED,
       process.env.NODE_ENV === 'production'
@@ -143,7 +144,7 @@ export const validateConfig = (): void => {
   }
 
   if (config.msg91.widgetEnabled) {
-    const msg91Required = ['MSG91_AUTH_KEY', 'MSG91_WIDGET_ID'];
+    const msg91Required = ['MSG91_AUTH_KEY', 'MSG91_WIDGET_ID', 'MSG91_WIDGET_TOKEN'];
     const msg91Missing = msg91Required.filter((key) => !process.env[key]);
     if (msg91Missing.length > 0) {
       throw new Error(
