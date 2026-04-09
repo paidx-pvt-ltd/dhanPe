@@ -28,6 +28,9 @@ Required:
 - `CASHFREE_PAYOUT_CLIENT_SECRET`
 - `CASHFREE_WEBHOOK_SECRET`
 - `REDIS_URL`
+- `MSG91_AUTH_KEY`
+- `MSG91_WIDGET_ID`
+- `MSG91_WIDGET_TOKEN`
 
 Also parsed by config:
 
@@ -43,6 +46,7 @@ Also parsed by config:
 - `MSG91_WIDGET_ENABLED`
 - `MSG91_AUTH_KEY`
 - `MSG91_WIDGET_ID`
+- `MSG91_WIDGET_TOKEN`
 - `MSG91_BASE_URL`
 - `CASHFREE_API_BASE_URL`
 - `CASHFREE_PAYOUT_BASE_URL`
@@ -185,7 +189,7 @@ Operational visibility and maintenance:
 ## Current Transfer Flow
 
 1. Frontend loads MSG91 widget configuration through `GET /api/auth/widget-config`.
-2. Frontend launches the MSG91 widget directly for OTP authentication.
+2. Frontend launches the MSG91 widget directly if available, or guides the user through a 3-step progressive login flow (Enter Number → Receive OTP → Verify).
 3. Frontend submits the MSG91 widget access token to `POST /api/auth/verify-otp`.
 4. Backend verifies that access token with MSG91, resolves the verified mobile number, and issues JWT tokens.
 5. Authenticated user updates or confirms profile data.
