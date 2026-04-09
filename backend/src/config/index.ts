@@ -55,6 +55,9 @@ export const config = {
   cashfree: {
     clientId: process.env.CASHFREE_CLIENT_ID ?? '',
     clientSecret: process.env.CASHFREE_CLIENT_SECRET ?? '',
+    payoutClientId: process.env.CASHFREE_PAYOUT_CLIENT_ID ?? process.env.CASHFREE_CLIENT_ID ?? '',
+    payoutClientSecret:
+      process.env.CASHFREE_PAYOUT_CLIENT_SECRET ?? process.env.CASHFREE_CLIENT_SECRET ?? '',
     baseUrl: process.env.CASHFREE_API_BASE_URL ?? 'https://sandbox.cashfree.com',
     webhookSecret: process.env.CASHFREE_WEBHOOK_SECRET ?? process.env.WEBHOOK_SECRET ?? '',
     webhookSignatureHeader: process.env.CASHFREE_WEBHOOK_SIGNATURE_HEADER ?? 'x-webhook-signature',
@@ -96,18 +99,25 @@ export const validateConfig = (): void => {
     'JWT_REFRESH_SECRET',
     'CASHFREE_CLIENT_ID',
     'CASHFREE_CLIENT_SECRET',
+    'CASHFREE_PAYOUT_CLIENT_ID',
+    'CASHFREE_PAYOUT_CLIENT_SECRET',
     'CASHFREE_WEBHOOK_SECRET',
     'REDIS_URL',
   ];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}. ` +
+        'Use separate Cashfree key pairs for PG and Payout integrations.'
+    );
   }
 
   const placeholderValues = [
     process.env.CASHFREE_CLIENT_ID,
     process.env.CASHFREE_CLIENT_SECRET,
+    process.env.CASHFREE_PAYOUT_CLIENT_ID,
+    process.env.CASHFREE_PAYOUT_CLIENT_SECRET,
     process.env.CASHFREE_WEBHOOK_SECRET,
   ].filter((value) => value?.includes('your_cashfree'));
 

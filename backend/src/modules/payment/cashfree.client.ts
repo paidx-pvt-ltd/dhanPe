@@ -18,21 +18,26 @@ export class CashfreeClient {
   private readonly payoutClient: AxiosInstance;
 
   constructor() {
-    const headers = {
+    const orderHeaders = {
       'x-client-id': config.cashfree.clientId,
       'x-client-secret': config.cashfree.clientSecret,
+      'x-api-version': '2024-01-01',
+    };
+    const payoutHeaders = {
+      'x-client-id': config.cashfree.payoutClientId,
+      'x-client-secret': config.cashfree.payoutClientSecret,
       'x-api-version': '2024-01-01',
     };
 
     this.orderClient = axios.create({
       baseURL: config.cashfree.baseUrl,
-      headers,
+      headers: orderHeaders,
       timeout: 10000,
     });
 
     this.payoutClient = axios.create({
       baseURL: config.cashfree.payoutBaseUrl,
-      headers,
+      headers: payoutHeaders,
       timeout: 10000,
     });
   }
