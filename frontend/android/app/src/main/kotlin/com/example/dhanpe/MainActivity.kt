@@ -1,5 +1,6 @@
 package com.example.dhanpe
 
+import android.content.pm.ApplicationInfo
 import android.app.KeyguardManager
 import android.os.Build
 import io.flutter.embedding.engine.FlutterEngine
@@ -42,7 +43,8 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun isInstallerTrusted(): Boolean {
-        if (BuildConfig.DEBUG) {
+        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (isDebuggable) {
             return true
         }
 

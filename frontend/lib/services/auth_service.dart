@@ -44,6 +44,10 @@ class AuthService {
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw AuthException('Session storage failed. Clear browser site data and try again.');
     }
   }
 
@@ -76,6 +80,10 @@ class AuthService {
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw AuthException('Session storage failed. Clear browser site data and try again.');
     }
   }
 
@@ -107,6 +115,10 @@ class AuthService {
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw AuthException('Session restore failed. Clear browser site data and login again.');
     }
   }
 
@@ -117,12 +129,20 @@ class AuthService {
 
   /// Get stored access token
   Future<String?> getAccessToken() async {
-    return _storage.read(key: Config.accessTokenKey);
+    try {
+      return await _storage.read(key: Config.accessTokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Get stored refresh token
   Future<String?> getRefreshToken() async {
-    return _storage.read(key: Config.refreshTokenKey);
+    try {
+      return await _storage.read(key: Config.refreshTokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clearSession() {
@@ -137,18 +157,26 @@ class AuthService {
 
   /// Store tokens securely
   Future<void> _storeTokens(String accessToken, String refreshToken) async {
-    await Future.wait([
-      _storage.write(key: Config.accessTokenKey, value: accessToken),
-      _storage.write(key: Config.refreshTokenKey, value: refreshToken),
-    ]);
+    try {
+      await Future.wait([
+        _storage.write(key: Config.accessTokenKey, value: accessToken),
+        _storage.write(key: Config.refreshTokenKey, value: refreshToken),
+      ]);
+    } catch (_) {
+      throw AuthException('Session storage failed. Clear browser site data and try again.');
+    }
   }
 
   /// Clear stored tokens
   Future<void> _clearTokens() async {
-    await Future.wait([
-      _storage.delete(key: Config.accessTokenKey),
-      _storage.delete(key: Config.refreshTokenKey),
-    ]);
+    try {
+      await Future.wait([
+        _storage.delete(key: Config.accessTokenKey),
+        _storage.delete(key: Config.refreshTokenKey),
+      ]);
+    } catch (_) {
+      // Ignore storage cleanup failures to avoid blocking logout/reset flows.
+    }
   }
 
   void _ensureSensitiveTransport() {
