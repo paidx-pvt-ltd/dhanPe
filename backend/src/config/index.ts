@@ -59,10 +59,7 @@ export const config = {
     webhookSecret: process.env.CASHFREE_WEBHOOK_SECRET ?? process.env.WEBHOOK_SECRET ?? '',
     webhookSignatureHeader: process.env.CASHFREE_WEBHOOK_SIGNATURE_HEADER ?? 'x-webhook-signature',
     webhookTimestampHeader: process.env.CASHFREE_WEBHOOK_TIMESTAMP_HEADER ?? 'x-webhook-timestamp',
-    payoutBaseUrl:
-      process.env.CASHFREE_PAYOUT_BASE_URL ??
-      process.env.CASHFREE_API_BASE_URL ??
-      'https://sandbox.cashfree.com',
+    payoutBaseUrl: process.env.CASHFREE_PAYOUT_BASE_URL ?? 'https://payout-api.cashfree.com',
   },
   didit: {
     apiKey: process.env.DIDIT_API_KEY ?? '',
