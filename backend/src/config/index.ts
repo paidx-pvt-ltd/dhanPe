@@ -61,8 +61,7 @@ export const config = {
     webhookTimestampHeader: process.env.CASHFREE_WEBHOOK_TIMESTAMP_HEADER ?? 'x-webhook-timestamp',
     payoutBaseUrl:
       process.env.CASHFREE_PAYOUT_BASE_URL ??
-      process.env.CASHFREE_API_BASE_URL ??
-      'https://sandbox.cashfree.com',
+      'https://payout-api.cashfree.com',
   },
   didit: {
     apiKey: process.env.DIDIT_API_KEY ?? '',

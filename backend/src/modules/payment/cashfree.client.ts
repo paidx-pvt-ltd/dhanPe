@@ -88,7 +88,10 @@ export class CashfreeClient {
       );
       return data;
     } catch (error) {
-      throw new ExternalServiceError('Failed to create Cashfree beneficiary', error);
+      throw new ExternalServiceError(
+        `Failed to create Cashfree beneficiary. Verify CASHFREE_PAYOUT_BASE_URL (${config.cashfree.payoutBaseUrl}) and payout credentials.`,
+        error
+      );
     }
   }
 
