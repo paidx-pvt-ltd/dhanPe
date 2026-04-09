@@ -18,6 +18,11 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    env:
+      WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+      WORKFLOW_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      WORKFLOW_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      VERCEL_ENV: ${{ github.event.workflow_run.head_branch == 'main' && 'production' || 'preview' }}
 
     environment:
       name: ${{ github.event.workflow_run.head_branch }}
@@ -25,15 +30,15 @@ jobs:
     steps:
       - name: Debug trigger
         run: |
-          echo "Triggered by workflow: ${{ github.event.workflow_run.name }}"
-          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          printf 'Triggered by workflow: %s\n' "$WORKFLOW_NAME"
+          printf 'Branch: %s\n' "$WORKFLOW_BRANCH"
+          printf 'Conclusion: %s\n' "$WORKFLOW_CONCLUSION"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 20
 
@@ -45,37 +50,44 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          if [ "${{ github.event.workflow_run.head_branch }}" = "main" ]; then
-            VERCEL_ENV=production
-          else
-            VERCEL_ENV=preview
-          fi
-
           vercel pull --yes \
-          --environment=$VERCEL_ENV \
-          --token=${{ secrets.VERCEL_TOKEN }}
+          --environment="$VERCEL_ENV" \
+          --token="$VERCEL_TOKEN"
 
-      - name: Build project
+      - name: Build project (production)
+        if: ${{ github.event.workflow_run.head_branch == 'main' }}
         working-directory: backend
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          if [ "${{ github.event.workflow_run.head_branch }}" = "main" ]; then
-            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-          else
-            vercel build --token=${{ secrets.VERCEL_TOKEN }}
-          fi
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
 
-      - name: Deploy
+      - name: Build project (preview)
+        if: ${{ github.event.workflow_run.head_branch != 'main' }}
         working-directory: backend
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          if [ "${{ github.event.workflow_run.head_branch }}" = "main" ]; then
-            vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-          else
-            vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
-          fi
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy (production)
+        if: ${{ github.event.workflow_run.head_branch == 'main' }}
+        working-directory: backend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy (preview)
+        if: ${{ github.event.workflow_run.head_branch != 'main' }}
+        working-directory: backend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --token="$VERCEL_TOKEN"

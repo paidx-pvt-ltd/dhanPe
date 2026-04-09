@@ -1,6 +1,7 @@
-import { DisputePhase, DisputeStatus, Prisma, TransactionStatus } from '@prisma/client';
+import { DisputePhase, DisputeStatus, Prisma, TransactionLifecycleState } from '@prisma/client';
 import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors.js';
 import { toDecimal, toNumber } from '../../utils/decimal.js';
+import { TransactionStateService } from '../transaction/transaction-state.service.js';
 import { CreateDisputeDto, ResolveDisputeDto, RespondDisputeDto } from './dispute.schemas.js';
 import { DisputeRepository } from './dispute.repository.js';
 
@@ -35,13 +36,17 @@ type DisputeRecord = {
   transaction: {
     id: string;
     orderId: string;
-    status: TransactionStatus;
+    status: string;
+    lifecycleState: TransactionLifecycleState;
     payoutStatus: string;
   };
 };
 
 export class DisputeService {
-  constructor(private readonly disputeRepository: DisputeRepository) {}
+  constructor(
+    private readonly disputeRepository: DisputeRepository,
+    private readonly transactionStateService: TransactionStateService
+  ) {}
 
   async createDispute(input: CreateDisputeDto, openedByUserId: string) {
     const transaction = await this.disputeRepository.findTransaction(input.transactionId);
@@ -49,8 +54,8 @@ export class DisputeService {
       throw new NotFoundError('Transaction');
     }
 
-    if (transaction.status !== TransactionStatus.PAID) {
-      throw new ValidationError('Disputes can only be opened against paid transactions');
+    if (transaction.lifecycleState !== TransactionLifecycleState.COMPLETED) {
+      throw new ValidationError('Disputes can only be opened against completed transactions');
     }
 
     const amount = toDecimal(input.amount ?? toNumber(transaction.grossAmount));
@@ -74,6 +79,15 @@ export class DisputeService {
       metadata: (input.metadata ?? null) as Prisma.InputJsonValue,
       openedByUserId,
     });
+
+    await this.transactionStateService.transitionTransactionState(
+      transaction.id,
+      TransactionLifecycleState.DISPUTED,
+      {
+        reason: `Dispute opened: ${created.disputeId}`,
+        details: (input.metadata ?? null) as Prisma.InputJsonValue,
+      }
+    );
 
     return this.serialize(created);
   }

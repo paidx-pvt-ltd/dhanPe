@@ -51,15 +51,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
           children: [
             SectionHeading(
-              title: 'Transfers',
-              subtitle: provider.error ?? 'All recent transfer activity',
+              title: 'Payments',
+              subtitle: provider.error ?? 'All recent payment and settlement activity',
             ),
             const SizedBox(height: 18),
             TextField(
               controller: _searchController,
               onChanged: (value) => setState(() => _query = value),
               decoration: const InputDecoration(
-                hintText: 'Search transfer, order, or status',
+                hintText: 'Search payment, order, or status',
                 prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
@@ -70,7 +70,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               KineticPanel(
                 color: AppColors.surfaceLow,
                 child: Text(
-                  'No transfers match your search.',
+                  'No payments match your search.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               )
@@ -131,7 +131,7 @@ class _TransactionTile extends StatelessWidget {
                 Text(transaction.title, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
-                  '${transaction.orderId} • ${DateFormat('MMM d, h:mm a').format(transaction.createdAt)}',
+                  '${transaction.orderId} | ${DateFormat('MMM d, h:mm a').format(transaction.createdAt)}',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium

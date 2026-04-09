@@ -23,6 +23,9 @@ describe('PaymentService', () => {
     createOrder: vi.fn(),
     createBeneficiary: vi.fn(),
   };
+  const transactionStateService = {
+    transitionTransactionState: vi.fn(),
+  };
 
   const db = {
     $transaction: vi.fn(),
@@ -31,6 +34,7 @@ describe('PaymentService', () => {
   const service = new PaymentService(
     paymentRepository as never,
     riskService as never,
+    transactionStateService as never,
     cashfreeClient as never,
     db as never
   );

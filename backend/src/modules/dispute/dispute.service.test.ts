@@ -1,4 +1,10 @@
-import { DisputePhase, DisputeStatus, Prisma, TransactionStatus } from '@prisma/client';
+import {
+  DisputePhase,
+  DisputeStatus,
+  Prisma,
+  TransactionLifecycleState,
+  TransactionStatus,
+} from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors.js';
 import { DisputeService } from './dispute.service.js';
@@ -11,8 +17,11 @@ describe('DisputeService', () => {
     listDisputes: vi.fn(),
     updateDispute: vi.fn(),
   };
+  const transactionStateService = {
+    transitionTransactionState: vi.fn(),
+  };
 
-  const service = new DisputeService(disputeRepository as never);
+  const service = new DisputeService(disputeRepository as never, transactionStateService as never);
 
   it('creates a chargeback case against a paid transaction', async () => {
     disputeRepository.findTransaction.mockResolvedValue({
@@ -21,6 +30,7 @@ describe('DisputeService', () => {
       grossAmount: new Prisma.Decimal(5000),
       currency: 'INR',
       status: TransactionStatus.PAID,
+      lifecycleState: TransactionLifecycleState.COMPLETED,
       payoutStatus: 'SUCCESS',
       createdAt: new Date(),
     });
@@ -50,6 +60,7 @@ describe('DisputeService', () => {
         id: 'txn_1',
         orderId: 'order_1',
         status: TransactionStatus.PAID,
+        lifecycleState: TransactionLifecycleState.COMPLETED,
         payoutStatus: 'SUCCESS',
       },
     });
@@ -100,6 +111,7 @@ describe('DisputeService', () => {
         id: 'txn_1',
         orderId: 'order_1',
         status: TransactionStatus.PAID,
+        lifecycleState: TransactionLifecycleState.COMPLETED,
         payoutStatus: 'SUCCESS',
         userId: 'user_1',
       },
@@ -130,6 +142,7 @@ describe('DisputeService', () => {
         id: 'txn_1',
         orderId: 'order_1',
         status: TransactionStatus.PAID,
+        lifecycleState: TransactionLifecycleState.COMPLETED,
         payoutStatus: 'SUCCESS',
       },
     });
@@ -171,6 +184,7 @@ describe('DisputeService', () => {
         id: 'txn_1',
         orderId: 'order_1',
         status: TransactionStatus.PAID,
+        lifecycleState: TransactionLifecycleState.COMPLETED,
         payoutStatus: 'SUCCESS',
         userId: 'user_1',
       },
@@ -222,6 +236,7 @@ describe('DisputeService', () => {
       grossAmount: new Prisma.Decimal(5000),
       currency: 'INR',
       status: TransactionStatus.PAID,
+      lifecycleState: TransactionLifecycleState.COMPLETED,
       payoutStatus: 'SUCCESS',
       createdAt: new Date(),
     });
@@ -264,6 +279,7 @@ describe('DisputeService', () => {
         id: 'txn_1',
         orderId: 'order_1',
         status: TransactionStatus.PAID,
+        lifecycleState: TransactionLifecycleState.COMPLETED,
         payoutStatus: 'SUCCESS',
         userId: 'user_1',
       },

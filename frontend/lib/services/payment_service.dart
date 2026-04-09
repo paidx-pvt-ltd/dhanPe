@@ -11,12 +11,13 @@ class PaymentService {
     required double amount,
     String? beneficiaryId,
     String? accountHolderName,
-    String? accountNumber,
+    String? bankAccountRef,
     String? ifsc,
     String? bankName,
     String? description,
   }) async {
     try {
+      _ensureSensitiveTransport();
       final hasBeneficiary = beneficiaryId != null && beneficiaryId.trim().isNotEmpty;
       final response = await _dio.post(
         '/transfer',
@@ -28,18 +29,14 @@ class PaymentService {
           else
             'bankAccount': {
               'accountHolderName': accountHolderName,
-              'accountNumber': accountNumber,
+              'accountNumber': bankAccountRef,
               'ifsc': ifsc,
               if (bankName != null && bankName.isNotEmpty) 'bankName': bankName,
             },
         },
         options: Options(
           headers: {
-            'x-idempotency-key': _buildIdempotencyKey(
-              amount,
-              beneficiaryId: beneficiaryId,
-              accountNumber: accountNumber,
-            ),
+            'x-idempotency-key': _buildIdempotencyKey(amount),
           },
         ),
       );
@@ -109,18 +106,11 @@ class PaymentService {
   }
 
   String _buildIdempotencyKey(
-    double amount, {
-    String? beneficiaryId,
-    String? accountNumber,
-  }) {
+    double amount,
+  ) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final identitySource = beneficiaryId?.trim().isNotEmpty == true
-        ? beneficiaryId!.trim()
-        : (accountNumber ?? '');
-    final lastDigits = identitySource.length <= 4
-        ? identitySource
-        : identitySource.substring(identitySource.length - 4);
-    return 'transfer-$timestamp-$lastDigits-${amount.toStringAsFixed(2)}';
+    final entropy = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+    return 'transfer-$timestamp-$entropy-${amount.toStringAsFixed(2)}';
   }
 
   void _handleDioException(DioException e) {
@@ -149,6 +139,20 @@ class PaymentService {
       throw PaymentException(message ?? 'Invalid transfer request');
     } else {
       throw PaymentException(message ?? e.message ?? 'Network error');
+    }
+  }
+
+  void _ensureSensitiveTransport() {
+    final target = Uri.tryParse(_dio.options.baseUrl);
+    if (target == null) {
+      throw PaymentException('Invalid backend URL configuration');
+    }
+
+    final isLoopback = target.host == '127.0.0.1' ||
+        target.host == 'localhost' ||
+        target.host == '10.0.2.2';
+    if (target.scheme != 'https' && !isLoopback) {
+      throw PaymentException('Insecure backend URL blocked for transfer operation');
     }
   }
 }

@@ -108,6 +108,66 @@ Notes:
 - Reconciliation routes are admin-only and require a user with `isAdmin=true`.
 - Dispute routes are admin-only and cover both first-party disputes and downstream chargebacks.
 
+## Risk Engine
+
+`POST /api/transfer` runs the risk engine before creating a transfer order.
+
+Current enforced controls:
+
+- per-transaction amount cap via `RISK_MAX_TRANSACTION_AMOUNT`
+- daily user volume cap via `RISK_MAX_DAILY_VOLUME`
+- velocity cap (count in rolling window) via:
+  - `RISK_VELOCITY_WINDOW_MINUTES`
+  - `RISK_VELOCITY_MAX_TRANSACTIONS`
+
+On breach, the API returns `422` with code `RISK_REJECTED`.
+On pass, the backend updates `RiskProfile` with:
+
+- `riskScore`
+- `dailyLimitUsed`
+- `lastTxnAt`
+- `lastTxnAmount`
+- `velocityFlag`
+
+Implementation references:
+
+- `backend/src/modules/payment/payment.service.ts` (`riskService.evaluateTransfer(...)`)
+- `backend/src/modules/risk/risk.service.ts`
+- `backend/src/modules/risk/risk.repository.ts`
+
+## Ledger Maintenance
+
+Ledger and journal maintenance is automatic; there is no direct public write endpoint for ledger rows.
+
+Recorded flows:
+
+- Cashfree payment captured webhook:
+  - credits customer ledger
+  - records balanced `PAYMENT_CAPTURED` journal
+- payout submission and settlement:
+  - records `PAYOUT_SUBMITTED` and `PAYOUT_SETTLED` journals
+- refund settlement:
+  - records `REFUND_SETTLED` journal and proportional reversals
+
+Implementation references:
+
+- `backend/src/modules/ledger/ledger.service.ts`
+- `backend/src/modules/webhook/webhook.service.ts`
+- `backend/src/modules/payout/payout.service.ts`
+- `backend/src/modules/refund/refund.service.ts`
+
+Operational visibility and maintenance:
+
+- `GET /api/transaction/:id` returns `ledger`, `journals`, and `reconciliation` arrays in lifecycle data.
+- reconciliation is available through admin routes:
+  - `POST /api/reconciliation/run`
+  - `GET /api/reconciliation/runs/:runId`
+  - `GET /api/reconciliation/items`
+  - `POST /api/reconciliation/items/:itemId/resolve`
+- scheduled reconciliation is controlled by:
+  - `RECONCILIATION_ENABLED`
+  - `RECONCILIATION_INTERVAL_MS`
+
 ## Current Transfer Flow
 
 1. Authenticated user updates or confirms profile data.

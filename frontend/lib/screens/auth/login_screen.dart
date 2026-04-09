@@ -18,7 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -104,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Secure transfers, verified beneficiaries, live payout tracking, and a cleaner operating flow.',
+                      'Secure bill payments, verified accounts, and transparent settlement tracking.',
                       style: Theme.of(context)
                           .textTheme
                           .bodyLarge
@@ -134,6 +133,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              obscureText: true,
+                              enableSuggestions: false,
+                              autocorrect: false,
+                              enableIMEPersonalizedLearning: false,
+                              enableInteractiveSelection: false,
                               decoration: const InputDecoration(
                                 labelText: 'Email',
                                 prefixIcon: Icon(Icons.alternate_email_rounded),
@@ -151,20 +155,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              decoration: InputDecoration(
+                              obscureText: true,
+                              enableSuggestions: false,
+                              autocorrect: false,
+                              enableIMEPersonalizedLearning: false,
+                              enableInteractiveSelection: false,
+                              decoration: const InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline_rounded),
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    setState(() => _obscurePassword = !_obscurePassword);
-                                  },
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off_rounded
-                                        : Icons.visibility_rounded,
-                                  ),
-                                ),
+                                prefixIcon: Icon(Icons.lock_outline_rounded),
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {

@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/config.dart';
 
 class HttpClient {
@@ -57,11 +56,6 @@ class HttpClient {
   }
 
   Future<String?> _readAccessToken() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(Config.accessTokenKey);
-    }
-
     return _storage.read(key: Config.accessTokenKey);
   }
 

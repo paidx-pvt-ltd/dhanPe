@@ -36,7 +36,7 @@ class UserService {
   Future<User> updateProfile({
     required String firstName,
     required String lastName,
-    String? phoneNumber,
+    String? contactNumber,
     String? addressLine1,
     String? city,
     String? state,
@@ -44,18 +44,24 @@ class UserService {
     String? countryCode,
   }) async {
     try {
+      _ensureSensitiveTransport();
+      final payload = <String, String>{
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        if (contactNumber != null && contactNumber.trim().isNotEmpty)
+          'phoneNumber': contactNumber.trim(),
+        if (addressLine1 != null && addressLine1.trim().isNotEmpty)
+          'addressLine1': addressLine1.trim(),
+        if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+        if (state != null && state.trim().isNotEmpty) 'state': state.trim(),
+        if (postalCode != null && postalCode.trim().isNotEmpty)
+          'postalCode': postalCode.trim(),
+        if (countryCode != null && countryCode.trim().isNotEmpty)
+          'countryCode': countryCode.trim(),
+      };
       final response = await _dio.patch(
         '/users/profile',
-        data: {
-          'firstName': firstName,
-          'lastName': lastName,
-          'phoneNumber': phoneNumber,
-          'addressLine1': addressLine1,
-          'city': city,
-          'state': state,
-          'postalCode': postalCode,
-          'countryCode': countryCode,
-        },
+        data: payload,
       );
 
       if (response.statusCode == 200) {
@@ -127,6 +133,26 @@ class UserService {
         type: ApiException.networkError,
         message:
             e.response?.data['error']?['message']?.toString() ?? e.message ?? 'Network error',
+      );
+    }
+  }
+
+  void _ensureSensitiveTransport() {
+    final target = Uri.tryParse(_dio.options.baseUrl);
+    if (target == null) {
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Invalid backend URL configuration',
+      );
+    }
+
+    final isLoopback = target.host == '127.0.0.1' ||
+        target.host == 'localhost' ||
+        target.host == '10.0.2.2';
+    if (target.scheme != 'https' && !isLoopback) {
+      throw ApiError(
+        type: ApiException.networkError,
+        message: 'Insecure backend URL blocked for profile update',
       );
     }
   }

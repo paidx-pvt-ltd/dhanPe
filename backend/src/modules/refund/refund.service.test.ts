@@ -1,4 +1,10 @@
-import { PayoutStatus, Prisma, RefundStatus, TransactionStatus } from '@prisma/client';
+import {
+  PayoutStatus,
+  Prisma,
+  RefundStatus,
+  TransactionLifecycleState,
+  TransactionStatus,
+} from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RefundService } from './refund.service.js';
 
@@ -25,6 +31,9 @@ describe('RefundService', () => {
     createRefund: vi.fn(),
     getRefund: vi.fn(),
   };
+  const transactionStateService = {
+    transitionTransactionState: vi.fn(),
+  };
 
   const db = {
     $transaction: vi.fn(),
@@ -34,6 +43,7 @@ describe('RefundService', () => {
     refundRepository as never,
     payoutRepository as never,
     ledgerService as never,
+    transactionStateService as never,
     cashfreeClient as never,
     db as never
   );
@@ -50,6 +60,7 @@ describe('RefundService', () => {
       id: 'txn_1',
       orderId: 'order_1',
       status: TransactionStatus.PAID,
+      lifecycleState: TransactionLifecycleState.COMPLETED,
       payoutStatus: PayoutStatus.QUEUED,
       grossAmount: new Prisma.Decimal(5075),
       netPayoutAmount: new Prisma.Decimal(5000),

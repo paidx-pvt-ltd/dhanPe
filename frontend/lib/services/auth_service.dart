@@ -1,7 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/config.dart';
 import '../core/exceptions.dart';
 
@@ -13,21 +11,22 @@ class AuthService {
 
   /// Sign up new user
   Future<Map<String, dynamic>> signup({
-    required String email,
-    required String password,
+    required String identifier,
+    required String secret,
     String? firstName,
     String? lastName,
-    String? phoneNumber,
+    String? contactNumber,
   }) async {
     try {
+      _ensureSensitiveTransport();
       final response = await _dio.post(
         '/auth/signup',
         data: {
-          'email': email,
-          'password': password,
+          'email': identifier,
+          'password': secret,
           'firstName': firstName,
           'lastName': lastName,
-          'phoneNumber': phoneNumber,
+          'phoneNumber': contactNumber,
         },
       );
 
@@ -50,15 +49,16 @@ class AuthService {
 
   /// Login user
   Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
+    required String identifier,
+    required String secret,
   }) async {
     try {
+      _ensureSensitiveTransport();
       final response = await _dio.post(
         '/auth/login',
         data: {
-          'email': email,
-          'password': password,
+          'email': identifier,
+          'password': secret,
         },
       );
 
@@ -82,6 +82,7 @@ class AuthService {
   /// Refresh access token
   Future<Map<String, dynamic>> refreshToken() async {
     try {
+      _ensureSensitiveTransport();
       final refreshToken = await _storage.read(
         key: Config.refreshTokenKey,
       );
@@ -116,21 +117,11 @@ class AuthService {
 
   /// Get stored access token
   Future<String?> getAccessToken() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(Config.accessTokenKey);
-    }
-
     return _storage.read(key: Config.accessTokenKey);
   }
 
   /// Get stored refresh token
   Future<String?> getRefreshToken() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(Config.refreshTokenKey);
-    }
-
     return _storage.read(key: Config.refreshTokenKey);
   }
 
@@ -146,15 +137,6 @@ class AuthService {
 
   /// Store tokens securely
   Future<void> _storeTokens(String accessToken, String refreshToken) async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      await Future.wait([
-        prefs.setString(Config.accessTokenKey, accessToken),
-        prefs.setString(Config.refreshTokenKey, refreshToken),
-      ]);
-      return;
-    }
-
     await Future.wait([
       _storage.write(key: Config.accessTokenKey, value: accessToken),
       _storage.write(key: Config.refreshTokenKey, value: refreshToken),
@@ -163,19 +145,24 @@ class AuthService {
 
   /// Clear stored tokens
   Future<void> _clearTokens() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      await Future.wait([
-        prefs.remove(Config.accessTokenKey),
-        prefs.remove(Config.refreshTokenKey),
-      ]);
-      return;
-    }
-
     await Future.wait([
       _storage.delete(key: Config.accessTokenKey),
       _storage.delete(key: Config.refreshTokenKey),
     ]);
+  }
+
+  void _ensureSensitiveTransport() {
+    final target = Uri.tryParse(_dio.options.baseUrl);
+    if (target == null) {
+      throw AuthException('Invalid backend URL configuration');
+    }
+
+    final isLoopback = target.host == '127.0.0.1' ||
+        target.host == 'localhost' ||
+        target.host == '10.0.2.2';
+    if (target.scheme != 'https' && !isLoopback) {
+      throw AuthException('Insecure backend URL blocked for auth operation');
+    }
   }
 
   /// Handle DioException

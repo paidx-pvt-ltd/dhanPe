@@ -16,21 +16,38 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/payment/payment_screen.dart';
 import 'screens/payment/payment_status_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/profile/kyc_screen.dart';
 import 'screens/transactions/transactions_screen.dart';
+import 'services/device_security_service.dart';
 import 'services/service_locator.dart';
 import 'widgets/app_shell.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final securityStatus = await DeviceSecurityService().checkDeviceSecurity();
   setupServiceLocator();
-  runApp(const MyApp());
+  runApp(MyApp(securityStatus: securityStatus));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({
+    required this.securityStatus,
+    super.key,
+  });
+
+  final DeviceSecurityStatus securityStatus;
 
   @override
   Widget build(BuildContext context) {
+    if (!securityStatus.isCompliant) {
+      return MaterialApp(
+        title: Config.appName,
+        theme: AppTheme.buildTheme(),
+        debugShowCheckedModeBanner: false,
+        home: const _DeviceSecurityBlockedScreen(),
+      );
+    }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(getIt())),
@@ -90,6 +107,10 @@ class MyApp extends StatelessWidget {
             GoRoute(
               path: '/profile',
               builder: (context, state) => const ProfileScreen(),
+            ),
+            GoRoute(
+              path: '/kyc',
+              builder: (context, state) => const KycScreen(),
             ),
             GoRoute(
               path: '/transfers',
@@ -163,6 +184,46 @@ class _SplashScreen extends StatelessWidget {
                     ?.copyWith(color: AppColors.textMuted),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeviceSecurityBlockedScreen extends StatelessWidget {
+  const _DeviceSecurityBlockedScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppGradients.pageBackground),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.security_rounded,
+                  size: 52,
+                  color: AppColors.warning,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Security checks failed',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Enable device lock, use a trusted installer, and run on a non-rooted device to continue.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ),
