@@ -31,21 +31,21 @@ class Config {
 
   static String get baseUrl {
     if (_baseUrlOverride.isNotEmpty) {
-      return _baseUrlOverride;
+      return _normalizeApiBaseUrl(_baseUrlOverride);
     }
 
     switch (_apiEnvironment.toLowerCase()) {
       case 'local':
-        return _localBaseUrl;
+        return _normalizeApiBaseUrl(_localBaseUrl);
       case 'emulator':
       case 'android-emulator':
-        return _androidEmulatorBaseUrl;
+        return _normalizeApiBaseUrl(_androidEmulatorBaseUrl);
       case 'production':
       case 'prod':
-        return _productionBaseUrl;
+        return _normalizeApiBaseUrl(_productionBaseUrl);
       case 'auto':
       default:
-        return _resolveAutoBaseUrl();
+        return _normalizeApiBaseUrl(_resolveAutoBaseUrl());
     }
   }
 
@@ -63,6 +63,32 @@ class Config {
     }
 
     return _productionBaseUrl;
+  }
+
+  static String _normalizeApiBaseUrl(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return trimmed;
+    }
+
+    final withoutTrailingSlash =
+        trimmed.endsWith('/') ? trimmed.substring(0, trimmed.length - 1) : trimmed;
+
+    final parsed = Uri.tryParse(withoutTrailingSlash);
+    if (parsed == null) {
+      return withoutTrailingSlash;
+    }
+
+    final path = parsed.path;
+    if (path.isEmpty || path == '/') {
+      return '$withoutTrailingSlash/api';
+    }
+
+    if (path.endsWith('/api')) {
+      return withoutTrailingSlash;
+    }
+
+    return withoutTrailingSlash;
   }
 
   static const Duration apiTimeout = Duration(seconds: 30);

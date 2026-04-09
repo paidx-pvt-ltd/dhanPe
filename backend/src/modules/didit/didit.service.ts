@@ -14,10 +14,14 @@ import { DiditRepository } from './didit.repository.js';
 type DiditWebhookPayload = {
   session_id?: string;
   status?: string;
+  decision_status?: string;
+  verification_status?: string;
   timestamp?: number | string;
   vendor_data?: string;
   workflow_id?: string;
   webhook_type?: string;
+  event_type?: string;
+  data?: Record<string, unknown>;
 };
 
 export class DiditService {
@@ -115,9 +119,10 @@ export class DiditService {
   }
 
   async processWebhook(payload: DiditWebhookPayload): Promise<void> {
+    const resolved = await this.resolveWebhookPayload(payload);
     const eventId =
-      payload.session_id && payload.status
-        ? `${payload.session_id}:${payload.status}:${payload.timestamp ?? 'unknown'}`
+      resolved.sessionId && resolved.status
+        ? `${resolved.sessionId}:${resolved.status}:${resolved.timestamp ?? 'unknown'}`
         : undefined;
 
     if (!eventId) {
@@ -133,20 +138,20 @@ export class DiditService {
       existingEvent ??
       (await this.diditRepository.createWebhookEvent({
         provider: 'didit',
-        eventType: payload.webhook_type ?? 'status.updated',
+        eventType: resolved.webhookType ?? 'status.updated',
         eventId,
-        orderId: payload.session_id,
+        orderId: resolved.sessionId,
         payload: payload as Prisma.InputJsonValue,
       }));
 
-    if (!payload.vendor_data) {
+    if (!resolved.vendorData) {
       await this.db.$transaction((tx) =>
         this.diditRepository.markWebhookProcessed(tx, event.id, false, 'Missing vendor_data')
       );
       throw new ValidationError('Didit webhook payload is missing vendor_data');
     }
 
-    const user = await this.diditRepository.findUserById(payload.vendor_data);
+    const user = await this.diditRepository.findUserById(resolved.vendorData);
     if (!user) {
       await this.db.$transaction((tx) =>
         this.diditRepository.markWebhookProcessed(tx, event.id, false, 'User not found')
@@ -158,7 +163,7 @@ export class DiditService {
       await tx.user.update({
         where: { id: user.id },
         data: {
-          kycStatus: this.mapDiditStatus(payload.status),
+          kycStatus: this.mapDiditStatus(resolved.status),
         },
       });
       await this.diditRepository.markWebhookProcessed(tx, event.id, true);
@@ -224,18 +229,80 @@ export class DiditService {
 
     switch (normalized) {
       case 'approved':
+      case 'success':
+      case 'completed':
         return KYCStatus.APPROVED;
       case 'declined':
+      case 'rejected':
+      case 'failed':
       case 'expired':
         return KYCStatus.REJECTED;
       case 'in progress':
       case 'in review':
+      case 'review':
+      case 'under review':
         return KYCStatus.SUBMITTED;
       case 'pending':
       case 'not started':
       default:
         return KYCStatus.PENDING;
     }
+  }
+
+  private async resolveWebhookPayload(payload: DiditWebhookPayload): Promise<{
+    sessionId?: string;
+    status?: string;
+    vendorData?: string;
+    timestamp?: number | string;
+    webhookType?: string;
+  }> {
+    const data = payload.data ?? {};
+    const sessionId = this.asString(payload.session_id) ?? this.asString(data.session_id);
+    const status =
+      this.asString(payload.status) ??
+      this.asString(payload.decision_status) ??
+      this.asString(payload.verification_status) ??
+      this.asString(data.status) ??
+      this.asString(data.decision_status) ??
+      this.asString(data.verification_status);
+    const vendorData = this.asString(payload.vendor_data) ?? this.asString(data.vendor_data);
+    const webhookType =
+      this.asString(payload.webhook_type) ??
+      this.asString(payload.event_type) ??
+      this.asString(data.webhook_type) ??
+      this.asString(data.event_type);
+    const timestamp =
+      payload.timestamp ??
+      (typeof data.timestamp === 'number' || typeof data.timestamp === 'string'
+        ? data.timestamp
+        : undefined);
+
+    if (sessionId && (!vendorData || !status)) {
+      const session = await this.diditClient.getSession(sessionId);
+      return {
+        sessionId,
+        status: status ?? session.status,
+        vendorData: vendorData ?? session.vendor_data,
+        timestamp,
+        webhookType,
+      };
+    }
+
+    return {
+      sessionId,
+      status,
+      vendorData,
+      timestamp,
+      webhookType,
+    };
+  }
+
+  private asString(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   private serializeUser(user: User) {

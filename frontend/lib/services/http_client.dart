@@ -6,6 +6,7 @@ import '../config/config.dart';
 class HttpClient {
   late final Dio _dio;
   final FlutterSecureStorage _storage;
+  String? _sessionAccessToken;
 
   HttpClient(this._storage) {
     if (!Config.debugMode && !Config.isSecureBackend) {
@@ -49,6 +50,7 @@ class HttpClient {
       }
 
       debugPrint('API ${options.method} ${options.path}');
+      debugPrint('Base URL: ${options.baseUrl}');
       debugPrint('Headers: $safeHeaders');
     }
 
@@ -56,7 +58,18 @@ class HttpClient {
   }
 
   Future<String?> _readAccessToken() async {
-    return _storage.read(key: Config.accessTokenKey);
+    if (_sessionAccessToken != null && _sessionAccessToken!.isNotEmpty) {
+      return _sessionAccessToken;
+    }
+
+    try {
+      return _storage.read(key: Config.accessTokenKey);
+    } catch (error) {
+      if (Config.enableLogging) {
+        debugPrint('Token read failed from secure storage: $error');
+      }
+      return null;
+    }
   }
 
   Future<void> _onError(
@@ -68,8 +81,14 @@ class HttpClient {
     }
 
     if (Config.enableLogging) {
+      debugPrint('Error type: ${err.type}');
       debugPrint('Error: ${err.message}');
       debugPrint('Response: ${err.response?.data}');
+      if (kIsWeb && err.response == null) {
+        debugPrint(
+          'Web request failed before response. Check CORS, HTTPS certificate, and API base URL.',
+        );
+      }
     }
 
     handler.next(err);
@@ -82,10 +101,12 @@ class HttpClient {
   }
 
   Future<void> setAuthToken(String token) async {
+    _sessionAccessToken = token;
     _dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
   void clearAuth() {
+    _sessionAccessToken = null;
     _dio.options.headers.remove('Authorization');
   }
 }

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../core/exceptions.dart';
 import '../services/auth_service.dart';
+import '../services/http_client.dart';
+import '../services/service_locator.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
+  final HttpClient? _httpClient;
 
   User? _user;
   String? _accessToken;
@@ -12,7 +15,8 @@ class AuthProvider extends ChangeNotifier {
   bool _isReady = false;
   String? _error;
 
-  AuthProvider(this._authService) {
+  AuthProvider(this._authService, [HttpClient? httpClient])
+      : _httpClient = httpClient ?? (getIt.isRegistered<HttpClient>() ? getIt<HttpClient>() : null) {
     checkAuthentication();
   }
 
@@ -43,14 +47,17 @@ class AuthProvider extends ChangeNotifier {
         try {
           final result = await _authService.refreshToken();
           _accessToken = result['accessToken'];
+          await _httpClient?.setAuthToken(_accessToken!);
           _user = User.fromJson(result['user']);
         } on AuthException {
           await _authService.clearSession();
+          _httpClient?.clearAuth();
           _accessToken = null;
           _user = null;
         } on ApiError catch (e) {
           if (e.type == ApiException.unauthorizedError) {
             await _authService.clearSession();
+            _httpClient?.clearAuth();
             _accessToken = null;
             _user = null;
           }
@@ -59,12 +66,14 @@ class AuthProvider extends ChangeNotifier {
       _error = null;
     } on AuthException {
       await _authService.clearSession();
+      _httpClient?.clearAuth();
       _accessToken = null;
       _user = null;
       _error = null;
     } on ApiError catch (e) {
       if (e.type == ApiException.unauthorizedError) {
         await _authService.clearSession();
+        _httpClient?.clearAuth();
         _accessToken = null;
         _user = null;
       }
@@ -100,6 +109,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _accessToken = result['accessToken'];
+      await _httpClient?.setAuthToken(_accessToken!);
       _user = User.fromJson(result['user']);
       _error = null;
     } on AuthException catch (e) {
@@ -128,6 +138,7 @@ class AuthProvider extends ChangeNotifier {
       );
 
       _accessToken = result['accessToken'];
+      await _httpClient?.setAuthToken(_accessToken!);
       _user = User.fromJson(result['user']);
       _error = null;
     } on AuthException catch (e) {
@@ -147,6 +158,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _authService.logout();
+      _httpClient?.clearAuth();
       _user = null;
       _accessToken = null;
     } catch (e) {
@@ -162,6 +174,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final result = await _authService.refreshToken();
       _accessToken = result['accessToken'];
+      await _httpClient?.setAuthToken(_accessToken!);
       _error = null;
     } on AuthException catch (e) {
       _error = e.message;
