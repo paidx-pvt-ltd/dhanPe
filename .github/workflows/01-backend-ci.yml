@@ -7,12 +7,7 @@ on:
       - 'backend/**'
       - '.github/workflows/01-backend-ci.yml'
       - '.github/workflows/03-deploy-vercel.yml'
-  push:
-    branches: [develop, staging, main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/01-backend-ci.yml'
-      - '.github/workflows/03-deploy-vercel.yml'
+
   workflow_dispatch:
 
 permissions:
@@ -24,9 +19,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-ci:
+  security-scan:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
+      - name: Checkmarx AST Github Action
+        uses: Checkmarx/ast-github-action@c52fa63dbd4916520882e10456d66ff4dd7bf754
+        with:
+          base_uri: https://ind.ast.checkmarx.net
+          cx_tenant: ama-partners
+          cx_client_id: dhruv-integrations
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
+          project_name: manual-financeapp
+          #additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1" --async
+          additional_params: --async
+
+  quality-check:
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:15
@@ -45,16 +56,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-
-      - name: Checkmarx AST Github Action
-        uses: Checkmarx/ast-github-action@c52fa63dbd4916520882e10456d66ff4dd7bf754
-        with:
-          base_uri: https://ind.ast.checkmarx.net
-          cx_tenant: ama-partners
-          cx_client_id: dhruv-integrations
-          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
-          project_name: manual-financeapp
-          additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1" --async
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020

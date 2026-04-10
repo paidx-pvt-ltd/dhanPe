@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sendotp_flutter_sdk/sendotp_flutter_sdk.dart';
 import '../core/exceptions.dart';
 import 'msg91_widget_service_base.dart';
@@ -14,6 +15,7 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
     try {
       // The SDK's initializeWidget returns void synchronously.
       OTPWidget.initializeWidget(widgetId, tokenAuth);
+      debugPrint('[MSG91] Native SDK initialized with WidgetId: $widgetId');
       _initialized = true;
     } catch (e) {
       throw AuthException('Failed to initialize native MSG91 SDK: $e');
@@ -25,11 +27,14 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
     _assertInitialized();
     try {
       final response = await OTPWidget.sendOTP({'identifier': identifier});
+      debugPrint('[MSG91] sendOTP response: $response');
       if (response != null) {
         if (response['type'] == 'error') {
           throw AuthException(response['message'] ?? 'Failed to send OTP via native SDK');
         }
-        _lastReqId = response['reqId']?.toString();
+        // Fallback to 'message' if 'reqId' is missing, as some SDK versions return the ID in 'message'
+        _lastReqId = response['reqId']?.toString() ?? response['message']?.toString();
+        debugPrint('[MSG91] sendOTP success, reqId: $_lastReqId');
       }
     } catch (e) {
       if (e is AuthException) rethrow;
@@ -57,11 +62,21 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
   @override
   Future<String> verifyOtp({required String otp}) async {
     _assertInitialized();
+    if (_lastReqId == null) {
+      throw AuthException('Cannot verify OTP: No previous request ID found. Please try sending the OTP again.');
+    }
+
     try {
-      final response = await OTPWidget.verifyOTP({'otp': otp});
+      final response = await OTPWidget.verifyOTP({
+        'otp': otp,
+        'reqId': _lastReqId,
+      });
+      debugPrint('[MSG91] verifyOTP response: $response');
       
       if (response != null && response['type'] == 'success') {
-        final token = response['token']?.toString() ?? response['accessToken']?.toString();
+        final token = response['token']?.toString() ?? 
+                      response['accessToken']?.toString() ?? 
+                      response['message']?.toString();
         if (token != null) {
           return token;
         }
