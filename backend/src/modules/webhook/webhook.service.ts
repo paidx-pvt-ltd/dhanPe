@@ -3,6 +3,7 @@ import { config } from '../../config/index.js';
 import { ValidationError, NotFoundError } from '../../shared/errors.js';
 import { createHmac, createHmacBase64, safeEqual } from '../../utils/hash.js';
 import { toNumber } from '../../utils/decimal.js';
+import { PayoutJob } from '../../../packages/types/src/index.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { PayoutService } from '../payout/payout.service.js';
 import { PayoutRepository } from '../payout/payout.repository.js';
@@ -19,7 +20,8 @@ export class WebhookService {
     private readonly transactionStateService: TransactionStateService,
     private readonly payoutService: PayoutService,
     private readonly refundService: RefundService,
-    private readonly db: PrismaClient
+    private readonly db: PrismaClient,
+    private readonly enqueuePayoutJob: (job: PayoutJob) => Promise<void> = async () => undefined
   ) {}
 
   verifySignature(
@@ -83,36 +85,48 @@ export class WebhookService {
     const eventId =
       payload.cf_payment_id ??
       `${payload.order_id}:${payload.payment_status ?? payload.order_status ?? 'unknown'}`;
-    const existingEvent = await this.webhookRepository.findEventByEventId(eventId);
-    if (existingEvent?.processed) {
-      return;
-    }
 
-    const event =
-      existingEvent ??
-      (await this.webhookRepository.createEvent({
+    // First ensure event exists (outside transaction for high concurrency)
+    await this.db.webhookEvent.upsert({
+      where: { eventId },
+      update: {},
+      create: {
         provider: 'cashfree',
         eventType: payload.type ?? 'payment',
         eventId,
         orderId: payload.order_id,
         payload: parsedPayload,
-      }));
+      },
+    });
 
-    const transaction = await this.webhookRepository.findTransactionByOrderId(payload.order_id);
-    if (!transaction) {
-      await this.db.$transaction((tx) =>
-        this.webhookRepository.markEventProcessed(tx, event.id, false, 'Transaction not found')
-      );
-      throw new NotFoundError('Transaction');
+    const result = await this.db.$transaction(async (tx) => {
+      const lockedEvent = await this.webhookRepository.findEventForUpdate(tx, eventId);
+      if (!lockedEvent || lockedEvent.processed) {
+        return { shouldProcess: false };
+      }
+
+      const transaction = await this.webhookRepository.findTransactionByOrderId(payload.order_id);
+      if (!transaction) {
+        await this.webhookRepository.markEventProcessed(tx, lockedEvent.id, false, 'Transaction not found');
+        return { shouldProcess: false, error: 'Transaction not found' };
+      }
+
+      const webhookAmount = Number(payload.order_amount);
+      if (Number.isNaN(webhookAmount) || toNumber(transaction.grossAmount) !== webhookAmount) {
+        await this.webhookRepository.markEventProcessed(tx, lockedEvent.id, false, 'Amount mismatch');
+        return { shouldProcess: false, error: 'Webhook amount mismatch' };
+      }
+
+      return { shouldProcess: true, transaction, event: lockedEvent };
+    });
+
+    if (!result.shouldProcess) {
+      if (result.error === 'Transaction not found') throw new NotFoundError('Transaction');
+      if (result.error === 'Webhook amount mismatch') throw new ValidationError('Webhook amount mismatch');
+      return;
     }
 
-    const webhookAmount = Number(payload.order_amount);
-    if (Number.isNaN(webhookAmount) || toNumber(transaction.grossAmount) !== webhookAmount) {
-      await this.db.$transaction((tx) =>
-        this.webhookRepository.markEventProcessed(tx, event.id, false, 'Amount mismatch')
-      );
-      throw new ValidationError('Webhook amount mismatch');
-    }
+    const { transaction, event } = result as { transaction: any; event: any };
 
     const paymentStatus = payload.payment_status ?? payload.order_status ?? 'UNKNOWN';
     if (['PAID', 'SUCCESS', 'COMPLETED', 'SETTLED'].includes(paymentStatus)) {
@@ -171,7 +185,10 @@ export class WebhookService {
         await this.webhookRepository.markEventProcessed(tx, event.id, true);
       });
 
-      await this.payoutService.enqueue(transaction.id);
+      await this.enqueuePayoutJob({
+        transactionId: transaction.id,
+        requestedBy: 'cashfree-webhook',
+      });
       return;
     }
 
@@ -208,43 +225,45 @@ export class WebhookService {
   ): Promise<void> {
     const parsedPayload = JSON.parse(rawBody) as Prisma.JsonObject;
     const eventId = `${payload.type}:${payload.data.transfer_id}:${payload.data.cf_transfer_id ?? 'na'}:${payload.event_time ?? 'na'}`;
-    const existingEvent = await this.webhookRepository.findEventByEventId(eventId);
-    if (existingEvent?.processed) {
-      return;
-    }
 
-    const event =
-      existingEvent ??
-      (await this.webhookRepository.createEvent({
+    // Ensure event exists
+    await this.db.webhookEvent.upsert({
+      where: { eventId },
+      update: {},
+      create: {
         provider: 'cashfree-payout',
         eventType: payload.type,
         eventId,
         orderId: payload.data.transfer_id,
         payload: parsedPayload,
-      }));
+      },
+    });
 
-    try {
-      await this.payoutService.applyTransferUpdate(payload.data.transfer_id, {
-        providerRef: payload.data.cf_transfer_id,
-        providerStatus: payload.data.status,
-        providerStatusCode: payload.data.status_code,
-        failureReason: payload.data.status_description,
-        details: parsedPayload,
-      });
+    await this.db.$transaction(async (tx) => {
+      const lockedEvent = await this.webhookRepository.findEventForUpdate(tx, eventId);
+      if (!lockedEvent || lockedEvent.processed) {
+        return;
+      }
 
-      await this.db.$transaction((tx) =>
-        this.webhookRepository.markEventProcessed(tx, event.id, true)
-      );
-    } catch (error) {
-      await this.db.$transaction((tx) =>
-        this.webhookRepository.markEventProcessed(
+      try {
+        await this.payoutService.applyTransferUpdate(payload.data.transfer_id, {
+          providerRef: payload.data.cf_transfer_id,
+          providerStatus: payload.data.status,
+          providerStatusCode: payload.data.status_code,
+          failureReason: payload.data.status_description,
+          details: parsedPayload,
+        });
+
+        await this.webhookRepository.markEventProcessed(tx, lockedEvent.id, true);
+      } catch (error) {
+        await this.webhookRepository.markEventProcessed(
           tx,
-          event.id,
+          lockedEvent.id,
           false,
           error instanceof Error ? error.message : 'Unknown payout webhook error'
-        )
-      );
-      throw error;
-    }
+        );
+        throw error;
+      }
+    });
   }
 }

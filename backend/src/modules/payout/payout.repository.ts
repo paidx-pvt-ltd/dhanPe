@@ -50,6 +50,16 @@ export class PayoutRepository {
     });
   }
 
+  async findForUpdate(tx: TxLike, payoutId: string): Promise<Payout | null> {
+    const payouts = await tx.$queryRaw<Payout[]>`
+      SELECT * FROM "Payout"
+      WHERE "id" = ${payoutId}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    return payouts[0] ?? null;
+  }
+
   findPendingWork(limit = 25) {
     return this.db.payout.findMany({
       where: {

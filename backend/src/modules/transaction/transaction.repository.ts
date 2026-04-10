@@ -3,6 +3,16 @@ import { PrismaClient } from '@prisma/client';
 export class TransactionRepository {
   constructor(private readonly db: PrismaClient) {}
 
+  async findForUpdate(tx: Prisma.TransactionClient, transactionId: string) {
+    const txns = await tx.$queryRaw<Transaction[]>`
+      SELECT * FROM "Transaction"
+      WHERE "id" = ${transactionId}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    return txns[0] ?? null;
+  }
+
   listSummaries(userId: string, limit: number) {
     return this.db.transaction.findMany({
       where: { userId },

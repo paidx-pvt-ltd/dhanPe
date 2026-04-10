@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -19,70 +20,133 @@ class PaymentStatusScreen extends StatefulWidget {
 }
 
 class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
-  late Future<Transaction> _future;
+  Transaction? _transaction;
+  bool _isLoading = false;
+  String? _error;
+  Timer? _pollingTimer;
   final _transactionService = getIt<TransactionService>();
 
   @override
   void initState() {
     super.initState();
-    _future = _transactionService.getTransaction(widget.paymentId);
+    _fetchTransaction();
+  }
+
+  Future<void> _fetchTransaction() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = _transaction == null;
+      _error = null;
+    });
+
+    try {
+      final data = await _transactionService.getTransaction(widget.paymentId);
+      if (mounted) {
+        setState(() {
+          _transaction = data;
+          _isLoading = false;
+        });
+        _startPollingIfRequired();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load transaction details: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _startPollingIfRequired() {
+    _pollingTimer?.cancel();
+    if (_transaction == null) return;
+
+    // Terminal states for DhanPe lifecycle
+    final terminalStates = {'COMPLETED', 'PAYMENT_FAILED', 'PAYOUT_FAILED', 'REFUNDED'};
+    if (terminalStates.contains(_transaction!.lifecycleState)) return;
+
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final data = await _transactionService.getTransaction(widget.paymentId);
+        if (mounted) {
+          setState(() => _transaction = data);
+          if (terminalStates.contains(data.lifecycleState)) {
+            timer.cancel();
+          }
+        }
+      } catch (_) {
+        // Silently fail polling
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-      children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            ),
-            const Expanded(
-              child: SectionHeading(
-                title: 'Payment detail',
-                subtitle: 'Payment lifecycle and settlement status',
+    return Scaffold(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        FutureBuilder<Transaction>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Container(
-                height: 320,
-                decoration: AppTheme.panel(color: AppColors.surfaceLow),
-              );
-            }
-
-            if (snapshot.hasError || !snapshot.hasData) {
-              return KineticPanel(
-                color: AppColors.surfaceLow,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Payment unavailable',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'We could not load this payment right now.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textMuted),
-                    ),
-                  ],
+              const Expanded(
+                child: SectionHeading(
+                  title: 'Payment detail',
+                  subtitle: 'Payment lifecycle and settlement status',
                 ),
-              );
-            }
-
-            final transaction = snapshot.data!;
-            return Column(
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          if (_isLoading)
+            Container(
+              height: 320,
+              decoration: AppTheme.panel(color: AppColors.surfaceLow),
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null && _transaction == null)
+            KineticPanel(
+              color: AppColors.surfaceLow,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Payment unavailable',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  GradientButton(
+                    label: 'Try again',
+                    onPressed: _fetchTransaction,
+                  ),
+                ],
+              ),
+            )
+          else if (_transaction != null)
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 KineticPanel(
@@ -93,34 +157,42 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       Row(
                         children: [
                           StatusBadge(
-                            label: transaction.status,
-                            color: transaction.isFailed
+                            label: _transaction!.status,
+                            color: _transaction!.isFailed
                                 ? AppColors.warning
-                                : transaction.isCompleted
+                                : _transaction!.isCompleted
                                     ? AppColors.success
                                     : AppColors.primary,
                           ),
                           const SizedBox(width: 8),
                           StatusBadge(
-                            label: transaction.payoutStatus,
+                            label: _transaction!.payoutStatus,
                             color: AppColors.secondary,
                           ),
+                          if (_pollingTimer?.isActive == true) ...[
+                            const Spacer(),
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 16),
                       Text(
                         NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                            .format(transaction.amount),
+                            .format(_transaction!.amount),
                         style: Theme.of(context).textTheme.displayMedium,
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        transaction.title,
+                        _transaction!.title,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Created ${DateFormat('MMM d, yyyy | h:mm a').format(transaction.createdAt)}',
+                        'Created ${DateFormat('MMM d, yyyy | h:mm a').format(_transaction!.createdAt)}',
                         style: Theme.of(context)
                             .textTheme
                             .bodyMedium
@@ -130,65 +202,54 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _FlowTimeline(transaction: transaction),
+                _FlowTimeline(transaction: _transaction!),
                 const SizedBox(height: 16),
                 KineticPanel(
                   color: AppColors.surfaceHigh,
                   child: Column(
                     children: [
-                      _DetailRow(label: 'Order ID', value: transaction.orderId),
-                      _DetailRow(label: 'Gateway', value: transaction.paymentProvider),
-                      _DetailRow(label: 'Lifecycle', value: transaction.lifecycleState),
+                      _DetailRow(label: 'Order ID', value: _transaction!.orderId),
+                      _DetailRow(label: 'Gateway', value: _transaction!.paymentProvider),
+                      _DetailRow(label: 'Lifecycle', value: _transaction!.lifecycleState),
                       _DetailRow(
                         label: 'Net settlement',
                         value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                            .format(transaction.netPayoutAmount),
+                            .format(_transaction!.netPayoutAmount),
                       ),
                       _DetailRow(
                         label: 'Platform fee',
                         value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                            .format(transaction.platformFeeAmount),
+                            .format(_transaction!.platformFeeAmount),
                       ),
-                      if (transaction.beneficiary != null)
+                      if (_transaction!.beneficiary != null)
                         _DetailRow(
                           label: 'Linked account',
                           value:
-                              '${transaction.beneficiary!.title} | ${transaction.beneficiary!.accountNumberMask}',
+                              '${_transaction!.beneficiary!.title} | ${_transaction!.beneficiary!.accountNumberMask}',
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                KineticPanel(
-                  color: AppColors.surfaceLow,
-                  child: Text(
-                    'This operation is processed as a bill payment settlement, not a cash withdrawal.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
-                  ),
-                ),
-                if (transaction.payout != null) ...[
-                  const SizedBox(height: 16),
+                const SizedBox(height: 16),
+                if (_transaction!.payout != null) ...[
                   KineticPanel(
                     color: AppColors.surfaceLow,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Settlement status', style: Theme.of(context).textTheme.titleLarge),
+                        Text('Settlement details', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 8),
                         Text(
-                          transaction.payout!.providerStatus ?? transaction.payout!.status,
+                          _transaction!.payout!.providerStatus ?? _transaction!.payout!.status,
                           style: Theme.of(context)
                               .textTheme
                               .bodyLarge
                               ?.copyWith(color: AppColors.textMuted),
                         ),
-                        if (transaction.payout!.failureReason != null) ...[
+                        if (_transaction!.payout!.failureReason != null) ...[
                           const SizedBox(height: 8),
                           Text(
-                            transaction.payout!.failureReason!,
+                            _transaction!.payout!.failureReason!,
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -198,16 +259,16 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       ],
                     ),
                   ),
-                ],
-                if (transaction.refunds.isNotEmpty) ...[
                   const SizedBox(height: 16),
+                ],
+                if (_transaction!.refunds.isNotEmpty) ...[
                   KineticPanel(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Refund updates', style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 10),
-                        ...transaction.refunds.map(
+                        ..._transaction!.refunds.map(
                           (refund) => Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _MiniStatusRow(
@@ -223,73 +284,35 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       ],
                     ),
                   ),
-                ],
-                if (transaction.disputes.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  KineticPanel(
-                    color: AppColors.surfaceLow,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Dispute cases', style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 10),
-                        ...transaction.disputes.map(
-                          (dispute) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _MiniStatusRow(
-                              title: '${dispute.phase} | ${dispute.status}',
-                              subtitle: dispute.reasonMessage ?? dispute.disputeId,
-                              value: NumberFormat.currency(
-                                symbol: 'INR ',
-                                decimalDigits: 2,
-                              ).format(dispute.amount),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                ],
+                KineticPanel(
+                  color: AppColors.surfaceLow,
+                  child: Text(
+                    'This operation is a bill payment settlement. Funds are processed via standard banking rails.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.textMuted),
                   ),
-                ],
-                if (transaction.reconciliation.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  KineticPanel(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Reconciliation', style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 10),
-                        ...transaction.reconciliation.map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _MiniStatusRow(
-                              title: '${item.severity} | ${item.status}',
-                              subtitle: item.message,
-                              value: item.scope,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                if (transaction.isCompleted && transaction.refunds.isEmpty) ...[
-                  const SizedBox(height: 16),
+                ),
+                if (_transaction!.isCompleted && _transaction!.refunds.isEmpty) ...[
+                  const SizedBox(height: 24),
                   Consumer<PaymentProvider>(
                     builder: (context, paymentProvider, _) {
                       return GradientButton(
                         label: 'Request full refund',
                         icon: Icons.keyboard_return_rounded,
                         isLoading: paymentProvider.isLoading,
-                        onPressed: () => _requestRefund(transaction),
+                        onPressed: () => _requestRefund(_transaction!),
                       );
                     },
                   ),
                 ],
               ],
-            );
-          },
-        ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 
@@ -298,12 +321,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
     await paymentProvider.createRefund(
       transactionId: transaction.id,
       amount: transaction.amount,
-      reason: 'Requested from the mobile app',
+      reason: 'Requested from mobile app status screen',
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (paymentProvider.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -312,13 +333,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
       return;
     }
 
-    setState(() {
-      _future = _transactionService.getTransaction(widget.paymentId);
-    });
-
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Refund initiated. We will update status shortly.')),
+      const SnackBar(content: Text('Refund requested successfully.')),
     );
+    _fetchTransaction();
   }
 }
 
@@ -336,10 +354,10 @@ class _FlowTimeline extends StatelessWidget {
       'COMPLETED',
     ];
     final labels = <String>[
-      'Payment initiated',
-      'Processing',
-      'Settlement',
-      'Completion',
+      'Payment recorded',
+      'Verification checks',
+      'Banking settlement',
+      'Operation complete',
     ];
     final currentIndex = states.indexOf(transaction.lifecycleState);
 
@@ -348,35 +366,56 @@ class _FlowTimeline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Transaction flow', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 10),
-          for (var i = 0; i < labels.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    i <= currentIndex ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-                    size: 18,
-                    color: i <= currentIndex ? AppColors.success : AppColors.textMuted,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      labels[i],
-                      style: Theme.of(context).textTheme.bodyLarge,
+          Text('Transaction lifecycle', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 14),
+          for (var i = 0; i < labels.length; i++) ...[
+            Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 400),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i <= currentIndex ? AppColors.success : AppColors.surfaceHighest,
+                    border: Border.all(
+                      color: i <= currentIndex ? AppColors.success : AppColors.outline,
+                      width: 1,
                     ),
                   ),
-                ],
-              ),
+                  child: i <= currentIndex
+                      ? const Icon(Icons.check, size: 12, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    labels[i],
+                    style: TextStyle(
+                      color: i <= currentIndex ? AppColors.text : AppColors.textMuted,
+                      fontWeight: i == currentIndex ? FontWeight.w700 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          const SizedBox(height: 6),
+            if (i < labels.length - 1)
+              Padding(
+                padding: const EdgeInsets.only(left: 9),
+                child: Container(
+                  width: 1,
+                  height: 12,
+                  color: i < currentIndex ? AppColors.success : AppColors.outline,
+                ),
+              ),
+          ],
+          const SizedBox(height: 16),
           Text(
             _edgeCaseHint(transaction),
             style: Theme.of(context)
                 .textTheme
                 .bodySmall
-                ?.copyWith(color: AppColors.textMuted),
+                ?.copyWith(color: AppColors.textMuted, fontStyle: FontStyle.italic),
           ),
         ],
       ),
@@ -385,18 +424,15 @@ class _FlowTimeline extends StatelessWidget {
 
   String _edgeCaseHint(Transaction transaction) {
     if (transaction.lifecycleState == 'PAYMENT_FAILED') {
-      return 'Payment failed. No settlement will be attempted.';
+      return 'Payment verification failed at source.';
     }
     if (transaction.lifecycleState == 'PAYOUT_FAILED') {
-      return 'Settlement delayed or failed. Support can help with next steps.';
+      return 'Banking settlement issue detected. Support is reviewing.';
     }
     if (transaction.lifecycleState == 'REFUNDED') {
-      return 'Refund initiated successfully.';
+      return 'This transaction has been fully refunded.';
     }
-    if (transaction.lifecycleState == 'DISPUTED') {
-      return 'This payment is currently under dispute review.';
-    }
-    return 'Settlement usually completes by T+1 depending on banking rails.';
+    return 'Settlements typically reach bank accounts within T+1 working days.';
   }
 }
 
@@ -412,7 +448,7 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -430,7 +466,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
         ],
@@ -458,13 +494,13 @@ class _MiniStatusRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: Theme.of(context)
                     .textTheme
-                    .bodyMedium
+                    .bodySmall
                     ?.copyWith(color: AppColors.textMuted),
               ),
             ],

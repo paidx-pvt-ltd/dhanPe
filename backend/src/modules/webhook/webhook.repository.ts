@@ -20,6 +20,16 @@ export class WebhookRepository {
     });
   }
 
+  async findEventForUpdate(tx: TxLike, eventId: string): Promise<WebhookEvent | null> {
+    const events = await tx.$queryRaw<WebhookEvent[]>`
+      SELECT * FROM "WebhookEvent"
+      WHERE "eventId" = ${eventId}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    return events[0] ?? null;
+  }
+
   createEvent(data: Prisma.WebhookEventUncheckedCreateInput): Promise<WebhookEvent> {
     return this.db.webhookEvent.create({ data });
   }

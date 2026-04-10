@@ -1,12 +1,12 @@
 import { NotFoundError } from '../../shared/errors.js';
 import { toNumber } from '../../utils/decimal.js';
-import { PayoutService } from '../payout/payout.service.js';
 import { TransactionRepository } from './transaction.repository.js';
 
 export class TransactionService {
   constructor(
     private readonly transactionRepository: TransactionRepository,
-    private readonly payoutService: PayoutService
+    private readonly schedulePayoutSync: (transactionId: string) => Promise<void> = async () =>
+      undefined
   ) {}
 
   async listSummaries(userId: string, limit: number) {
@@ -52,7 +52,7 @@ export class TransactionService {
       transaction.payoutStatus === 'SUBMITTED' ||
       transaction.payoutStatus === 'QUEUED'
     ) {
-      await this.payoutService.syncTransferStatus(transactionId).catch(() => null);
+      await this.schedulePayoutSync(transactionId).catch(() => undefined);
     }
 
     const refreshedTransaction = await this.transactionRepository.findLifecycle(

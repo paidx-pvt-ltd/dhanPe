@@ -1,6 +1,22 @@
 # DhanPe Backend
 
-Express + TypeScript API for auth, user profile/KYC, beneficiary management, transfer creation, payout execution, refunds, disputes/chargebacks, reconciliation, and Cashfree webhook handling.
+Express + TypeScript backend for auth, user profile/KYC, beneficiary management, transfer creation, payout execution, refunds, disputes/chargebacks, reconciliation, and provider webhook handling.
+
+## Execution Architecture
+
+The backend now runs as three independent processes inside `backend/`:
+
+- `apps/api`: control plane, request validation, resource creation, and queue production
+- `apps/worker`: execution plane, BullMQ workers, external provider calls, DB state transitions
+- `apps/scheduler`: reconciliation repeat scheduler for BullMQ v5 job schedulers
+
+Shared backend packages:
+
+- `packages/config`: environment parsing and logger setup
+- `packages/db`: Prisma singleton
+- `packages/queue`: BullMQ queue factories, Redis connections, rate limits
+- `packages/runtime`: shared service wiring and queue dispatcher
+- `packages/types`: shared job contracts
 
 ## Quick Start
 
@@ -10,10 +26,18 @@ npm install
 cp .env.development .env
 npm run db:generate
 npm run db:migrate
-npm run dev
+npm run dev:api
 ```
 
 The API runs on `http://localhost:3000` by default.
+
+Run the worker and scheduler in separate shells:
+
+```bash
+cd backend
+npm run dev:worker
+npm run dev:scheduler
+```
 
 ## Required Environment Variables
 
@@ -62,7 +86,17 @@ Also parsed by config:
 - `RISK_VELOCITY_MAX_TRANSACTIONS`
 - `LOG_LEVEL`
 - `PAYOUT_QUEUE_CONCURRENCY`
-- `PAYOUT_QUEUE_POLL_INTERVAL_MS`
+- `WEBHOOK_QUEUE_CONCURRENCY`
+- `RECONCILIATION_QUEUE_CONCURRENCY`
+- `QUEUE_ATTEMPTS`
+- `QUEUE_BACKOFF_DELAY_MS`
+- `QUEUE_PREFIX`
+- `PAYOUT_QUEUE_LIMITER_MAX`
+- `PAYOUT_QUEUE_LIMITER_DURATION_MS`
+- `WEBHOOK_QUEUE_LIMITER_MAX`
+- `WEBHOOK_QUEUE_LIMITER_DURATION_MS`
+- `RECONCILIATION_QUEUE_LIMITER_MAX`
+- `RECONCILIATION_QUEUE_LIMITER_DURATION_MS`
 - `RECONCILIATION_ENABLED`
 - `RECONCILIATION_INTERVAL_MS`
 - `SEED_USER_EMAIL`
@@ -125,6 +159,8 @@ Notes:
 - Didit webhook is `POST /api/webhook/didit`.
 - Reconciliation routes are admin-only and require a user with `isAdmin=true`.
 - Dispute routes are admin-only and cover both first-party disputes and downstream chargebacks.
+- Webhook endpoints validate signatures synchronously, enqueue work, and return immediately.
+- Manual sync endpoints enqueue work and return `202 Accepted`.
 
 ## Risk Engine
 
@@ -200,10 +236,31 @@ Operational visibility and maintenance:
 10. User can register or reuse a beneficiary through `GET/POST /api/users/beneficiaries`; backend validates the bank account and blocks self-transfers.
 11. Backend only allows `POST /api/transfer` after mobile verification, KYC approval, PAN verification, beneficiary verification, and risk checks.
 12. Cashfree payment webhook updates the payment lifecycle through `POST /api/webhook/cashfree`.
-13. BullMQ-backed payout worker submits payouts and status can be synced through `POST /api/payout/:transactionId/sync`.
-14. Refunds are created through `POST /api/refund/:transactionId` and synced through `POST /api/refund/:refundId/sync`.
-15. Admin operators can open and work dispute or chargeback cases through `/api/disputes/*`.
-16. Scheduled or manual reconciliation compares internal state against Cashfree and stores findings for admin review.
+13. Cashfree payment webhooks enqueue payout execution work and return immediately.
+14. The worker submits payouts, handles webhook jobs, performs manual sync jobs, and updates the database idempotently.
+15. Refunds are created through `POST /api/refund/:transactionId` and synced through `POST /api/refund/:refundId/sync`.
+16. Admin operators can open and work dispute or chargeback cases through `/api/disputes/*`.
+17. Scheduled or manual reconciliation runs on the worker and stores findings for admin review.
+
+## Railway Deployment
+
+Deploy each process as an independent Railway service pointing at `backend/`:
+
+- API: `npm run start:api`
+- Worker: `npm run start:worker`
+- Scheduler: `npm run start:scheduler`
+
+Build command:
+
+```bash
+npm run build
+```
+
+Required shared environment variables include at least:
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `NODE_ENV`
 
 ## Validation
 

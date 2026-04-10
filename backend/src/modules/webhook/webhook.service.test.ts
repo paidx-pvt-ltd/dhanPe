@@ -10,6 +10,7 @@ import { WebhookService } from './webhook.service.js';
 describe('WebhookService', () => {
   const webhookRepository = {
     findEventByEventId: vi.fn(),
+    findEventForUpdate: vi.fn(),
     createEvent: vi.fn(),
     findTransactionByOrderId: vi.fn(),
     markEventProcessed: vi.fn(),
@@ -38,8 +39,14 @@ describe('WebhookService', () => {
     applyRefundUpdate: vi.fn(),
   };
 
+  const enqueuePayoutJob = vi.fn();
+
   const db = {
     $transaction: vi.fn(),
+    webhookEvent: {
+      upsert: vi.fn(),
+      findUnique: vi.fn(),
+    },
   };
 
   const service = new WebhookService(
@@ -49,18 +56,22 @@ describe('WebhookService', () => {
     transactionStateService as never,
     payoutService as never,
     refundService as never,
-    db as never
+    db as never,
+    enqueuePayoutJob
   );
 
   beforeEach(() => {
     vi.clearAllMocks();
-    db.$transaction.mockImplementation(async (handler: (tx: unknown) => Promise<unknown>) =>
+    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
       handler({
+        $queryRaw: vi.fn(),
         transaction: {
           update: vi.fn(),
+          updateMany: vi.fn(),
         },
       })
     );
+    db.webhookEvent.upsert.mockResolvedValue({ id: 'event_1' });
   });
 
   it('marks a valid paid webhook as processed, credits the ledger, and enqueues payout', async () => {
@@ -73,6 +84,7 @@ describe('WebhookService', () => {
 
     webhookRepository.findEventByEventId.mockResolvedValue(null);
     webhookRepository.createEvent.mockResolvedValue({ id: 'event_1' });
+    webhookRepository.findEventForUpdate.mockResolvedValue({ id: 'event_1', processed: false });
     webhookRepository.findTransactionByOrderId.mockResolvedValue({
       id: 'txn_1',
       userId: 'user_1',
@@ -97,6 +109,14 @@ describe('WebhookService', () => {
       lifecycleState: TransactionLifecycleState.PAYMENT_PENDING,
     });
 
+    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+      handler({
+        transaction: {
+          update: vi.fn(),
+        },
+      })
+    );
+
     await service.processCashfreeWebhook(rawBody, {
       order_id: 'order_1',
       order_amount: 5075,
@@ -120,14 +140,21 @@ describe('WebhookService', () => {
       'event_1',
       true
     );
-    expect(payoutService.enqueue).toHaveBeenCalledWith('txn_1');
+    expect(enqueuePayoutJob).toHaveBeenCalledWith({
+      transactionId: 'txn_1',
+      requestedBy: 'cashfree-webhook',
+    });
   });
 
   it('returns early when an already-processed webhook is replayed', async () => {
-    webhookRepository.findEventByEventId.mockResolvedValue({
+    webhookRepository.findEventForUpdate.mockResolvedValue({
       id: 'event_1',
       processed: true,
     });
+
+    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+      handler({})
+    );
 
     await service.processCashfreeWebhook(
       JSON.stringify({
@@ -145,7 +172,7 @@ describe('WebhookService', () => {
     );
 
     expect(webhookRepository.createEvent).not.toHaveBeenCalled();
-    expect(payoutService.enqueue).not.toHaveBeenCalled();
+    expect(enqueuePayoutJob).not.toHaveBeenCalled();
   });
 
   it('processes payout webhooks through the payout service and marks the event processed', async () => {
@@ -161,8 +188,11 @@ describe('WebhookService', () => {
       },
     });
 
-    webhookRepository.findEventByEventId.mockResolvedValue(null);
-    webhookRepository.createEvent.mockResolvedValue({ id: 'event_payout_1' });
+    webhookRepository.findEventForUpdate.mockResolvedValue({ id: 'event_payout_1', processed: false });
+
+    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+      handler({})
+    );
 
     await service.processCashfreePayoutWebhook(rawBody, {
       type: 'TRANSFER_SUCCESS',

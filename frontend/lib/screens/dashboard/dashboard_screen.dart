@@ -25,28 +25,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserProvider>().loadProfile();
-      context.read<BeneficiaryProvider>().loadBeneficiaries();
-      context.read<TransactionsProvider>().loadRecentTransactions();
+      _initializeData();
     });
+  }
+
+  Future<void> _initializeData() async {
+    final userProvider = context.read<UserProvider>();
+    final beneficiaryProvider = context.read<BeneficiaryProvider>();
+    final transactionsProvider = context.read<TransactionsProvider>();
+
+    await Future.wait([
+      userProvider.loadProfile(),
+      beneficiaryProvider.loadBeneficiaries(),
+      transactionsProvider.loadRecentTransactions(),
+    ]);
+
+    if (mounted) {
+      userProvider.setHasBeneficiaries(beneficiaryProvider.beneficiaries.isNotEmpty);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: () async {
-        final userProvider = context.read<UserProvider>();
-        final beneficiaryProvider = context.read<BeneficiaryProvider>();
-        final transactionsProvider = context.read<TransactionsProvider>();
-        await userProvider.loadProfile();
-        await beneficiaryProvider.loadBeneficiaries();
-        await transactionsProvider.loadRecentTransactions();
-      },
+      onRefresh: _initializeData,
       child: Consumer3<UserProvider, BeneficiaryProvider, TransactionsProvider>(
         builder: (context, userProvider, beneficiaryProvider, transactionsProvider, _) {
           final user = userProvider.user;
           final recentTransactions = transactionsProvider.recentTransactions;
+          final nextStep = userProvider.nextRequiredStep;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
@@ -84,6 +92,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 24),
+              _OnboardingGuidanceCard(step: nextStep),
               const SizedBox(height: 24),
               KineticPanel(
                 glass: true,
@@ -239,6 +249,97 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? 'Good afternoon'
             : 'Good evening';
     return '$prefix, $name';
+  }
+}
+
+class _OnboardingGuidanceCard extends StatelessWidget {
+  const _OnboardingGuidanceCard({required this.step});
+
+  final OnboardingStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    if (step == OnboardingStep.onboardingComplete) {
+      return const SizedBox.shrink();
+    }
+
+    String title;
+    String subtitle;
+    IconData icon;
+    Color color;
+    VoidCallback? onTap;
+
+    switch (step) {
+      case OnboardingStep.mobileVerified:
+        title = 'Authentication Pending';
+        subtitle = 'Please sign in again to verify your number.';
+        icon = Icons.phonelink_lock_rounded;
+        color = AppColors.warning;
+        onTap = () => context.go('/login');
+        break;
+      case OnboardingStep.kycRequired:
+        title = 'Identity Verification';
+        subtitle = 'Complete KYC to unlock full settlement features.';
+        icon = Icons.face_retouching_natural_rounded;
+        color = AppColors.primary;
+        onTap = () => context.go('/kyc');
+        break;
+      case OnboardingStep.panRequired:
+        title = 'PAN Verification';
+        subtitle = 'Government regulations require PAN for bill payments.';
+        icon = Icons.badge_outlined;
+        color = AppColors.tertiary;
+        onTap = () => context.go('/profile');
+        break;
+      case OnboardingStep.beneficiaryRequired:
+        title = 'Add Beneficiary';
+        subtitle = 'Add your bank account to receive settlements.';
+        icon = Icons.account_balance_rounded;
+        color = AppColors.secondary;
+        onTap = () => context.go('/accounts');
+        break;
+      case OnboardingStep.onboardingComplete:
+        return const SizedBox.shrink();
+    }
+
+    return KineticPanel(
+      color: color.withValues(alpha: 0.1),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.lgRadius),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+          ],
+        ),
+      ),
+    );
   }
 }
 

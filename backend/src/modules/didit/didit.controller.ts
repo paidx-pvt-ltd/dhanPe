@@ -1,8 +1,12 @@
 import { Request, Response } from 'express';
 import { DiditService } from './didit.service.js';
+import { WebhookJob } from '../../../packages/types/src/index.js';
 
 export class DiditController {
-  constructor(private readonly diditService: DiditService) {}
+  constructor(
+    private readonly diditService: DiditService,
+    private readonly enqueueWebhookJob?: (job: WebhookJob) => Promise<void>
+  ) {}
 
   createSession = async (req: Request, res: Response): Promise<void> => {
     const session = await this.diditService.createSession(req.userId!);
@@ -41,7 +45,13 @@ export class DiditController {
       res.json({ success: true, test: true });
       return;
     }
-    await this.diditService.processWebhook(payload);
+
+    const eventId = `${payload.session_id ?? 'unknown'}:${payload.status ?? 'unknown'}:${payload.timestamp ?? 'unknown'}`;
+    await this.enqueueWebhookJob?.({
+      eventId,
+      provider: 'didit',
+      payload,
+    });
 
     res.json({ success: true });
   };

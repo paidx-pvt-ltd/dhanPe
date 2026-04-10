@@ -10,7 +10,13 @@ import {
   refundSyncParamsSchema,
 } from './refund.schemas.js';
 
-const refundController = new RefundController(fintechRuntime.refundService);
+const refundController = new RefundController(fintechRuntime.refundService, (refundId, userId) =>
+  fintechRuntime.dispatcher.enqueueReconciliation({
+    kind: 'refund-sync',
+    refundId,
+    userId,
+  })
+);
 
 export const refundRoutes = Router();
 

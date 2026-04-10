@@ -30,7 +30,7 @@ const ALLOWED_TRANSITIONS: Readonly<
     TransactionLifecycleState.PAYOUT_FAILED,
   ]),
   PAYOUT_SUCCESS: new Set([TransactionLifecycleState.COMPLETED]),
-  PAYOUT_FAILED: new Set(),
+  PAYOUT_FAILED: new Set([TransactionLifecycleState.PAYOUT_PENDING]), // Allow retries
   COMPLETED: new Set([TransactionLifecycleState.REFUNDED, TransactionLifecycleState.DISPUTED]),
   REFUNDED: new Set(),
   DISPUTED: new Set(),

@@ -11,6 +11,8 @@ import { RefundService } from './refund.service.js';
 describe('RefundService', () => {
   const refundRepository = {
     findTransactionForRefund: vi.fn(),
+    findTransactionForUpdate: vi.fn(),
+    findRefundForUpdate: vi.fn(),
     createRefund: vi.fn(),
     findRefundForUser: vi.fn(),
     findRefundByRefundId: vi.fn(),
@@ -112,7 +114,8 @@ describe('RefundService', () => {
       'order_1',
       expect.objectContaining({
         refund_amount: 5075,
-      })
+      }),
+      expect.any(String)
     );
     expect(ledgerService.recordRefundSettled).toHaveBeenCalled();
     expect(payoutRepository.updateStatus).toHaveBeenCalledWith(

@@ -46,20 +46,31 @@ export class CashfreeClient {
     });
   }
 
-  async createOrder(payload: CashfreeOrderRequest): Promise<CashfreeOrderResponse> {
+  async createOrder(
+    payload: CashfreeOrderRequest,
+    idempotencyKey?: string
+  ): Promise<CashfreeOrderResponse> {
     try {
-      const { data } = await this.orderClient.post<CashfreeOrderResponse>('/pg/orders', payload);
+      const { data } = await this.orderClient.post<CashfreeOrderResponse>('/pg/orders', payload, {
+        headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
+      });
       return data;
     } catch (error) {
       throw new ExternalServiceError('Failed to create Cashfree order', error);
     }
   }
 
-  async createPayout(payload: CashfreePayoutRequest): Promise<CashfreePayoutResponse> {
+  async createPayout(
+    payload: CashfreePayoutRequest,
+    idempotencyKey?: string
+  ): Promise<CashfreePayoutResponse> {
     try {
       const { data } = await this.payoutClient.post<CashfreePayoutResponse>(
         '/payout/transfers',
-        payload
+        payload,
+        {
+          headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
+        }
       );
       return data;
     } catch (error) {
@@ -88,12 +99,16 @@ export class CashfreeClient {
   }
 
   async createBeneficiary(
-    payload: CashfreeBeneficiaryRequest
+    payload: CashfreeBeneficiaryRequest,
+    idempotencyKey?: string
   ): Promise<CashfreeBeneficiaryResponse> {
     try {
       const { data } = await this.payoutClient.post<CashfreeBeneficiaryResponse>(
         '/payout/beneficiary',
-        payload
+        payload,
+        {
+          headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
+        }
       );
       return data;
     } catch (error) {
@@ -106,12 +121,16 @@ export class CashfreeClient {
 
   async createRefund(
     orderId: string,
-    payload: CashfreeCreateRefundRequest
+    payload: CashfreeCreateRefundRequest,
+    idempotencyKey?: string
   ): Promise<CashfreeRefundResponse> {
     try {
       const { data } = await this.orderClient.post<CashfreeRefundResponse[]>(
         `/pg/orders/${orderId}/refunds`,
-        payload
+        payload,
+        {
+          headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
+        }
       );
       return Array.isArray(data) ? data[0]! : (data as unknown as CashfreeRefundResponse);
     } catch (error) {
@@ -131,13 +150,18 @@ export class CashfreeClient {
   }
 
   async verifyPan(
-    payload: CashfreePanVerificationRequest
+    payload: CashfreePanVerificationRequest,
+    idempotencyKey?: string
   ): Promise<CashfreePanVerificationResponse> {
     try {
       const { data } = await this.orderClient.post<Record<string, unknown>>(
         '/verification/pan',
-        payload
+        payload,
+        {
+          headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
+        }
       );
+// ... existing mapping logic remains same
 
       return {
         valid: Boolean(data.valid ?? data.success ?? data.verified),
@@ -157,13 +181,18 @@ export class CashfreeClient {
   }
 
   async validateBankAccount(
-    payload: CashfreeBankValidationRequest
+    payload: CashfreeBankValidationRequest,
+    idempotencyKey?: string
   ): Promise<CashfreeBankValidationResponse> {
     try {
       const { data } = await this.payoutClient.post<Record<string, unknown>>(
         '/payout/validate/bank-account',
-        payload
+        payload,
+        {
+          headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
+        }
       );
+// ... existing mapping logic remains same
 
       return {
         valid: Boolean(data.valid ?? data.success ?? data.verified),
