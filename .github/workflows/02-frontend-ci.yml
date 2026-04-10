@@ -6,11 +6,7 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/02-frontend-ci.yml'
-  push:
-    branches: [develop, staging, main]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/02-frontend-ci.yml'
+
   workflow_dispatch:
 
 permissions:

@@ -41,6 +41,11 @@ export class Msg91WidgetService {
           widgetId: config.msg91.widgetId,
           token: accessToken,
           authkey: config.msg91.authKey,
+        },
+        {
+          headers: {
+            authkey: config.msg91.authKey,
+          },
         }
       );
 

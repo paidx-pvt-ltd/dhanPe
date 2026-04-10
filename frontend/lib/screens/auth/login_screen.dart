@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -66,9 +66,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _ensureWidgetReady(AuthProvider authProvider) async {
     if (_widgetInitialized) return;
 
-    if (!kIsWeb) {
-      throw Exception('OTP sign-in is only available in the web app right now.');
-    }
+    // Native SDK initialization handles platform-specific logic
+
 
     if (!authProvider.isWidgetConfigured) {
       throw Exception('OTP service is temporarily unavailable. Please try again later.');
@@ -172,7 +171,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   String _normalizedWidgetMobileNumber() {
     final digits = _mobileController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    return digits.length <= 10 ? '91$digits' : digits;
+    // If it's a 10-digit number, assume India (91)
+    if (digits.length == 10) {
+      return '91$digits';
+    }
+    // Otherwise return as is (already has country code or is invalid)
+    return digits;
   }
 
   void _showSnackBar(String message) {
@@ -211,12 +215,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ),
             // MSG91 captcha widget — 1×1px off-screen; must exist in tree for JS bridge
-            if (kIsWeb)
-              const Positioned(
-                top: 0,
-                left: 0,
-                child: Msg91CaptchaHost(),
-              ),
+            const Positioned(
+              top: 0,
+              left: 0,
+              child: Msg91CaptchaHost(),
+            ),
             // Main content
             SafeArea(
               child: Center(

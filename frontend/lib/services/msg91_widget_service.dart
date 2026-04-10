@@ -1,5 +1,6 @@
 import 'msg91_widget_service_stub.dart'
-    if (dart.library.html) 'msg91_widget_service_web.dart' as impl;
+    if (dart.library.html) 'msg91_widget_service_web.dart'
+    as impl;
 import 'msg91_widget_service_base.dart';
 
 export 'msg91_widget_service_base.dart';
