@@ -5,7 +5,7 @@ import {
   RefundStatus,
   TransactionLifecycleState,
 } from '@prisma/client';
-import { ConflictError, NotFoundError, ValidationError } from '../../shared/errors.js';
+import { NotFoundError, ValidationError } from '../../shared/errors.js';
 import { toDecimal, toNumber } from '../../utils/decimal.js';
 import { sha256 } from '../../utils/hash.js';
 import { LedgerService } from '../ledger/ledger.service.js';
@@ -19,6 +19,15 @@ import { RefundRepository } from './refund.repository.js';
 const TERMINAL_REFUND_SUCCESS = new Set(['SUCCESS', 'PROCESSED', 'COMPLETED']);
 const TERMINAL_REFUND_FAILURE = new Set(['FAILED', 'CANCELLED', 'REJECTED']);
 
+type RefundCreationTransaction = NonNullable<
+  Awaited<ReturnType<RefundRepository['findTransactionForRefund']>>
+>;
+type RefundCreationResult = {
+  transaction: RefundCreationTransaction;
+  refund: Awaited<ReturnType<RefundRepository['createRefund']>>;
+  requestedAmount: Prisma.Decimal;
+};
+
 export class RefundService {
   constructor(
     private readonly refundRepository: RefundRepository,
@@ -30,9 +39,13 @@ export class RefundService {
   ) {}
 
   async createRefund(userId: string, transactionId: string, input: CreateRefundDto) {
-    const refundIdentifier = input.refundId ?? `ref_${transactionId.slice(-8)}_${sha256(`${transactionId}:${input.amount}:${Date.now()}`).slice(0, 8)}`;
+    const refundIdentifier =
+      input.refundId ??
+      `ref_${transactionId.slice(-8)}_${sha256(
+        `${transactionId}:${input.amount ?? 'full'}:${Date.now()}`
+      ).slice(0, 8)}`;
 
-    const result = await this.db.$transaction(async (tx) => {
+    const result = await this.db.$transaction<RefundCreationResult>(async (tx) => {
       const transaction = await this.refundRepository.findTransactionForRefund(transactionId, userId);
       if (!transaction) {
         throw new NotFoundError('Transaction');
@@ -41,8 +54,10 @@ export class RefundService {
       // Lock the transaction to prevent race conditions with payouts or other refunds
       await this.refundRepository.findTransactionForUpdate(tx, transactionId);
 
-      if (transaction.lifecycleState !== TransactionLifecycleState.COMPLETED && 
-          transaction.lifecycleState !== TransactionLifecycleState.PAYOUT_SUCCESS) {
+      if (
+        transaction.lifecycleState !== TransactionLifecycleState.COMPLETED &&
+        transaction.lifecycleState !== TransactionLifecycleState.PAYOUT_SUCCESS
+      ) {
         throw new ValidationError('Only completed or payout_success transactions can be refunded');
       }
 
@@ -78,12 +93,16 @@ export class RefundService {
 
     let response: CashfreeRefundResponse;
     try {
-      response = await this.cashfreeClient.createRefund(transaction.orderId, {
-        refund_amount: toNumber(requestedAmount),
-        refund_id: refundIdentifier,
-        refund_note: input.reason,
-        refund_speed: 'STANDARD',
-      }, refundIdentifier); // Use refundId as idempotency key
+      response = await this.cashfreeClient.createRefund(
+        transaction.orderId,
+        {
+          refund_amount: toNumber(requestedAmount),
+          refund_id: refundIdentifier,
+          refund_note: input.reason,
+          refund_speed: 'STANDARD',
+        },
+        refundIdentifier
+      ); // Use refundId as idempotency key
     } catch (error) {
       await this.db.$transaction((tx) =>
         this.refundRepository.updateRefund(tx, refund.id, {

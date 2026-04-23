@@ -7,6 +7,16 @@ import {
 } from '@prisma/client';
 import { WebhookService } from './webhook.service.js';
 
+type MockTx = {
+  $queryRaw?: ReturnType<typeof vi.fn>;
+  transaction?: {
+    update: ReturnType<typeof vi.fn>;
+    updateMany?: ReturnType<typeof vi.fn>;
+  };
+};
+
+type TransactionHandler = (tx: MockTx) => Promise<unknown>;
+
 describe('WebhookService', () => {
   const webhookRepository = {
     findEventByEventId: vi.fn(),
@@ -62,7 +72,7 @@ describe('WebhookService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
       handler({
         $queryRaw: vi.fn(),
         transaction: {
@@ -109,7 +119,7 @@ describe('WebhookService', () => {
       lifecycleState: TransactionLifecycleState.PAYMENT_PENDING,
     });
 
-    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
       handler({
         transaction: {
           update: vi.fn(),
@@ -152,7 +162,7 @@ describe('WebhookService', () => {
       processed: true,
     });
 
-    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
       handler({})
     );
 
@@ -190,7 +200,7 @@ describe('WebhookService', () => {
 
     webhookRepository.findEventForUpdate.mockResolvedValue({ id: 'event_payout_1', processed: false });
 
-    db.$transaction.mockImplementation(async (handler: (tx: any) => Promise<any>) =>
+    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
       handler({})
     );
 

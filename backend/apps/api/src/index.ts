@@ -14,40 +14,49 @@ const start = async (): Promise<void> => {
     logger.info({ port: config.server.port }, 'API server started');
   });
 
+  let resourcesClosed = false;
+  const closeResources = async (): Promise<void> => {
+    if (resourcesClosed) {
+      return;
+    }
+    resourcesClosed = true;
+    await Promise.allSettled([fintechRuntime.dispatcher.close(), disconnectDatabase()]);
+  };
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'Shutting down API server and cleaning up resources');
-    
+
     // Set a timeout for a forced exit
     const forceExitTimeout = setTimeout(() => {
       logger.error('Shutdown timed out, forcing exit');
       process.exit(1);
     }, 15000);
 
-    server.close(async () => {
-      try {
-        logger.info('HTTP server closed, closing database and queues');
-        await Promise.allSettled([
-          fintechRuntime.dispatcher.close(),
-          disconnectDatabase(),
-        ]);
-        logger.info('Graceful shutdown complete');
-        clearTimeout(forceExitTimeout);
-        process.exit(0);
-      } catch (error) {
-        logger.error({ error }, 'Error during graceful shutdown');
-        process.exit(1);
-      }
+    server.close(() => {
+      void (async () => {
+        try {
+          logger.info('HTTP server closed, closing database and queues');
+          await closeResources();
+          logger.info('Graceful shutdown complete');
+          clearTimeout(forceExitTimeout);
+          process.exit(0);
+        } catch (error) {
+          logger.error({ error }, 'Error during graceful shutdown');
+          process.exit(1);
+        }
+      })();
     });
 
     // If server.close is hanging, start closing other resources anyway
-    await Promise.allSettled([
-      fintechRuntime.dispatcher.close(),
-      disconnectDatabase(),
-    ]);
+    await closeResources();
   };
 
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
+  process.on('SIGTERM', () => {
+    void shutdown('SIGTERM');
+  });
 };
 
 void start();

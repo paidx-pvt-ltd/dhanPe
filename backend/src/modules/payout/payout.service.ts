@@ -1,5 +1,6 @@
 import {
   LedgerEntryType,
+  Payout,
   PayoutStatus,
   Prisma,
   PrismaClient,
@@ -17,6 +18,11 @@ import { PayoutRepository } from './payout.repository.js';
 const TERMINAL_SUCCESS = new Set(['SUCCESS', 'COMPLETED', 'SETTLED']);
 const TERMINAL_FAILURE = new Set(['FAILED', 'REJECTED', 'REVERSED', 'CANCELLED']);
 const IN_FLIGHT = new Set(['RECEIVED', 'PENDING', 'PROCESSING', 'QUEUED', 'SUBMITTED']);
+
+type ProcessPayoutResult =
+  | { shouldProceed: false }
+  | { shouldProceed: true; reconcileOnly?: false; lockedPayout: Payout }
+  | { shouldProceed: true; reconcileOnly: true; lockedPayout: Payout };
 
 export class PayoutService {
   constructor(
@@ -43,7 +49,7 @@ export class PayoutService {
     }
 
     // Row-level lock on the payout record to prevent concurrent workers from processing the same payout
-    const result = await this.db.$transaction(async (tx) => {
+    const result = await this.db.$transaction<ProcessPayoutResult>(async (tx) => {
       const lockedPayout = await this.payoutRepository.findForUpdate(tx, payoutRecord.id);
       if (!lockedPayout || lockedPayout.status === PayoutStatus.SUCCESS) {
         return { shouldProceed: false };
@@ -90,12 +96,12 @@ export class PayoutService {
 
     if (!result.shouldProceed) return;
 
+    const { lockedPayout } = result;
+
     if (result.reconcileOnly) {
       await this.syncTransferStatus(transactionId);
       return;
     }
-
-    const { lockedPayout } = result as { lockedPayout: any };
     const beneficiary = payoutRecord.transaction.beneficiary;
     if (!beneficiary?.providerBeneficiaryId) {
       throw new ValidationError('Beneficiary is not registered with Cashfree payouts');

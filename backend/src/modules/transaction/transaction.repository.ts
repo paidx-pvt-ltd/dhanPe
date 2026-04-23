@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient, Transaction } from '@prisma/client';
 
 export class TransactionRepository {
   constructor(private readonly db: PrismaClient) {}
