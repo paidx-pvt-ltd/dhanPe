@@ -6,8 +6,6 @@ import {
   ReconciliationScope,
   ReconciliationSeverity,
 } from '@prisma/client';
-import { config } from '../../config/index.js';
-import { logger } from '../../config/logger.js';
 import { ConflictError, NotFoundError } from '../../shared/errors.js';
 import { CashfreeClient } from '../payment/cashfree.client.js';
 import { PayoutService } from '../payout/payout.service.js';
@@ -15,8 +13,6 @@ import { RefundService } from '../refund/refund.service.js';
 import { ReconciliationRepository } from './reconciliation.repository.js';
 
 export class ReconciliationService {
-  private scheduler?: NodeJS.Timeout;
-
   constructor(
     private readonly reconciliationRepository: ReconciliationRepository,
     private readonly payoutService: PayoutService,
@@ -25,40 +21,7 @@ export class ReconciliationService {
     private readonly db: PrismaClient
   ) {}
 
-  startScheduler(): void {
-    if (!config.reconciliation.enabled || this.scheduler) {
-      return;
-    }
-
-    this.scheduler = setInterval(() => {
-      void this.run(undefined).catch((error: unknown) => {
-        logger.error(
-          {
-            error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
-          },
-          'Scheduled reconciliation run failed'
-        );
-      });
-    }, config.reconciliation.intervalMs);
-
-    void this.run(undefined).catch((error: unknown) => {
-      logger.error(
-        {
-          error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
-        },
-        'Initial reconciliation run failed'
-      );
-    });
-  }
-
-  stopScheduler(): void {
-    if (this.scheduler) {
-      clearInterval(this.scheduler);
-      this.scheduler = undefined;
-    }
-  }
-
-  async run(scope: ReconciliationScope | undefined, triggeredByUserId?: string) {
+  async createRunRequest(scope: ReconciliationScope | undefined, triggeredByUserId?: string) {
     const scopes = scope
       ? [scope]
       : [ReconciliationScope.PAYMENT, ReconciliationScope.PAYOUT, ReconciliationScope.REFUND];
@@ -69,9 +32,36 @@ export class ReconciliationService {
         status: ReconciliationRunStatus.RUNNING,
         summary: {
           scopes,
+          queuedAt: new Date().toISOString(),
         } as Prisma.InputJsonValue,
       })
     );
+
+    return {
+      id: run.id,
+      scope: run.scope,
+      status: run.status,
+      mismatchCount: run.mismatchCount,
+      startedAt: run.startedAt,
+      completedAt: run.completedAt,
+      summary: run.summary,
+      items: [],
+    };
+  }
+
+  async run(scope: ReconciliationScope | undefined, triggeredByUserId?: string) {
+    const run = await this.createRunRequest(scope, triggeredByUserId);
+    return this.executeRun(run.id, scope, triggeredByUserId);
+  }
+
+  async executeRun(
+    runId: string,
+    scope: ReconciliationScope | undefined,
+    triggeredByUserId?: string
+  ) {
+    const scopes = scope
+      ? [scope]
+      : [ReconciliationScope.PAYMENT, ReconciliationScope.PAYOUT, ReconciliationScope.REFUND];
 
     const findings: Array<{
       scope: ReconciliationScope;
@@ -85,6 +75,18 @@ export class ReconciliationService {
     }> = [];
 
     try {
+      await this.db.$transaction((tx) =>
+        this.reconciliationRepository.updateRun(tx, runId, {
+          scope: scope ?? ReconciliationScope.PAYMENT,
+          triggeredByUserId,
+          status: ReconciliationRunStatus.RUNNING,
+          summary: {
+            scopes,
+            startedAt: new Date().toISOString(),
+          } as Prisma.InputJsonValue,
+        })
+      );
+
       for (const currentScope of scopes) {
         if (currentScope === ReconciliationScope.PAYMENT) {
           findings.push(...(await this.reconcilePayments()));
@@ -98,7 +100,7 @@ export class ReconciliationService {
       await this.db.$transaction(async (tx) => {
         for (const finding of findings) {
           await this.reconciliationRepository.createItem(tx, {
-            runId: run.id,
+            runId,
             transactionId: finding.transactionId,
             scope: finding.scope,
             severity: finding.severity,
@@ -111,7 +113,7 @@ export class ReconciliationService {
           });
         }
 
-        await this.reconciliationRepository.updateRun(tx, run.id, {
+        await this.reconciliationRepository.updateRun(tx, runId, {
           status: ReconciliationRunStatus.COMPLETED,
           mismatchCount: findings.length,
           completedAt: new Date(),
@@ -123,7 +125,7 @@ export class ReconciliationService {
       });
     } catch (error) {
       await this.db.$transaction((tx) =>
-        this.reconciliationRepository.updateRun(tx, run.id, {
+        this.reconciliationRepository.updateRun(tx, runId, {
           status: ReconciliationRunStatus.FAILED,
           completedAt: new Date(),
           summary: {
@@ -135,7 +137,7 @@ export class ReconciliationService {
       throw error;
     }
 
-    return this.getRun(run.id);
+    return this.getRun(runId);
   }
 
   async getRun(runId: string) {

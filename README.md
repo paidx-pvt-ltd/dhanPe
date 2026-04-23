@@ -27,6 +27,14 @@ DhanPe is a fintech application for compliant, bill-payment-based fund flows wit
 
 ### Backend
 
+1. **Spin up local infrastructure (Docker required)**:
+
+```bash
+docker compose up -d
+```
+
+2. **Initialize the app**:
+
 ```bash
 cd backend
 npm install

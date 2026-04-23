@@ -389,71 +389,64 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _createTransfer() async {
-    final amount = double.tryParse(_amountController.text.trim());
+    final amountText = _amountController.text.trim();
+    final amount = double.tryParse(amountText);
+    
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid amount')),
-      );
+      _showSnackBar('Enter a valid amount');
       return;
     }
 
-    if (_useManualForm) {
-      if (_accountHolderController.text.trim().isEmpty ||
-          _accountNumberController.text.trim().isEmpty ||
-          _ifscController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter beneficiary bank details')),
-        );
-        return;
-      }
-    } else if (_selectedBeneficiary == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a beneficiary first')),
-      );
+    if (!_useManualForm && _selectedBeneficiary == null) {
+      _showSnackBar('Select a beneficiary first');
       return;
     }
 
-    final confirmed = await _showComplianceConfirmation(
+    if (_useManualForm && (_accountNumberController.text.isEmpty || _ifscController.text.isEmpty)) {
+      _showSnackBar('Complete bank details first');
+      return;
+    }
+
+    // 1. Detailed Confirmation Dialog (Fee breakdown + T+1)
+    final fee = _estimateFee(amount);
+    final total = amount + fee;
+    
+    final confirmed = await _showDetailedConfirmation(
       context,
       amount: amount,
-      estimatedFee: _estimateFee(amount),
+      fee: fee,
+      total: total,
+      beneficiaryLabel: _useManualForm 
+          ? _accountHolderController.text 
+          : _selectedBeneficiary!.label,
     );
-    if (!confirmed) {
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
+
+    if (!confirmed || !mounted) return;
 
     final paymentProvider = context.read<PaymentProvider>();
     await paymentProvider.createPayment(
       amount: amount,
       beneficiaryId: !_useManualForm ? _selectedBeneficiary?.id : null,
-      accountHolderName:
-          _useManualForm ? _accountHolderController.text.trim() : null,
-      bankAccountRef:
-          _useManualForm ? _accountNumberController.text.trim() : null,
+      accountHolderName: _useManualForm ? _accountHolderController.text.trim() : null,
+      bankAccountRef: _useManualForm ? _accountNumberController.text.trim() : null,
       ifsc: _useManualForm ? _ifscController.text.trim().toUpperCase() : null,
       bankName: _useManualForm && _bankNameController.text.trim().isNotEmpty
           ? _bankNameController.text.trim()
           : null,
-      description: _descriptionController.text.trim().isEmpty
-          ? null
+      description: _descriptionController.text.trim().isEmpty 
+          ? null 
           : _descriptionController.text.trim(),
       useSandbox: Config.isCashfreeSandbox,
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (paymentProvider.currentPayment == null &&
         paymentProvider.errorCode == 'PAN_REQUIRED') {
       final panVerified = await _promptForPan(context);
-      if (!mounted || !panVerified) {
-        return;
-      }
+      if (!mounted || !panVerified) return;
 
+      // Retry after PAN verification
       await paymentProvider.createPayment(
         amount: amount,
         beneficiaryId: !_useManualForm ? _selectedBeneficiary?.id : null,
@@ -463,41 +456,39 @@ class _PaymentScreenState extends State<PaymentScreen> {
         bankName: _useManualForm && _bankNameController.text.trim().isNotEmpty
             ? _bankNameController.text.trim()
             : null,
-        description:
-            _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty 
+            ? null 
+            : _descriptionController.text.trim(),
         useSandbox: Config.isCashfreeSandbox,
       );
     }
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (paymentProvider.currentPayment == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(paymentProvider.error ?? 'Payment creation failed')),
-      );
+      _showSnackBar(paymentProvider.error ?? 'Payment creation failed');
       return;
     }
 
     await context.read<TransactionsProvider>().loadRecentTransactions();
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     context.push('/transfers/${paymentProvider.currentPayment!.id}');
   }
 
   double _estimateFee(double amount) {
+    // Standard DhanPe convenience fee (Simulation: 1.5%)
     return (amount * 0.015);
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<bool> _promptForPan(BuildContext context) async {
     final panController = TextEditingController();
     final userProvider = context.read<UserProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final legalNameController = TextEditingController(text: userProvider.user?.displayName ?? '');
-    var submitted = false;
-
+    
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -506,19 +497,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Verify PAN before initiating your first transfer.',
-              ),
-              const SizedBox(height: 12),
+              const Text('Government regulations require a verified PAN before initiating your first transfer.'),
+              const SizedBox(height: 16),
               TextField(
                 controller: panController,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(labelText: 'PAN number'),
+                decoration: const InputDecoration(labelText: 'PAN Number', hintText: 'ABCDE1234F'),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: legalNameController,
-                decoration: const InputDecoration(labelText: 'Legal name'),
+                decoration: const InputDecoration(labelText: 'Full Legal Name'),
               ),
             ],
           ),
@@ -529,22 +518,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                if (submitted) {
-                  return;
-                }
-                submitted = true;
                 final ok = await userProvider.submitPan(
-                      panNumber: panController.text.trim(),
-                      legalName: legalNameController.text.trim().isEmpty
-                          ? null
-                          : legalNameController.text.trim(),
-                    );
-                if (!dialogContext.mounted) {
-                  return;
+                  panNumber: panController.text.trim(),
+                  legalName: legalNameController.text.trim(),
+                );
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(ok);
                 }
-                Navigator.of(dialogContext).pop(ok);
               },
-              child: const Text('Verify PAN'),
+              child: const Text('Verify & Continue'),
             ),
           ],
         );
@@ -553,14 +535,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     panController.dispose();
     legalNameController.dispose();
-
-    if (result != true && mounted) {
-      final message = userProvider.error;
-      if (message != null && message.isNotEmpty) {
-        messenger.showSnackBar(SnackBar(content: Text(message)));
-      }
-    }
-
     return result ?? false;
   }
 }
@@ -637,7 +611,21 @@ class _BeneficiaryRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(beneficiary.label, style: Theme.of(context).textTheme.titleMedium),
+                   Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          beneficiary.label, 
+                          style: Theme.of(context).textTheme.titleMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (beneficiary.isVerified) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.verified_rounded, color: AppColors.secondary, size: 14),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     '${beneficiary.accountNumberMask} • ${beneficiary.ifsc}',
@@ -653,7 +641,7 @@ class _BeneficiaryRow extends StatelessWidget {
               const Icon(Icons.check_circle_rounded, color: AppColors.secondary)
             else
               StatusBadge(
-                label: beneficiary.isVerified ? 'Verified' : 'Pending',
+                label: beneficiary.isVerified ? 'VERIFIED BANK' : 'PENDING',
                 color: beneficiary.isVerified ? AppColors.success : AppColors.warning,
               ),
           ],
@@ -700,12 +688,12 @@ class _ComplianceDisclosureTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Before you continue',
+            'Compliance Disclosure',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
           Text(
-            'This flow is processed as a bill payment and settled to your linked account.',
+            'DhanPe balances are settled as business utility payments. Estimated arrival: Next business day (T+1).',
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -717,7 +705,7 @@ class _ComplianceDisclosureTile extends StatelessWidget {
             dense: true,
             contentPadding: EdgeInsets.zero,
             activeColor: AppColors.secondary,
-            title: const Text('I understand and accept this compliance disclosure.'),
+            title: const Text('I confirm this is for a valid business bill payment.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             onChanged: onChanged,
           ),
         ],
@@ -726,48 +714,83 @@ class _ComplianceDisclosureTile extends StatelessWidget {
   }
 }
 
-Future<bool> _showComplianceConfirmation(
+Future<bool> _showDetailedConfirmation(
   BuildContext context, {
   required double amount,
-  required double estimatedFee,
+  required double fee,
+  required double total,
+  required String beneficiaryLabel,
 }) async {
-  final amountLabel = NumberFormat.currency(symbol: 'INR ', decimalDigits: 2).format(amount);
-  final feeLabel = NumberFormat.currency(symbol: 'INR ', decimalDigits: 2).format(estimatedFee);
-
+  final currency = NumberFormat.currency(symbol: '₹ ', decimalDigits: 2);
+  
   return await showDialog<bool>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Confirm bill payment details'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Review Bill Payment'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            KineticPanel(
+              color: AppColors.surfaceHighest,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _confirmRow('Settling to', beneficiaryLabel),
+                  const Divider(height: 24),
+                  _confirmRow('Payment Amount', currency.format(amount)),
+                  _confirmRow('Convenience Fee', currency.format(fee)),
+                  const Divider(height: 24),
+                  _confirmRow('Total Payable', currency.format(total), isBold: true),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
               children: [
-                Text('Amount: $amountLabel'),
-                const SizedBox(height: 4),
-                Text('Estimated fee: $feeLabel'),
-                const SizedBox(height: 8),
-                const Text('Processing time: T+1 settlement in most cases.'),
-                const SizedBox(height: 4),
-                const Text('This payment may be non-reversible after processing starts.'),
-                const SizedBox(height: 4),
-                const Text(
-                  'This is a bill payment flow, not a cash withdrawal.',
+                const Icon(Icons.timer_outlined, size: 16, color: AppColors.textMuted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Express Settlement (T+1): Funds will reach the bank by next working day.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                  ),
                 ),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Review'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Confirm payment'),
-              ),
-            ],
-          );
-        },
-      ) ??
-      false;
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Go Back'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Proceed to Pay'),
+          ),
+        ],
+      );
+    },
+  ) ?? false;
+}
+
+Widget _confirmRow(String label, String value, {bool isBold = false}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text(
+          value, 
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+            fontSize: isBold ? 15 : 13,
+            color: isBold ? AppColors.primary : AppColors.text,
+          )
+        ),
+      ],
+    ),
+  );
 }

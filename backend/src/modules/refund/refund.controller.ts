@@ -3,7 +3,13 @@ import { CreateRefundDto } from './refund.schemas.js';
 import { RefundService } from './refund.service.js';
 
 export class RefundController {
-  constructor(private readonly refundService: RefundService) {}
+  constructor(
+    private readonly refundService: RefundService,
+    private readonly scheduleRefundSync: (
+      refundId: string,
+      userId: string
+    ) => Promise<void> = async () => undefined
+  ) {}
 
   create = async (req: Request, res: Response): Promise<void> => {
     const body = req.body as CreateRefundDto;
@@ -19,11 +25,12 @@ export class RefundController {
   };
 
   sync = async (req: Request, res: Response): Promise<void> => {
-    const status = await this.refundService.syncRefundStatus(req.params.refundId, req.userId!);
-    res.json({
+    await this.scheduleRefundSync(req.params.refundId, req.userId!);
+    res.status(202).json({
       success: true,
       data: {
-        refundStatus: status,
+        refundId: req.params.refundId,
+        status: 'queued',
       },
     });
   };

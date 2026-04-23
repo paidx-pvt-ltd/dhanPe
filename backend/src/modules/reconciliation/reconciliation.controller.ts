@@ -3,12 +3,20 @@ import { RunReconciliationDto, resolveReconciliationItemSchema } from './reconci
 import { ReconciliationService } from './reconciliation.service.js';
 
 export class ReconciliationController {
-  constructor(private readonly reconciliationService: ReconciliationService) {}
+  constructor(
+    private readonly reconciliationService: ReconciliationService,
+    private readonly enqueueRun: (
+      runId: string,
+      scope: RunReconciliationDto['scope'],
+      triggeredByUserId: string
+    ) => Promise<void>
+  ) {}
 
   run = async (req: Request, res: Response): Promise<void> => {
     const body = req.body as RunReconciliationDto;
-    const result = await this.reconciliationService.run(body.scope, req.userId!);
-    res.status(201).json({
+    const result = await this.reconciliationService.createRunRequest(body.scope, req.userId!);
+    await this.enqueueRun(result.id, body.scope, req.userId!);
+    res.status(202).json({
       success: true,
       data: result,
     });

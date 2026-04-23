@@ -14,10 +14,14 @@ type TxLike = PrismaClient | Prisma.TransactionClient;
 export class LedgerRepository {
   constructor(private readonly db: PrismaClient) {}
 
-  findUserForUpdate(tx: TxLike, userId: string): Promise<User | null> {
-    return tx.user.findUnique({
-      where: { id: userId },
-    });
+  async findUserForUpdate(tx: TxLike, userId: string): Promise<User | null> {
+    const users = await tx.$queryRaw<User[]>`
+      SELECT * FROM "User"
+      WHERE "id" = ${userId}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    return users[0] ?? null;
   }
 
   updateUserBalance(tx: TxLike, userId: string, nextBalance: Prisma.Decimal): Promise<User> {

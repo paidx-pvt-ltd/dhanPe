@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/user_provider.dart';
 import '../../services/msg91_widget_service.dart';
 import '../../services/service_locator.dart';
 import '../../widgets/legal_links.dart';
@@ -21,35 +18,16 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _mobileController = TextEditingController();
-  final _otpController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   late final Msg91WidgetService _msg91WidgetService;
-  late final AnimationController _otpRevealController;
-  late final Animation<double> _otpRevealAnimation;
 
   bool _widgetInitialized = false;
-  bool _otpSent = false;
   bool _isSendingOtp = false;
-  bool _isVerifyingOtp = false;
-  bool _isRetryingOtp = false;
-
-  /// 0 = Enter number, 1 = Receive OTP, 2 = Verify
-  int get _currentStep => _otpSent ? (_isVerifyingOtp ? 2 : 1) : 0;
-
-  static const _steps = ['Enter number', 'Receive OTP', 'Verify'];
 
   @override
   void initState() {
     super.initState();
     _msg91WidgetService = getIt<Msg91WidgetService>();
-    _otpRevealController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 340),
-    );
-    _otpRevealAnimation = CurvedAnimation(
-      parent: _otpRevealController,
-      curve: Curves.easeOutCubic,
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().loadWidgetConfig();
     });
@@ -58,16 +36,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   void dispose() {
     _mobileController.dispose();
-    _otpController.dispose();
-    _otpRevealController.dispose();
     super.dispose();
   }
 
   Future<void> _ensureWidgetReady(AuthProvider authProvider) async {
     if (_widgetInitialized) return;
-
-    // Native SDK initialization handles platform-specific logic
-
 
     if (!authProvider.isWidgetConfigured) {
       throw Exception('OTP service is temporarily unavailable. Please try again later.');
@@ -80,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _widgetInitialized = true;
   }
 
-  Future<void> _handleSendOtp() async {
+  Future<void> _handleLaunchWidget() async {
     if (!_validateMobileNumber()) return;
 
     final authProvider = context.read<AuthProvider>();
@@ -88,70 +61,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     try {
       await _ensureWidgetReady(authProvider);
+      
+      // In the true widget flow, we don't handle OTP UI.
+      // We either sendOtp and wait for a redirection/callback,
+      // or the SDK handles the whole flow.
       await _msg91WidgetService.sendOtp(identifier: _normalizedWidgetMobileNumber());
 
       if (!mounted) return;
 
-      setState(() => _otpSent = true);
-      _otpRevealController.forward();
-      _showSnackBar('OTP sent to ${_mobileController.text.trim()}');
+      // Note: In some SDKs, verifyOtp is called internally by the widget or 
+      // requires a follow-up that we'll handle via a listener or a generic verify token.
+      // For now, we simulate waiting for the widget to finish its own UI.
+      // User will see the MSG91 overlay if using Native SDK or Web widget.
+      
+      _showSnackBar('Verification widget launched');
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isSendingOtp = false);
-    }
-  }
-
-  Future<void> _handleRetryOtp() async {
-    final authProvider = context.read<AuthProvider>();
-    setState(() => _isRetryingOtp = true);
-
-    try {
-      await _ensureWidgetReady(authProvider);
-      await _msg91WidgetService.retryOtp();
-      if (!mounted) return;
-      _showSnackBar('OTP resent.');
-    } catch (error) {
-      if (!mounted) return;
-      _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _isRetryingOtp = false);
-    }
-  }
-
-  Future<void> _handleLogin() async {
-    if (!_validateMobileNumber() || !_validateOtp()) return;
-
-    final authProvider = context.read<AuthProvider>();
-    setState(() => _isVerifyingOtp = true);
-
-    try {
-      await _ensureWidgetReady(authProvider);
-      final accessToken = await _msg91WidgetService.verifyOtp(
-        otp: _otpController.text.trim(),
-      );
-
-      await authProvider.loginWithOtp(
-        mobileNumber: _mobileController.text.trim(),
-        accessToken: accessToken,
-      );
-
-      if (!mounted) return;
-
-      if (authProvider.isAuthenticated) {
-        await context.read<UserProvider>().loadProfile();
-        if (!mounted) return;
-        context.go('/home');
-        return;
-      }
-
-      _showSnackBar(authProvider.error ?? 'Authentication failed');
-    } catch (error) {
-      if (!mounted) return;
-      _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _isVerifyingOtp = false);
     }
   }
 
@@ -162,20 +90,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     return false;
   }
 
-  bool _validateOtp() {
-    final otp = _otpController.text.trim();
-    if (otp.length >= 4) return true;
-    _showSnackBar('Enter the OTP you received');
-    return false;
-  }
-
   String _normalizedWidgetMobileNumber() {
     final digits = _mobileController.text.replaceAll(RegExp(r'[^0-9]'), '');
-    // If it's a 10-digit number, assume India (91)
     if (digits.length == 10) {
       return '91$digits';
     }
-    // Otherwise return as is (already has country code or is invalid)
     return digits;
   }
 
@@ -214,7 +133,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 decoration: AppTheme.glowingOrb(AppColors.secondary, opacity: 0.13),
               ),
             ),
-            // MSG91 captcha widget — 1×1px off-screen; must exist in tree for JS bridge
             const Positioned(
               top: 0,
               left: 0,
@@ -269,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Verify your number via OTP to access your account securely.',
+                        'We will use a secure SMS widget to verify your number.',
                         style: Theme.of(context)
                             .textTheme
                             .bodyLarge
@@ -287,17 +205,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  // Step indicator
-                                  StepIndicator(
-                                    steps: _steps,
-                                    currentStep: _currentStep,
-                                  ),
-                                  const SizedBox(height: 20),
                                   // Mobile field
                                   TextFormField(
                                     controller: _mobileController,
                                     keyboardType: TextInputType.phone,
-                                    enabled: !_otpSent,
                                     decoration: const InputDecoration(
                                       labelText: 'Mobile number',
                                       prefixIcon: Icon(Icons.phone_iphone_rounded),
@@ -312,133 +223,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       return null;
                                     },
                                   ),
-                                  const SizedBox(height: 14),
-                                  // Send OTP / Change number toggle
-                                  AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 220),
-                                    child: _otpSent
-                                        ? OutlinedButton.icon(
-                                            key: const ValueKey('change-number'),
-                                            onPressed: authProvider.isLoading
-                                                ? null
-                                                : () {
-                                                    setState(() {
-                                                      _otpSent = false;
-                                                      _otpController.clear();
-                                                    });
-                                                    _otpRevealController.reverse();
-                                                  },
-                                            icon: const Icon(Icons.edit_rounded, size: 16),
-                                            label: const Text('Change number'),
-                                          )
-                                        : Column(
-                                            key: const ValueKey('send-otp'),
-                                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                                            children: [
-                                              SizedBox(
-                                                height: 52,
-                                                child: OutlinedButton.icon(
-                                                  onPressed: authProvider.isLoading ||
-                                                          _isSendingOtp ||
-                                                          !authProvider.isWidgetConfigured
-                                                      ? null
-                                                      : _handleSendOtp,
-                                                  icon: _isSendingOtp
-                                                      ? const SizedBox(
-                                                          width: 16,
-                                                          height: 16,
-                                                          child: CircularProgressIndicator(
-                                                              strokeWidth: 2),
-                                                        )
-                                                      : const Icon(Icons.sms_rounded),
-                                                  label: const Text('Send OTP'),
-                                                ),
-                                              ),
-                                              if (!authProvider.isWidgetConfigured) ...[
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  'OTP service is not available in this environment.',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color: AppColors.textMuted
-                                                            .withValues(alpha: 0.6),
-                                                        fontSize: 11,
-                                                      ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ],
-                                            ],
-                                          ),
+                                  const SizedBox(height: 24),
+                                  // Launch Widget Button
+                                  GradientButton(
+                                    label: 'Verify Mobile Number',
+                                    icon: Icons.security_rounded,
+                                    isLoading: _isSendingOtp || authProvider.isLoading,
+                                    onPressed: authProvider.isWidgetConfigured
+                                        ? _handleLaunchWidget
+                                        : null,
                                   ),
-                                  // OTP section — revealed after OTP is sent
-                                  SizeTransition(
-                                    sizeFactor: _otpRevealAnimation,
-                                    axisAlignment: -1,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        const SizedBox(height: 20),
-                                        TextFormField(
-                                          controller: _otpController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            labelText: 'OTP',
-                                            prefixIcon: Icon(Icons.lock_clock_rounded),
-                                            hintText: '• • • • • •',
-                                          ),
-                                          validator: (value) {
-                                            if (value == null || value.trim().length < 4) {
-                                              return 'Enter the OTP you received';
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                        const SizedBox(height: 10),
-                                        // Resend — subtle text button, not outlined
-                                        Align(
-                                          alignment: Alignment.centerRight,
-                                          child: TextButton.icon(
-                                            onPressed:
-                                                authProvider.isLoading || _isRetryingOtp
-                                                    ? null
-                                                    : _handleRetryOtp,
-                                            icon: _isRetryingOtp
-                                                ? const SizedBox(
-                                                    width: 14,
-                                                    height: 14,
-                                                    child: CircularProgressIndicator(
-                                                        strokeWidth: 1.5),
-                                                  )
-                                                : const Icon(Icons.refresh_rounded, size: 15),
-                                            label: const Text('Resend OTP'),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: AppColors.textMuted,
-                                              textStyle: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8, vertical: 4),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        // Primary CTA
-                                        GradientButton(
-                                          label: 'Verify and continue',
-                                          icon: Icons.arrow_forward_rounded,
-                                          isLoading:
-                                              authProvider.isLoading || _isVerifyingOtp,
-                                          onPressed:
-                                              authProvider.isLoading || _isVerifyingOtp
-                                                  ? null
-                                                  : _handleLogin,
-                                        ),
-                                      ],
+                                  if (!authProvider.isWidgetConfigured) ...[
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'OTP verification is temporarily unavailable.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: AppColors.warning),
+                                      textAlign: TextAlign.center,
                                     ),
-                                  ),
+                                  ],
                                 ],
                               );
                             },

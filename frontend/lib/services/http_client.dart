@@ -12,7 +12,7 @@ class HttpClient {
     if (!Config.debugMode && !Config.isSecureBackend) {
       throw StateError('Release builds must use an HTTPS backend URL.');
     }
-
+ 
     _dio = Dio(
       BaseOptions(
         baseUrl: Config.baseUrl,
@@ -24,7 +24,7 @@ class HttpClient {
         },
       ),
     );
-
+ 
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: _onRequest,
@@ -32,41 +32,39 @@ class HttpClient {
       ),
     );
   }
-
+ 
   Future<void> _onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
     final token = await _readAccessToken();
-
+ 
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
-
+ 
     if (Config.enableLogging) {
-      // Suppress request log for widget-config — 503 is expected when MSG91
-      // isn't configured server-side; no need to clutter the console.
       final isWidgetConfig = options.path.contains('widget-config');
       if (!isWidgetConfig) {
         final safeHeaders = Map<String, dynamic>.from(options.headers);
         if (safeHeaders.containsKey('Authorization')) {
           safeHeaders['Authorization'] = 'Bearer [redacted]';
         }
-
+ 
         debugPrint('API ${options.method} ${options.path}');
         debugPrint('Base URL: ${options.baseUrl}');
         debugPrint('Headers: $safeHeaders');
       }
     }
-
+ 
     handler.next(options);
   }
-
+ 
   Future<String?> _readAccessToken() async {
     if (_sessionAccessToken != null && _sessionAccessToken!.isNotEmpty) {
       return _sessionAccessToken;
     }
-
+ 
     try {
       return _storage.read(key: Config.accessTokenKey);
     } catch (error) {
@@ -76,34 +74,73 @@ class HttpClient {
       return null;
     }
   }
-
+ 
   Future<void> _onError(
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401 && Config.enableLogging) {
-      debugPrint('Token expired, attempting refresh...');
+    final isRefreshRequest = err.requestOptions.path.contains('/auth/refresh');
+    final isWidgetConfig = err.requestOptions.path.contains('widget-config');
+
+    if (err.response?.statusCode == 401 && !isRefreshRequest) {
+      if (Config.enableLogging) {
+        debugPrint('Token 401 detected for ${err.requestOptions.path}, attempting refresh...');
+      }
+
+      try {
+        final refreshToken = await _storage.read(key: Config.refreshTokenKey);
+        
+        if (refreshToken != null) {
+          // Use a clean Dio instance to avoid interceptor recursion
+          final refreshDio = Dio(BaseOptions(baseUrl: Config.baseUrl));
+          final response = await refreshDio.post(
+            '/auth/refresh',
+            data: {'refreshToken': refreshToken},
+          );
+
+          if (response.statusCode == 200) {
+            final newAccessToken = response.data['accessToken'];
+            final newRefreshToken = response.data['refreshToken'];
+
+            if (newAccessToken != null) {
+              await setAuthToken(newAccessToken);
+              if (newRefreshToken != null) {
+                await _storage.write(key: Config.refreshTokenKey, value: newRefreshToken);
+              }
+
+              // Retry original request
+              final opts = err.requestOptions;
+              opts.headers['Authorization'] = 'Bearer $newAccessToken';
+              
+              final clonedResponse = await _dio.fetch(opts);
+              return handler.resolve(clonedResponse);
+            }
+          }
+        }
+      } catch (refreshError) {
+        if (Config.enableLogging) {
+          debugPrint('Silent token refresh failed: $refreshError');
+        }
+        // If refresh fails, we must clear auth so the app can redirect to login
+        clearAuth();
+        await _storage.delete(key: Config.accessTokenKey);
+        await _storage.delete(key: Config.refreshTokenKey);
+      }
     }
-
+ 
     if (Config.enableLogging) {
-      // Suppress noisy but expected 503 from /auth/widget-config — MSG91 is
-      // not configured on the backend; the provider handles this gracefully.
-      final isExpectedWidgetConfig503 =
-          err.response?.statusCode == 503 &&
-          (err.requestOptions.path.contains('widget-config'));
-
+      final isExpectedWidgetConfig503 = err.response?.statusCode == 503 && isWidgetConfig;
+ 
       if (!isExpectedWidgetConfig503) {
         debugPrint('Error type: ${err.type}');
         debugPrint('Error: ${err.message}');
         debugPrint('Response: ${err.response?.data}');
         if (kIsWeb && err.response == null) {
-          debugPrint(
-            'Web request failed before response. Check CORS, HTTPS certificate, and API base URL.',
-          );
+          debugPrint('Web request failed before response. Check CORS, HTTPS certificate, and API base URL.');
         }
       }
     }
-
+ 
     handler.next(err);
   }
 

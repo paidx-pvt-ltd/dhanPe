@@ -13,7 +13,16 @@ import {
   runReconciliationSchema,
 } from './reconciliation.schemas.js';
 
-const reconciliationController = new ReconciliationController(fintechRuntime.reconciliationService);
+const reconciliationController = new ReconciliationController(
+  fintechRuntime.reconciliationService,
+  (runId, scope, triggeredByUserId) =>
+    fintechRuntime.dispatcher.enqueueReconciliation({
+      kind: 'run',
+      runId,
+      scope,
+      triggeredByUserId,
+    })
+);
 
 export const reconciliationRoutes = Router();
 

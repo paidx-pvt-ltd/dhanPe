@@ -20,6 +20,26 @@ export class RefundRepository {
     });
   }
 
+  async findTransactionForUpdate(tx: TxLike, transactionId: string): Promise<Transaction | null> {
+    const txns = await tx.$queryRaw<Transaction[]>`
+      SELECT * FROM "Transaction"
+      WHERE "id" = ${transactionId}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    return txns[0] ?? null;
+  }
+
+  async findRefundForUpdate(tx: TxLike, id: string): Promise<Refund | null> {
+    const refunds = await tx.$queryRaw<Refund[]>`
+      SELECT * FROM "Refund"
+      WHERE "id" = ${id}
+      LIMIT 1
+      FOR UPDATE
+    `;
+    return refunds[0] ?? null;
+  }
+
   findRefundByRefundId(refundId: string) {
     return this.db.refund.findUnique({
       where: { refundId },

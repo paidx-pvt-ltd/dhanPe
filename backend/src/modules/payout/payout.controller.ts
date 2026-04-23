@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
-import { PayoutService } from './payout.service.js';
 
 export class PayoutController {
-  constructor(private readonly payoutService: PayoutService) {}
+  constructor(private readonly schedulePayoutSync: (transactionId: string) => Promise<void>) {}
 
   sync = async (req: Request, res: Response): Promise<void> => {
-    const status = await this.payoutService.syncTransferStatus(req.params.transactionId);
-    res.json({
+    await this.schedulePayoutSync(req.params.transactionId);
+    res.status(202).json({
       success: true,
       data: {
-        payoutStatus: status,
+        transactionId: req.params.transactionId,
+        status: 'queued',
       },
     });
   };

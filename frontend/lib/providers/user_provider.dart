@@ -7,6 +7,14 @@ import '../models/user.dart';
 import '../services/user_service.dart';
 import '../core/exceptions.dart';
 
+enum OnboardingStep {
+  mobileVerified,
+  kycRequired,
+  panRequired,
+  beneficiaryRequired,
+  onboardingComplete,
+}
+
 class UserProvider extends ChangeNotifier {
   final UserService _userService;
 
@@ -18,6 +26,8 @@ class UserProvider extends ChangeNotifier {
   Timer? _activeSessionPollingTimer;
   String? _activeKycSessionId;
   String? _activeKycVerificationUrl;
+  
+  bool _hasBeneficiaries = true; // Default to true to avoid flash before load
 
   UserProvider(this._userService);
 
@@ -29,6 +39,25 @@ class UserProvider extends ChangeNotifier {
   String? get activeKycVerificationUrl => _activeKycVerificationUrl;
   bool get hasActiveHostedKyc =>
       _activeKycVerificationUrl != null && _activeKycSessionId != null;
+
+  OnboardingStep get nextRequiredStep {
+    final currentUser = _user;
+    if (currentUser == null) return OnboardingStep.mobileVerified;
+    
+    // 1. Mobile Verification
+    if (!currentUser.isMobileVerified) return OnboardingStep.mobileVerified;
+
+    // 2. KYC Verification
+    if (currentUser.kycStatus != 'APPROVED') return OnboardingStep.kycRequired;
+
+    // 3. PAN Verification
+    if (!currentUser.panVerified) return OnboardingStep.panRequired;
+
+    // 4. Beneficiary Setup
+    if (!_hasBeneficiaries) return OnboardingStep.beneficiaryRequired;
+
+    return OnboardingStep.onboardingComplete;
+  }
 
   /// Load user profile
   Future<void> loadProfile() async {
@@ -46,6 +75,14 @@ class UserProvider extends ChangeNotifier {
       _error = 'Failed to load profile';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Setter for beneficiary status
+  void setHasBeneficiaries(bool value) {
+    if (_hasBeneficiaries != value) {
+      _hasBeneficiaries = value;
       notifyListeners();
     }
   }
@@ -238,6 +275,7 @@ class UserProvider extends ChangeNotifier {
     _isLoading = false;
     _activeKycSessionId = null;
     _activeKycVerificationUrl = null;
+    _hasBeneficiaries = true;
     notifyListeners();
   }
 

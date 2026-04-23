@@ -6,7 +6,12 @@ import { fintechRuntime } from '../fintech/fintech.runtime.js';
 import { PayoutController } from './payout.controller.js';
 import { payoutParamsSchema } from './payout.schemas.js';
 
-const payoutController = new PayoutController(fintechRuntime.payoutService);
+const payoutController = new PayoutController((transactionId) =>
+  fintechRuntime.dispatcher.enqueueReconciliation({
+    kind: 'payout-sync',
+    transactionId,
+  })
+);
 
 export const payoutRoutes = Router();
 
