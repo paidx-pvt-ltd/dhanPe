@@ -15,9 +15,7 @@ import { CashfreePayoutWebhookDto, CashfreeWebhookDto } from './webhook.schemas.
 type CashfreeTransaction = NonNullable<
   Awaited<ReturnType<WebhookRepository['findTransactionByOrderId']>>
 >;
-type LockedWebhookEvent = NonNullable<
-  Awaited<ReturnType<WebhookRepository['findEventForUpdate']>>
->;
+type LockedWebhookEvent = NonNullable<Awaited<ReturnType<WebhookRepository['findEventForUpdate']>>>;
 type ProcessCashfreeWebhookResult =
   | { shouldProcess: false; error?: 'Transaction not found' | 'Webhook amount mismatch' }
   | { shouldProcess: true; transaction: CashfreeTransaction; event: LockedWebhookEvent };
@@ -117,13 +115,23 @@ export class WebhookService {
 
       const transaction = await this.webhookRepository.findTransactionByOrderId(payload.order_id);
       if (!transaction) {
-        await this.webhookRepository.markEventProcessed(tx, lockedEvent.id, false, 'Transaction not found');
+        await this.webhookRepository.markEventProcessed(
+          tx,
+          lockedEvent.id,
+          false,
+          'Transaction not found'
+        );
         return { shouldProcess: false, error: 'Transaction not found' };
       }
 
       const webhookAmount = Number(payload.order_amount);
       if (Number.isNaN(webhookAmount) || toNumber(transaction.grossAmount) !== webhookAmount) {
-        await this.webhookRepository.markEventProcessed(tx, lockedEvent.id, false, 'Amount mismatch');
+        await this.webhookRepository.markEventProcessed(
+          tx,
+          lockedEvent.id,
+          false,
+          'Amount mismatch'
+        );
         return { shouldProcess: false, error: 'Webhook amount mismatch' };
       }
 
@@ -132,7 +140,8 @@ export class WebhookService {
 
     if (!result.shouldProcess) {
       if (result.error === 'Transaction not found') throw new NotFoundError('Transaction');
-      if (result.error === 'Webhook amount mismatch') throw new ValidationError('Webhook amount mismatch');
+      if (result.error === 'Webhook amount mismatch')
+        throw new ValidationError('Webhook amount mismatch');
       return;
     }
 

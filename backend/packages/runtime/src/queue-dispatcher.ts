@@ -7,12 +7,7 @@ import {
   ensureGlobalRateLimit,
   queueNames,
 } from '../../queue/src/index.js';
-import {
-  DeadLetterJob,
-  PayoutJob,
-  ReconciliationJob,
-  WebhookJob,
-} from '../../types/src/index.js';
+import { DeadLetterJob, PayoutJob, ReconciliationJob, WebhookJob } from '../../types/src/index.js';
 
 export class QueueDispatcher {
   private readonly producerConnection = createRedisConnection('queue-producer');
@@ -24,7 +19,10 @@ export class QueueDispatcher {
   );
   private readonly payoutDlq = createDlq(queueNames.payout, this.producerConnection);
   private readonly webhookDlq = createDlq(queueNames.webhook, this.producerConnection);
-  private readonly reconciliationDlq = createDlq(queueNames.reconciliation, this.producerConnection);
+  private readonly reconciliationDlq = createDlq(
+    queueNames.reconciliation,
+    this.producerConnection
+  );
 
   async initialize(): Promise<void> {
     await Promise.all([

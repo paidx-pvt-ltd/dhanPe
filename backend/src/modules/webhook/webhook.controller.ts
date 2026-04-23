@@ -22,8 +22,8 @@ export class WebhookController {
     const payload = cashfreeWebhookSchema.parse(JSON.parse(rawBody));
     const eventId = payload.refund_id
       ? `refund:${payload.refund_id}:${payload.refund_status ?? 'unknown'}`
-      : payload.cf_payment_id ??
-        `${payload.order_id}:${payload.payment_status ?? payload.order_status ?? 'unknown'}`;
+      : (payload.cf_payment_id ??
+        `${payload.order_id}:${payload.payment_status ?? payload.order_status ?? 'unknown'}`);
 
     await this.enqueueWebhookJob({
       eventId,

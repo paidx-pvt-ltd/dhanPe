@@ -54,7 +54,11 @@ export class ReconciliationService {
     return this.executeRun(run.id, scope, triggeredByUserId);
   }
 
-  async executeRun(runId: string, scope: ReconciliationScope | undefined, triggeredByUserId?: string) {
+  async executeRun(
+    runId: string,
+    scope: ReconciliationScope | undefined,
+    triggeredByUserId?: string
+  ) {
     const scopes = scope
       ? [scope]
       : [ReconciliationScope.PAYMENT, ReconciliationScope.PAYOUT, ReconciliationScope.REFUND];

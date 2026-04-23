@@ -191,8 +191,16 @@ export const validateConfig = (): void => {
   ];
 
   for (const [name, url] of urlsToValidate) {
-    if (url && !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('postgres://') && !url.startsWith('postgresql://')) {
-      throw new Error(`Invalid URL format for ${name}: ${url}. Must start with http://, https://, or postgres://`);
+    if (
+      url &&
+      !url.startsWith('http://') &&
+      !url.startsWith('https://') &&
+      !url.startsWith('postgres://') &&
+      !url.startsWith('postgresql://')
+    ) {
+      throw new Error(
+        `Invalid URL format for ${name}: ${url}. Must start with http://, https://, or postgres://`
+      );
     }
   }
 
@@ -201,7 +209,9 @@ export const validateConfig = (): void => {
     throw new Error('RISK_MAX_TRANSACTION_AMOUNT must be a positive number');
   }
   if (config.risk.maxDailyVolume < config.risk.maxTransactionAmount) {
-    throw new Error('RISK_MAX_DAILY_VOLUME must be greater than or equal to RISK_MAX_TRANSACTION_AMOUNT');
+    throw new Error(
+      'RISK_MAX_DAILY_VOLUME must be greater than or equal to RISK_MAX_TRANSACTION_AMOUNT'
+    );
   }
   if (config.queue.payoutConcurrency < 1) {
     throw new Error('PAYOUT_QUEUE_CONCURRENCY must be at least 1');
@@ -209,7 +219,9 @@ export const validateConfig = (): void => {
 
   // Node Environment Validation
   if (!['development', 'production', 'test', 'staging'].includes(config.server.env)) {
-    throw new Error(`Invalid NODE_ENV: ${config.server.env}. Must be one of: development, production, test, staging`);
+    throw new Error(
+      `Invalid NODE_ENV: ${config.server.env}. Must be one of: development, production, test, staging`
+    );
   }
 
   try {

@@ -161,7 +161,7 @@ export class CashfreeClient {
           headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
         }
       );
-// ... existing mapping logic remains same
+      // ... existing mapping logic remains same
 
       return {
         valid: Boolean(data.valid ?? data.success ?? data.verified),
@@ -192,7 +192,7 @@ export class CashfreeClient {
           headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {},
         }
       );
-// ... existing mapping logic remains same
+      // ... existing mapping logic remains same
 
       return {
         valid: Boolean(data.valid ?? data.success ?? data.verified),

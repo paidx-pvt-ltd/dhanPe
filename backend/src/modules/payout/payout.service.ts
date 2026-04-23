@@ -117,7 +117,10 @@ export class PayoutService {
     });
 
     if (existingAttempt && existingAttempt.status !== PayoutStatus.FAILED) {
-      logger.info({ transactionId, attemptKey }, 'Found existing successful/pending payout attempt, reconciling');
+      logger.info(
+        { transactionId, attemptKey },
+        'Found existing successful/pending payout attempt, reconciling'
+      );
       await this.syncTransferStatus(transactionId);
       return;
     }
@@ -157,14 +160,17 @@ export class PayoutService {
     });
 
     try {
-      const payoutResponse = await this.cashfreeClient.createPayout({
-        transfer_id: transactionId,
-        transfer_amount: toNumber(payoutRecord.transaction.netPayoutAmount),
-        transfer_currency: payoutRecord.transaction.currency,
-        beneficiary_details: {
-          beneficiary_id: beneficiary.providerBeneficiaryId,
+      const payoutResponse = await this.cashfreeClient.createPayout(
+        {
+          transfer_id: transactionId,
+          transfer_amount: toNumber(payoutRecord.transaction.netPayoutAmount),
+          transfer_currency: payoutRecord.transaction.currency,
+          beneficiary_details: {
+            beneficiary_id: beneficiary.providerBeneficiaryId,
+          },
         },
-      }, attemptKey); // Use explicit idempotency key
+        attemptKey
+      ); // Use explicit idempotency key
 
       const mappedStatus = this.mapProviderStatus(payoutResponse.status);
 
@@ -185,13 +191,13 @@ export class PayoutService {
           statusDetails: payoutResponse as unknown as Prisma.InputJsonValue,
         });
         await this.payoutRepository.updateTransactionPayoutStatus(tx, transactionId, mappedStatus);
-        
+
         if (mappedStatus === PayoutStatus.SUCCESS || mappedStatus === PayoutStatus.SUBMITTED) {
-            await this.ledgerService.recordPayoutSubmitted(tx, {
-                transactionId,
-                referenceId: lockedPayout.id,
-                amount: payoutRecord.transaction.netPayoutAmount,
-            });
+          await this.ledgerService.recordPayoutSubmitted(tx, {
+            transactionId,
+            referenceId: lockedPayout.id,
+            amount: payoutRecord.transaction.netPayoutAmount,
+          });
         }
 
         if (mappedStatus === PayoutStatus.SUCCESS) {
@@ -224,14 +230,14 @@ export class PayoutService {
     } catch (error) {
       logger.error({ error, transactionId }, 'Payout submission failed');
       await this.db.$transaction(async (tx) => {
-          await this.markPayoutFailed(
-            tx,
-            lockedPayout.id,
-            transactionId,
-            lockedPayout.syncAttempts + 1,
-            error instanceof Error ? error.message : 'Unknown payout error',
-            attempt.id
-          );
+        await this.markPayoutFailed(
+          tx,
+          lockedPayout.id,
+          transactionId,
+          lockedPayout.syncAttempts + 1,
+          error instanceof Error ? error.message : 'Unknown payout error',
+          attempt.id
+        );
       });
     }
   }

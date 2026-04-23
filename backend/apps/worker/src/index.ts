@@ -3,7 +3,12 @@ import { ReconciliationScope } from '@prisma/client';
 import { config, validateConfig } from '../../../packages/config/src/index.js';
 import { logger } from '../../../packages/config/src/logger.js';
 import { connectDatabase, disconnectDatabase } from '../../../packages/db/src/index.js';
-import { createQueueEvents, createRedisConnection, createWorker, queueNames } from '../../../packages/queue/src/index.js';
+import {
+  createQueueEvents,
+  createRedisConnection,
+  createWorker,
+  queueNames,
+} from '../../../packages/queue/src/index.js';
 import { createFintechRuntime, QueueDispatcher } from '../../../packages/runtime/src/index.js';
 import {
   DeadLetterJob,

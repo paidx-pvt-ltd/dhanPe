@@ -5,8 +5,10 @@ import { RefundService } from './refund.service.js';
 export class RefundController {
   constructor(
     private readonly refundService: RefundService,
-    private readonly scheduleRefundSync: (refundId: string, userId: string) => Promise<void> = async () =>
-      undefined
+    private readonly scheduleRefundSync: (
+      refundId: string,
+      userId: string
+    ) => Promise<void> = async () => undefined
   ) {}
 
   create = async (req: Request, res: Response): Promise<void> => {

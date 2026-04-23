@@ -162,9 +162,7 @@ describe('WebhookService', () => {
       processed: true,
     });
 
-    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
-      handler({})
-    );
+    db.$transaction.mockImplementation(async (handler: TransactionHandler) => handler({}));
 
     await service.processCashfreeWebhook(
       JSON.stringify({
@@ -198,11 +196,12 @@ describe('WebhookService', () => {
       },
     });
 
-    webhookRepository.findEventForUpdate.mockResolvedValue({ id: 'event_payout_1', processed: false });
+    webhookRepository.findEventForUpdate.mockResolvedValue({
+      id: 'event_payout_1',
+      processed: false,
+    });
 
-    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
-      handler({})
-    );
+    db.$transaction.mockImplementation(async (handler: TransactionHandler) => handler({}));
 
     await service.processCashfreePayoutWebhook(rawBody, {
       type: 'TRANSFER_SUCCESS',

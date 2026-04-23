@@ -1,6 +1,10 @@
 import { config, validateConfig } from '../../../packages/config/src/index.js';
 import { logger } from '../../../packages/config/src/logger.js';
-import { createQueue, createRedisConnection, queueNames } from '../../../packages/queue/src/index.js';
+import {
+  createQueue,
+  createRedisConnection,
+  queueNames,
+} from '../../../packages/queue/src/index.js';
 import { ReconciliationJob } from '../../../packages/types/src/index.js';
 
 validateConfig();

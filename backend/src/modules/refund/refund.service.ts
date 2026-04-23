@@ -46,7 +46,10 @@ export class RefundService {
       ).slice(0, 8)}`;
 
     const result = await this.db.$transaction<RefundCreationResult>(async (tx) => {
-      const transaction = await this.refundRepository.findTransactionForRefund(transactionId, userId);
+      const transaction = await this.refundRepository.findTransactionForRefund(
+        transactionId,
+        userId
+      );
       if (!transaction) {
         throw new NotFoundError('Transaction');
       }
