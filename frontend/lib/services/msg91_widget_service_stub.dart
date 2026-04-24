@@ -74,13 +74,13 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
       debugPrint('[MSG91] verifyOTP response: $response');
       
       if (response != null && response['type'] == 'success') {
-        final token = response['token']?.toString() ?? 
-                      response['accessToken']?.toString() ?? 
-                      response['message']?.toString();
-        if (token != null) {
+        final token = response['token']?.toString() ?? response['accessToken']?.toString();
+        if (token != null && token.isNotEmpty) {
           return token;
         }
-        throw AuthException('OTP verified but no access token was returned by the native SDK.');
+        throw AuthException(
+          'OTP verified, but MSG91 did not return an access token. Please tap "Resend OTP" and try again.',
+        );
       }
       
       throw AuthException(response?['message'] ?? 'OTP verification failed');
