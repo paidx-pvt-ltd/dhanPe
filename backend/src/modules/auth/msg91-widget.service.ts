@@ -114,7 +114,7 @@ export class Msg91WidgetService {
       }
 
       const details =
-        (axios.isAxiosError(error) && error.response)
+        axios.isAxiosError(error) && error.response
           ? {
               status: error.response.status,
               data: error.response.data as unknown,
