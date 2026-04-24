@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/msg91_widget_service.dart';
-import '../../services/service_locator.dart';
 import '../../widgets/legal_links.dart';
 import '../../widgets/kinetic_primitives.dart';
 import '../../widgets/msg91_captcha_host.dart';
@@ -20,15 +18,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  late final Msg91WidgetService _msg91WidgetService;
-
-  bool _widgetInitialized = false;
   bool _isSendingOtp = false;
 
   @override
   void initState() {
     super.initState();
-    _msg91WidgetService = getIt<Msg91WidgetService>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().loadWidgetConfig();
     });
@@ -40,20 +34,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
-  Future<void> _ensureWidgetReady(AuthProvider authProvider) async {
-    if (_widgetInitialized) return;
-
-    if (!authProvider.isWidgetConfigured) {
-      throw Exception('OTP service is temporarily unavailable. Please try again later.');
-    }
-
-    await _msg91WidgetService.initialize(
-      widgetId: authProvider.widgetId!,
-      tokenAuth: authProvider.widgetTokenAuth!,
-    );
-    _widgetInitialized = true;
-  }
-
   Future<void> _handleLaunchWidget() async {
     if (!_validateMobileNumber()) return;
 
@@ -61,11 +41,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSendingOtp = true);
 
     try {
-      await _ensureWidgetReady(authProvider);
-      
-      await _msg91WidgetService.sendOtp(identifier: _normalizedWidgetMobileNumber());
+      await authProvider.requestOtp(mobileNumber: _normalizedWidgetMobileNumber());
 
       if (!mounted) return;
+      if (authProvider.error != null && authProvider.error!.isNotEmpty) {
+        _showSnackBar(authProvider.error!);
+        return;
+      }
       // Native SDK sends the OTP but does not automatically present UI.
       // We route to our OTP screen to complete verification.
       context.push('/login/otp', extra: _normalizedWidgetMobileNumber());
@@ -87,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   String _normalizedWidgetMobileNumber() {
     final digits = _mobileController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.length == 10) {
-      return '91$digits';
+      return '+91$digits';
     }
     return digits;
   }

@@ -7,9 +7,13 @@ const mobileNumberSchema = z
 
 export const widgetConfigSchema = z.object({});
 
+export const sendOtpSchema = z.object({
+  mobileNumber: mobileNumberSchema,
+});
+
 export const verifyOtpSchema = z.object({
-  accessToken: z.string().trim().min(1),
-  mobileNumber: mobileNumberSchema.optional(),
+  mobileNumber: mobileNumberSchema,
+  otp: z.string().trim().min(4).max(9),
 });
 
 export const refreshSchema = z.object({
@@ -17,5 +21,6 @@ export const refreshSchema = z.object({
 });
 
 export type WidgetConfigDto = z.infer<typeof widgetConfigSchema>;
+export type SendOtpDto = z.infer<typeof sendOtpSchema>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;

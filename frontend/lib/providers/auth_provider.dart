@@ -98,19 +98,38 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> loadWidgetConfig() async {
     try {
-      final result = await _authService.getWidgetConfig();
-      _widgetId = result['widgetId'] as String?;
-      _widgetTokenAuth = result['tokenAuth'] as String?;
-      notifyListeners();
+      // Deprecated in backend-driven OTP flow.
+      _widgetId = 'backend-otp';
+      _widgetTokenAuth = 'backend-otp';
     } catch (_) {
       _widgetId = null;
       _widgetTokenAuth = null;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> requestOtp({required String mobileNumber}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _authService.sendOtp(mobileNumber: mobileNumber);
+    } on ApiError catch (e) {
+      _error = e.message;
+    } on AuthException catch (e) {
+      _error = e.message;
+    } catch (e) {
+      _error = 'Failed to send OTP: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> loginWithOtp({
     required String mobileNumber,
-    required String accessToken,
+    required String otp,
   }) async {
     _isLoading = true;
     _error = null;
@@ -119,7 +138,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final result = await _authService.verifyOtp(
         mobileNumber: mobileNumber,
-        accessToken: accessToken,
+        otp: otp,
       );
 
       _accessToken = result['accessToken'];
