@@ -31,6 +31,7 @@ This guide is for AI agents and automation-oriented contributors working in the 
 - `CASHFREE_CLIENT_ID`
 - `CASHFREE_CLIENT_SECRET`
 - `CASHFREE_WEBHOOK_SECRET`
+- `REDIS_URL`
 - `MSG91_AUTH_KEY`
 - `MSG91_WIDGET_ID`
 - `MSG91_WIDGET_TOKEN`

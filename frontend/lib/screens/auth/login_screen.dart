@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
@@ -62,19 +63,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       await _ensureWidgetReady(authProvider);
       
-      // In the true widget flow, we don't handle OTP UI.
-      // We either sendOtp and wait for a redirection/callback,
-      // or the SDK handles the whole flow.
       await _msg91WidgetService.sendOtp(identifier: _normalizedWidgetMobileNumber());
 
       if (!mounted) return;
-
-      // Note: In some SDKs, verifyOtp is called internally by the widget or 
-      // requires a follow-up that we'll handle via a listener or a generic verify token.
-      // For now, we simulate waiting for the widget to finish its own UI.
-      // User will see the MSG91 overlay if using Native SDK or Web widget.
-      
-      _showSnackBar('Verification widget launched');
+      // Native SDK sends the OTP but does not automatically present UI.
+      // We route to our OTP screen to complete verification.
+      context.push('/login/otp', extra: _normalizedWidgetMobileNumber());
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(error.toString().replaceFirst('Exception: ', ''));

@@ -2,6 +2,50 @@ import axios, { AxiosInstance } from 'axios';
 import { config } from '../../config/index.js';
 import { ExternalServiceError, ServiceUnavailableError } from '../../shared/errors.js';
 
+type UnknownRecord = Record<string, unknown>;
+
+const readString = (value: unknown): string | undefined => {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value;
+  }
+  return undefined;
+};
+
+const readObject = (value: unknown): UnknownRecord | undefined => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as UnknownRecord;
+  }
+  return undefined;
+};
+
+const pickMobileNumber = (payload: unknown): string | undefined => {
+  const obj = readObject(payload);
+  if (!obj) return undefined;
+
+  // Common top-level keys we have observed / might receive.
+  const direct =
+    readString(obj.mobile_number) ??
+    readString(obj.mobile) ??
+    readString(obj.phone) ??
+    readString(obj.mobileNumber) ??
+    readString(obj.msisdn) ??
+    readString(obj.identifier);
+  if (direct) return direct;
+
+  // Some MSG91 responses nest actual values under `data`.
+  const nested = readObject(obj.data);
+  if (!nested) return undefined;
+
+  return (
+    readString(nested.mobile_number) ??
+    readString(nested.mobile) ??
+    readString(nested.phone) ??
+    readString(nested.mobileNumber) ??
+    readString(nested.msisdn) ??
+    readString(nested.identifier)
+  );
+};
+
 export interface Msg91VerifiedIdentity {
   mobileNumber: string;
   reqId?: string;
@@ -49,13 +93,14 @@ export class Msg91WidgetService {
         }
       );
 
-      const mobileNumber =
-        (data.mobile_number as string | undefined) ??
-        (data.mobile as string | undefined) ??
-        (data.phone as string | undefined);
+      const mobileNumber = pickMobileNumber(data);
 
       if (!mobileNumber) {
-        throw new ExternalServiceError('MSG91 widget token did not resolve a mobile number', data);
+        const keys = Object.keys(data ?? {});
+        throw new ExternalServiceError('MSG91 widget token did not resolve a mobile number', {
+          keys,
+          raw: data,
+        });
       }
 
       return {
@@ -68,7 +113,16 @@ export class Msg91WidgetService {
         throw error;
       }
 
-      throw new ExternalServiceError('Failed to verify MSG91 widget access token', error);
+      const details =
+        (axios.isAxiosError(error) && error.response)
+          ? {
+              status: error.response.status,
+              data: error.response.data as unknown,
+              headers: error.response.headers as unknown,
+            }
+          : error;
+
+      throw new ExternalServiceError('Failed to verify MSG91 widget access token', details);
     }
   }
 }

@@ -11,6 +11,7 @@ import 'providers/transactions_provider.dart';
 import 'providers/user_provider.dart';
 import 'screens/accounts/accounts_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/otp_verify_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/payment/payment_screen.dart';
 import 'screens/payment/payment_status_screen.dart';
@@ -100,6 +101,16 @@ class _AppRouterState extends State<_AppRouter> {
           path: '/login',
           builder: (context, state) => const LoginScreen(),
         ),
+        GoRoute(
+          path: '/login/otp',
+          builder: (context, state) {
+            final mobileNumber = state.extra as String?;
+            if (mobileNumber == null || mobileNumber.isEmpty) {
+              return const LoginScreen();
+            }
+            return OtpVerifyScreen(mobileNumber: mobileNumber);
+          },
+        ),
         ShellRoute(
           builder: (context, state, child) => AppShell(
             location: state.uri.path,
@@ -140,7 +151,7 @@ class _AppRouterState extends State<_AppRouter> {
       ],
       redirect: (context, state) {
         final location = state.matchedLocation;
-        final authRoutes = {'/login'};
+        final authRoutes = {'/login', '/login/otp'};
         final isAuthRoute = authRoutes.contains(location);
         final isSplash = location == '/splash';
 

@@ -139,6 +139,7 @@ export const config = {
 };
 
 export const validateConfig = (): void => {
+  const isStrictSecretsEnv = ['production', 'staging'].includes(config.server.env);
   const required = [
     'DATABASE_URL',
     'JWT_SECRET',
@@ -162,11 +163,11 @@ export const validateConfig = (): void => {
     process.env.CASHFREE_WEBHOOK_SECRET,
   ].filter((value) => value?.includes('your_cashfree'));
 
-  if (placeholderValues.length > 0) {
+  if (isStrictSecretsEnv && placeholderValues.length > 0) {
     throw new Error('Cashfree credentials must be real values, placeholder values are not allowed');
   }
 
-  if (process.env.DIDIT_API_KEY?.includes('your_didit')) {
+  if (isStrictSecretsEnv && process.env.DIDIT_API_KEY?.includes('your_didit')) {
     throw new Error('Didit credentials must be real values, placeholder values are not allowed');
   }
 
