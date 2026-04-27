@@ -161,7 +161,10 @@ class User {
       return 'DP';
     }
 
-    final parts = source.split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    final parts = source
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.length == 1) {
       final end = parts.first.length < 2 ? parts.first.length : 2;
       return parts.first.substring(0, end).toUpperCase();

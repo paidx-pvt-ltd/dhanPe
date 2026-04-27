@@ -23,7 +23,9 @@ class TransactionsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _recentTransactions = await _transactionService.listTransactions(limit: limit);
+      _recentTransactions = await _transactionService.listTransactions(
+        limit: limit,
+      );
     } on ApiError catch (error) {
       _error = error.message;
     } catch (_) {

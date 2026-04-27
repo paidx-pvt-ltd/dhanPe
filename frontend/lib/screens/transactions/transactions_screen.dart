@@ -52,7 +52,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           children: [
             SectionHeading(
               title: 'Payments',
-              subtitle: provider.error ?? 'All recent payment and settlement activity',
+              subtitle:
+                  provider.error ??
+                  'All recent payment and settlement activity',
             ),
             const SizedBox(height: 18),
             TextField(
@@ -100,7 +102,9 @@ class _TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return KineticPanel(
-      color: transaction.isCompleted ? AppColors.surfaceHigh : AppColors.surfaceLow,
+      color: transaction.isCompleted
+          ? AppColors.surfaceHigh
+          : AppColors.surfaceLow,
       child: Row(
         children: [
           Container(
@@ -114,13 +118,13 @@ class _TransactionTile extends StatelessWidget {
               transaction.isFailed
                   ? Icons.error_outline_rounded
                   : transaction.isCompleted
-                      ? Icons.check_circle_outline_rounded
-                      : Icons.sync_rounded,
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.sync_rounded,
               color: transaction.isFailed
                   ? AppColors.warning
                   : transaction.isCompleted
-                      ? AppColors.success
-                      : AppColors.primary,
+                  ? AppColors.success
+                  : AppColors.primary,
             ),
           ),
           const SizedBox(width: 14),
@@ -128,14 +132,16 @@ class _TransactionTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(transaction.title, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  transaction.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   '${transaction.orderId} | ${DateFormat('MMM d, h:mm a').format(transaction.createdAt)}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.textMuted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
                 ),
               ],
             ),
@@ -144,16 +150,18 @@ class _TransactionTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                NumberFormat.currency(symbol: 'INR ', decimalDigits: 2).format(transaction.amount),
+                NumberFormat.currency(
+                  symbol: 'INR ',
+                  decimalDigits: 2,
+                ).format(transaction.amount),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               Text(
                 '${transaction.status} / ${transaction.payoutStatus}',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelMedium
-                    ?.copyWith(color: AppColors.textMuted),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium?.copyWith(color: AppColors.textMuted),
               ),
             ],
           ),

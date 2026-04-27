@@ -4,11 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 
 class AppShell extends StatelessWidget {
-  const AppShell({
-    super.key,
-    required this.child,
-    required this.location,
-  });
+  const AppShell({super.key, required this.child, required this.location});
 
   final Widget child;
   final String location;
@@ -34,7 +30,10 @@ class AppShell extends StatelessWidget {
             child: Container(
               width: 180,
               height: 180,
-              decoration: AppTheme.glowingOrb(AppColors.secondary, opacity: 0.12),
+              decoration: AppTheme.glowingOrb(
+                AppColors.secondary,
+                opacity: 0.12,
+              ),
             ),
           ),
           SafeArea(
@@ -60,7 +59,11 @@ class _BottomNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       const _NavItem('Home', Icons.home_rounded, '/home'),
-      const _NavItem('Accounts', Icons.account_balance_wallet_rounded, '/accounts'),
+      const _NavItem(
+        'Accounts',
+        Icons.account_balance_wallet_rounded,
+        '/accounts',
+      ),
       const _NavItem('Payments', Icons.payments_rounded, '/payments'),
       const _NavItem('Profile', Icons.person_rounded, '/profile'),
     ];
@@ -107,7 +110,9 @@ class _BottomNavigationBar extends StatelessWidget {
                           boxShadow: active
                               ? [
                                   BoxShadow(
-                                    color: AppColors.primaryDim.withValues(alpha: 0.28),
+                                    color: AppColors.primaryDim.withValues(
+                                      alpha: 0.28,
+                                    ),
                                     blurRadius: 18,
                                     offset: const Offset(0, 8),
                                   ),
@@ -122,8 +127,11 @@ class _BottomNavigationBar extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         item.label.toUpperCase(),
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: active ? AppColors.text : AppColors.textMuted,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: active
+                                  ? AppColors.text
+                                  : AppColors.textMuted,
                             ),
                       ),
                     ],

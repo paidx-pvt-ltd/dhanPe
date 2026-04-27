@@ -26,10 +26,12 @@ class Payment {
 
     return Payment(
       id: json['transactionId'] as String? ?? json['id'] as String,
-      orderId: json['orderId'] as String? ??
+      orderId:
+          json['orderId'] as String? ??
           json['cashfreeOrderId'] as String? ??
           '',
-      paymentSessionId: json['paymentSessionId'] as String? ??
+      paymentSessionId:
+          json['paymentSessionId'] as String? ??
           json['payment_session_id'] as String? ??
           json['orderToken'] as String? ??
           '',
@@ -56,6 +58,7 @@ class Payment {
 
   bool get isSuccess => status == 'SUCCESS' || status == 'PAID';
   bool get isFailed => status == 'FAILED';
-  bool get isPending => status == 'PENDING' || status == 'INITIATED' || status == 'PROCESSING';
+  bool get isPending =>
+      status == 'PENDING' || status == 'INITIATED' || status == 'PROCESSING';
   bool get isCancelled => status == 'CANCELLED';
 }

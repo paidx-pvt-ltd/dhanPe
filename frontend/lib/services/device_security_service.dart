@@ -17,8 +17,7 @@ class DeviceSecurityStatus {
 }
 
 class DeviceSecurityService {
-  static const MethodChannel _channel =
-      MethodChannel('dhanpe/device_security');
+  static const MethodChannel _channel = MethodChannel('dhanpe/device_security');
 
   Future<DeviceSecurityStatus> checkDeviceSecurity() async {
     if (kIsWeb) {
@@ -30,8 +29,9 @@ class DeviceSecurityService {
     }
 
     try {
-      final result =
-          await _channel.invokeMapMethod<String, dynamic>('assessDeviceSecurity');
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'assessDeviceSecurity',
+      );
       return DeviceSecurityStatus(
         deviceLockEnabled: result?['deviceLockEnabled'] == true,
         deviceCompromised: result?['deviceCompromised'] == true,

@@ -30,10 +30,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({
-    required this.securityStatus,
-    super.key,
-  });
+  const MyApp({required this.securityStatus, super.key});
 
   final DeviceSecurityStatus securityStatus;
 
@@ -52,7 +49,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(getIt())),
         ChangeNotifierProvider(create: (_) => UserProvider(getIt())),
-        ChangeNotifierProvider(create: (_) => PaymentProvider(getIt(), getIt())),
+        ChangeNotifierProvider(
+          create: (_) => PaymentProvider(getIt(), getIt()),
+        ),
         ChangeNotifierProvider(create: (_) => BeneficiaryProvider(getIt())),
         ChangeNotifierProvider(create: (_) => TransactionsProvider(getIt())),
       ],
@@ -112,10 +111,8 @@ class _AppRouterState extends State<_AppRouter> {
           },
         ),
         ShellRoute(
-          builder: (context, state, child) => AppShell(
-            location: state.uri.path,
-            child: child,
-          ),
+          builder: (context, state, child) =>
+              AppShell(location: state.uri.path, child: child),
           routes: [
             GoRoute(
               path: '/home',
@@ -196,17 +193,20 @@ class _SplashScreen extends StatelessWidget {
                   gradient: AppGradients.kinetic,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.spa_rounded, color: Colors.white, size: 38),
+                child: const Icon(
+                  Icons.spa_rounded,
+                  color: Colors.white,
+                  size: 38,
+                ),
               ),
               const SizedBox(height: 18),
               Text('dhanpe', style: Theme.of(context).textTheme.displaySmall),
               const SizedBox(height: 8),
               Text(
                 'Routing your workspace',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.textMuted),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               ),
             ],
           ),

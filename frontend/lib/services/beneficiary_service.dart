@@ -38,12 +38,15 @@ class BeneficiaryService {
           'accountHolderName': accountHolderName,
           'accountNumber': accountNumber,
           'ifsc': ifsc,
-          if (bankName != null && bankName.trim().isNotEmpty) 'bankName': bankName.trim(),
+          if (bankName != null && bankName.trim().isNotEmpty)
+            'bankName': bankName.trim(),
           if (label != null && label.trim().isNotEmpty) 'label': label.trim(),
         },
       );
 
-      return Beneficiary.fromJson(response.data['data'] as Map<String, dynamic>);
+      return Beneficiary.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
     } on DioException catch (error) {
       throw ApiError(
         type: ApiException.networkError,

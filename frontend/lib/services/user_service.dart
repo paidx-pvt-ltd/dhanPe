@@ -59,10 +59,7 @@ class UserService {
         if (countryCode != null && countryCode.trim().isNotEmpty)
           'countryCode': countryCode.trim(),
       };
-      final response = await _dio.patch(
-        '/users/profile',
-        data: payload,
-      );
+      final response = await _dio.patch('/users/profile', data: payload);
 
       if (response.statusCode == 200) {
         return User.fromJson(response.data['data']);
@@ -111,17 +108,15 @@ class UserService {
     }
   }
 
-  Future<User> submitPan({
-    required String panNumber,
-    String? legalName,
-  }) async {
+  Future<User> submitPan({required String panNumber, String? legalName}) async {
     try {
       _ensureSensitiveTransport();
       final response = await _dio.post(
         '/users/pan',
         data: {
           'panNumber': panNumber.trim().toUpperCase(),
-          if (legalName != null && legalName.trim().isNotEmpty) 'legalName': legalName.trim(),
+          if (legalName != null && legalName.trim().isNotEmpty)
+            'legalName': legalName.trim(),
         },
       );
 
@@ -154,20 +149,26 @@ class UserService {
     } else if (e.response?.statusCode == 400) {
       throw ApiError(
         type: ApiException.validationError,
-        message: e.response?.data['error']?['message']?.toString() ?? 'Invalid request',
+        message:
+            e.response?.data['error']?['message']?.toString() ??
+            'Invalid request',
         code: e.response?.data['error']?['code']?.toString(),
       );
     } else if (e.response?.statusCode == 422) {
       throw ApiError(
         type: ApiException.validationError,
-        message: e.response?.data['error']?['message']?.toString() ?? 'Request rejected',
+        message:
+            e.response?.data['error']?['message']?.toString() ??
+            'Request rejected',
         code: e.response?.data['error']?['code']?.toString(),
       );
     } else {
       throw ApiError(
         type: ApiException.networkError,
         message:
-            e.response?.data['error']?['message']?.toString() ?? e.message ?? 'Network error',
+            e.response?.data['error']?['message']?.toString() ??
+            e.message ??
+            'Network error',
         code: e.response?.data['error']?['code']?.toString(),
       );
     }
@@ -182,7 +183,8 @@ class UserService {
       );
     }
 
-    final isLoopback = target.host == '127.0.0.1' ||
+    final isLoopback =
+        target.host == '127.0.0.1' ||
         target.host == 'localhost' ||
         target.host == '10.0.2.2';
     if (target.scheme != 'https' && !isLoopback) {

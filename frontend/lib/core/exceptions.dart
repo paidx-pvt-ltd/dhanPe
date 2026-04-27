@@ -13,11 +13,7 @@ class ApiError extends Error {
   final String message;
   final String? code;
 
-  ApiError({
-    required this.type,
-    required this.message,
-    this.code,
-  });
+  ApiError({required this.type, required this.message, this.code});
 
   @override
   String toString() => 'ApiError: $message (${code ?? type.toString()})';

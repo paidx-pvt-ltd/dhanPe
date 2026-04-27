@@ -18,7 +18,7 @@ The app uses compile-time configuration from [config.dart](d:/Personal%20Data/dh
 
 Current defaults:
 
-- Web debug: production API at `https://project-szw1p.vercel.app/api`
+- Web debug: production API at `https://dhanpe-production.up.railway.app/api`
 - Android emulator debug: local API at `http://10.0.2.2:3000/api`
 - Fallback/release default: production API
 
@@ -36,6 +36,31 @@ flutter run --dart-define=DHANPE_API_ENV=local --dart-define=DHANPE_LOCAL_API_BA
 flutter run --dart-define=DHANPE_API_ENV=android-emulator
 flutter run --dart-define=DHANPE_API_ENV=production --dart-define=DHANPE_CASHFREE_ENV=sandbox
 ```
+
+Physical device / DNS troubleshooting
+
+- When testing on a physical Android device (Pixel 7/7a), the app will normally target the production backend unless you explicitly override `DHANPE_API_BASE_URL` or `DHANPE_API_ENV`.
+If you see `Failed host lookup` on the device, verify network/DNS from the device browser by opening the backend health endpoint:
+
+```text
+https://dhanpe-production.up.railway.app/api/healthz
+```
+
+PowerShell note: Windows PowerShell aliases `curl` to `Invoke-WebRequest`, which can complain about `https:` paths. Use `curl.exe` or `Invoke-WebRequest -Uri <url>` in PowerShell:
+
+```powershell
+curl.exe -I https://dhanpe-production.up.railway.app/api/healthz
+# or
+Invoke-WebRequest -Uri https://dhanpe-production.up.railway.app/api/healthz
+```
+
+- Local backend on a physical device: run the backend bound to your LAN interface (`0.0.0.0`) and use your machine IP, then start the app with:
+
+```bash
+flutter run --dart-define=DHANPE_API_BASE_URL=http://192.168.1.100:3000/api
+```
+
+- Emulators: use `http://10.0.2.2:3000/api` for the Android emulator. Use `adb reverse` only for emulators, not physical devices.
 
 Supported compile-time keys:
 

@@ -53,7 +53,10 @@ class BeneficiaryProvider extends ChangeNotifier {
         bankName: bankName,
         label: label,
       );
-      _beneficiaries = [beneficiary, ..._beneficiaries.where((item) => item.id != beneficiary.id)];
+      _beneficiaries = [
+        beneficiary,
+        ..._beneficiaries.where((item) => item.id != beneficiary.id),
+      ];
       return beneficiary;
     } on ApiError catch (error) {
       _error = error.message;

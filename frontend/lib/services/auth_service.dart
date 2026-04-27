@@ -11,12 +11,7 @@ class AuthService {
 
   Future<void> sendOtp({required String mobileNumber}) async {
     try {
-      await _dio.post(
-        '/auth/send-otp',
-        data: {
-          'mobileNumber': mobileNumber,
-        },
-      );
+      await _dio.post('/auth/send-otp', data: {'mobileNumber': mobileNumber});
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
@@ -31,10 +26,7 @@ class AuthService {
       _ensureSensitiveTransport();
       final response = await _dio.post(
         '/auth/verify-otp',
-        data: {
-          'mobileNumber': mobileNumber,
-          'otp': otp,
-        },
+        data: {'mobileNumber': mobileNumber, 'otp': otp},
       );
 
       if (response.statusCode == 200) {
@@ -54,7 +46,9 @@ class AuthService {
     } on AuthException {
       rethrow;
     } catch (e) {
-      throw AuthException('Session storage failed. Clear browser site data and try again.');
+      throw AuthException(
+        'Session storage failed. Clear browser site data and try again.',
+      );
     }
   }
 
@@ -62,9 +56,7 @@ class AuthService {
   Future<Map<String, dynamic>> refreshToken() async {
     try {
       _ensureSensitiveTransport();
-      final refreshToken = await _storage.read(
-        key: Config.refreshTokenKey,
-      );
+      final refreshToken = await _storage.read(key: Config.refreshTokenKey);
 
       if (refreshToken == null) {
         throw AuthException('No refresh token found');
@@ -89,7 +81,9 @@ class AuthService {
     } on AuthException {
       rethrow;
     } catch (e) {
-      throw AuthException('Session restore failed. Clear browser site data and login again.');
+      throw AuthException(
+        'Session restore failed. Clear browser site data and login again.',
+      );
     }
   }
 
@@ -134,7 +128,9 @@ class AuthService {
         _storage.write(key: Config.refreshTokenKey, value: refreshToken),
       ]);
     } catch (_) {
-      throw AuthException('Session storage failed. Clear browser site data and try again.');
+      throw AuthException(
+        'Session storage failed. Clear browser site data and try again.',
+      );
     }
   }
 
@@ -156,7 +152,8 @@ class AuthService {
       throw AuthException('Invalid backend URL configuration');
     }
 
-    final isLoopback = target.host == '127.0.0.1' ||
+    final isLoopback =
+        target.host == '127.0.0.1' ||
         target.host == 'localhost' ||
         target.host == '10.0.2.2';
     if (target.scheme != 'https' && !isLoopback) {
@@ -174,19 +171,25 @@ class AuthService {
       );
     } else if (e.response?.statusCode == 401) {
       throw AuthException(
-        e.response?.data['error']?['message']?.toString() ?? 'Unauthorized. Please login again.',
+        e.response?.data['error']?['message']?.toString() ??
+            'Unauthorized. Please login again.',
         code: e.response?.data['error']?['code']?.toString(),
       );
     } else if (e.response?.statusCode == 400) {
       throw ApiError(
         type: ApiException.validationError,
-        message: e.response?.data['error']?['message']?.toString() ?? 'Validation error',
+        message:
+            e.response?.data['error']?['message']?.toString() ??
+            'Validation error',
         code: e.response?.data['error']?['code']?.toString(),
       );
     } else {
       throw ApiError(
         type: ApiException.networkError,
-        message: e.response?.data['error']?['message']?.toString() ?? e.message ?? 'Network error',
+        message:
+            e.response?.data['error']?['message']?.toString() ??
+            e.message ??
+            'Network error',
         code: e.response?.data['error']?['code']?.toString(),
       );
     }

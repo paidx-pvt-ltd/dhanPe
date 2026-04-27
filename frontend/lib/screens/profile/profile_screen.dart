@@ -78,10 +78,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 4),
                       Text(
                         user?.mobileNumber ?? '',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.textMuted),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -104,11 +103,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(width: 8),
                       if (user?.isAdmin == true)
-                        const StatusBadge(label: 'Admin', color: AppColors.tertiary),
+                        const StatusBadge(
+                          label: 'Admin',
+                          color: AppColors.tertiary,
+                        ),
                       const SizedBox(width: 8),
                       StatusBadge(
-                        label: user?.panVerified == true ? 'PAN Verified' : 'PAN Pending',
-                        color: user?.panVerified == true ? AppColors.success : AppColors.warning,
+                        label: user?.panVerified == true
+                            ? 'PAN Verified'
+                            : 'PAN Pending',
+                        color: user?.panVerified == true
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
                     ],
                   ),
@@ -121,7 +127,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 14),
                   GradientButton(
-                    label: user?.isKycApproved == true ? 'Review KYC' : 'Start KYC',
+                    label: user?.isKycApproved == true
+                        ? 'Review KYC'
+                        : 'Start KYC',
                     icon: Icons.verified_user_outlined,
                     isLoading: userProvider.isLoading,
                     onPressed: () => context.push('/kyc'),
@@ -136,14 +144,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Profile details', style: Theme.of(context).textTheme.headlineSmall),
+                    Text(
+                      'Profile details',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                     const SizedBox(height: 18),
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
                             controller: _firstNameController,
-                            decoration: const InputDecoration(labelText: 'First name'),
+                            decoration: const InputDecoration(
+                              labelText: 'First name',
+                            ),
                             validator: _requiredValidator,
                           ),
                         ),
@@ -151,7 +164,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _lastNameController,
-                            decoration: const InputDecoration(labelText: 'Last name'),
+                            decoration: const InputDecoration(
+                              labelText: 'Last name',
+                            ),
                             validator: _requiredValidator,
                           ),
                         ),
@@ -190,7 +205,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _postalCodeController,
-                      decoration: const InputDecoration(labelText: 'Postal code'),
+                      decoration: const InputDecoration(
+                        labelText: 'Postal code',
+                      ),
                       validator: _requiredValidator,
                     ),
                     const SizedBox(height: 18),
@@ -211,18 +228,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Compliance identity', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'Compliance identity',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 10),
-                    Text('Mobile: ${user.mobileNumber}', style: Theme.of(context).textTheme.bodyLarge),
+                    Text(
+                      'Mobile: ${user.mobileNumber}',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       user.panVerified
                           ? 'PAN verified as ${user.panName ?? user.panNumber ?? 'verified holder'}'
                           : 'PAN will be collected just in time before your first transfer.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -233,7 +255,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Terms and support', style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    'Terms and support',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 10),
                   const LegalLinks(),
                 ],
@@ -299,9 +324,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(provider.error ?? 'Profile saved')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(provider.error ?? 'Profile saved')));
   }
-
 }

@@ -4,13 +4,9 @@ abstract class Msg91WidgetService {
     required String tokenAuth,
   });
 
-  Future<void> sendOtp({
-    required String identifier,
-  });
+  Future<void> sendOtp({required String identifier});
 
-  Future<String> verifyOtp({
-    required String otp,
-  });
+  Future<String> verifyOtp({required String otp});
 
   Future<void> retryOtp();
 }

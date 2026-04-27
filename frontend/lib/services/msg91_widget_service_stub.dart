@@ -13,7 +13,8 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
     // JWT-like token (header.payload.signature)
     if (token.split('.').length >= 3) return true;
     // Many providers return long opaque tokens; guard against human-readable messages.
-    final isOpaque = RegExp(r'^[A-Za-z0-9=_\-]+$').hasMatch(token) && token.length >= 24;
+    final isOpaque =
+        RegExp(r'^[A-Za-z0-9=_\-]+$').hasMatch(token) && token.length >= 24;
     return isOpaque;
   }
 
@@ -40,10 +41,13 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
       debugPrint('[MSG91] sendOTP response: $response');
       if (response != null) {
         if (response['type'] == 'error') {
-          throw AuthException(response['message'] ?? 'Failed to send OTP via native SDK');
+          throw AuthException(
+            response['message'] ?? 'Failed to send OTP via native SDK',
+          );
         }
         // Fallback to 'message' if 'reqId' is missing, as some SDK versions return the ID in 'message'
-        _lastReqId = response['reqId']?.toString() ?? response['message']?.toString();
+        _lastReqId =
+            response['reqId']?.toString() ?? response['message']?.toString();
         debugPrint('[MSG91] sendOTP success, reqId: $_lastReqId');
       }
     } catch (e) {
@@ -58,11 +62,13 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
     if (_lastReqId == null) {
       throw AuthException('Cannot retry OTP: No previous request ID found.');
     }
-    
+
     try {
       final response = await OTPWidget.retryOTP({'reqId': _lastReqId!});
       if (response != null && response['type'] == 'error') {
-        throw AuthException(response['message'] ?? 'Failed to resend OTP via native SDK');
+        throw AuthException(
+          response['message'] ?? 'Failed to resend OTP via native SDK',
+        );
       }
     } catch (e) {
       throw AuthException('Native retryOtp failed: $e');
@@ -73,7 +79,9 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
   Future<String> verifyOtp({required String otp}) async {
     _assertInitialized();
     if (_lastReqId == null) {
-      throw AuthException('Cannot verify OTP: No previous request ID found. Please try sending the OTP again.');
+      throw AuthException(
+        'Cannot verify OTP: No previous request ID found. Please try sending the OTP again.',
+      );
     }
 
     try {
@@ -82,9 +90,11 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
         'reqId': _lastReqId,
       });
       debugPrint('[MSG91] verifyOTP response: $response');
-      
+
       if (response != null && response['type'] == 'success') {
-        final token = response['token']?.toString() ?? response['accessToken']?.toString();
+        final token =
+            response['token']?.toString() ??
+            response['accessToken']?.toString();
         if (token != null && token.isNotEmpty) {
           return token;
         }
@@ -96,7 +106,7 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
           'OTP verified, but MSG91 did not return an access token. Please tap "Resend OTP" and try again.',
         );
       }
-      
+
       throw AuthException(response?['message'] ?? 'OTP verification failed');
     } catch (e) {
       if (e is AuthException) rethrow;

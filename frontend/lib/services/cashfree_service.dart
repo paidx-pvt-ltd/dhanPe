@@ -13,7 +13,10 @@ import '../models/payment.dart';
 class CashfreeService {
   final CFPaymentGatewayService _gateway = CFPaymentGatewayService();
 
-  Future<void> launchCheckout(Payment payment, {required bool useSandbox}) async {
+  Future<void> launchCheckout(
+    Payment payment, {
+    required bool useSandbox,
+  }) async {
     final completer = Completer<void>();
 
     Future<void> onVerify(String orderId) async {
@@ -34,12 +37,16 @@ class CashfreeService {
       _gateway.setCallback(onVerify, onError);
 
       final session = CFSessionBuilder()
-          .setEnvironment(useSandbox ? CFEnvironment.SANDBOX : CFEnvironment.PRODUCTION)
+          .setEnvironment(
+            useSandbox ? CFEnvironment.SANDBOX : CFEnvironment.PRODUCTION,
+          )
           .setOrderId(payment.orderId)
           .setPaymentSessionId(payment.paymentSessionId)
           .build();
 
-      final checkout = CFWebCheckoutPaymentBuilder().setSession(session).build();
+      final checkout = CFWebCheckoutPaymentBuilder()
+          .setSession(session)
+          .build();
       _gateway.doPayment(checkout);
 
       await completer.future.timeout(

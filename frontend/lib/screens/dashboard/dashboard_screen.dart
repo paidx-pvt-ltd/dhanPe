@@ -34,14 +34,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final beneficiaryProvider = context.read<BeneficiaryProvider>();
     final transactionsProvider = context.read<TransactionsProvider>();
 
+    // Load profile first so the top section can render quickly, then load other lists.
+    // Staggering network calls reduces main-thread contention and initial jank.
+    await userProvider.loadProfile();
+
+    if (!mounted) return;
+
+    // Give the UI a small opportunity to render before loading heavier lists.
+    await Future.delayed(const Duration(milliseconds: 80));
+
     await Future.wait([
-      userProvider.loadProfile(),
       beneficiaryProvider.loadBeneficiaries(),
       transactionsProvider.loadRecentTransactions(),
     ]);
 
     if (mounted) {
-      userProvider.setHasBeneficiaries(beneficiaryProvider.beneficiaries.isNotEmpty);
+      userProvider.setHasBeneficiaries(
+        beneficiaryProvider.beneficiaries.isNotEmpty,
+      );
     }
   }
 
@@ -74,7 +84,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _greeting(user?.firstName ?? user?.displayName ?? 'there'),
+                          _greeting(
+                            user?.firstName ?? user?.displayName ?? 'there',
+                          ),
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ],
@@ -102,10 +114,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       'Available balance',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelMedium
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -113,29 +124,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: Theme.of(context).textTheme.displayMedium,
                     ),
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         StatusBadge(
-                          label: user?.isKycApproved == true ? 'KYC Verified' : 'KYC Pending',
+                          label: user?.isKycApproved == true
+                              ? 'KYC Verified'
+                              : 'KYC Pending',
                           color: user?.isKycApproved == true
                               ? AppColors.success
                               : AppColors.warning,
                         ),
-                        const SizedBox(width: 8),
                         const StatusBadge(
                           label: 'Secure Payment',
                           color: AppColors.secondary,
                         ),
-                        const SizedBox(width: 8),
                         StatusBadge(
-                          label: user?.panVerified == true ? 'PAN Verified' : 'PAN Pending',
+                          label: user?.panVerified == true
+                              ? 'PAN Verified'
+                              : 'PAN Pending',
                           color: user?.panVerified == true
                               ? AppColors.success
                               : AppColors.warning,
                         ),
-                        const SizedBox(width: 8),
                         StatusBadge(
-                          label: '${beneficiaryProvider.beneficiaries.length} beneficiaries',
+                          label:
+                              '${beneficiaryProvider.beneficiaries.length} beneficiaries',
                           color: AppColors.secondary,
                         ),
                       ],
@@ -160,7 +176,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _ActionCard(
-                      title: user?.isKycApproved == true ? 'Manage profile' : 'Complete KYC',
+                      title: user?.isKycApproved == true
+                          ? 'Manage profile'
+                          : 'Complete KYC',
                       subtitle: user?.isKycApproved == true
                           ? 'Keep compliance details current'
                           : 'Unlock compliant settlement access',
@@ -215,23 +233,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('No transactions yet', style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        'No transactions yet',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         'Create your first payment from the Payments tab once your profile is ready.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.textMuted),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
                 )
               else
-                ...recentTransactions.take(4).map(
+                ...recentTransactions
+                    .take(4)
+                    .map(
                       (transaction) => _ActivityTile(
                         transaction: transaction,
-                        onTap: () => context.push('/transfers/${transaction.id}'),
+                        onTap: () =>
+                            context.push('/transfers/${transaction.id}'),
                       ),
                     ),
             ],
@@ -246,8 +269,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final prefix = hour < 12
         ? 'Good morning'
         : hour < 18
-            ? 'Good afternoon'
-            : 'Good evening';
+        ? 'Good afternoon'
+        : 'Good evening';
     return '$prefix, $name';
   }
 }
@@ -327,10 +350,9 @@ class _OnboardingGuidanceCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                   ),
                 ],
               ),
@@ -381,18 +403,16 @@ class _ActionCard extends StatelessWidget {
               const Spacer(),
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(color: Colors.white),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: Colors.white),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.white70),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
               ),
             ],
           ),
@@ -418,7 +438,10 @@ class _StatTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: Theme.of(context).textTheme.labelMedium),
+        Text(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelMedium,
+        ),
         const SizedBox(height: 10),
         Text(value, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 6),
@@ -428,10 +451,9 @@ class _StatTile extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               'live',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(color: accent),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: accent),
             ),
           ],
         ),
@@ -441,10 +463,7 @@ class _StatTile extends StatelessWidget {
 }
 
 class _ActivityTile extends StatelessWidget {
-  const _ActivityTile({
-    required this.transaction,
-    required this.onTap,
-  });
+  const _ActivityTile({required this.transaction, required this.onTap});
 
   final TransactionSummary transaction;
   final VoidCallback onTap;
@@ -454,8 +473,8 @@ class _ActivityTile extends StatelessWidget {
     final amountColor = transaction.isFailed
         ? AppColors.warning
         : transaction.isCompleted
-            ? AppColors.success
-            : AppColors.text;
+        ? AppColors.success
+        : AppColors.text;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -463,7 +482,9 @@ class _ActivityTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTheme.lgRadius),
         onTap: onTap,
         child: KineticPanel(
-          color: transaction.isCompleted ? AppColors.surfaceHigh : AppColors.surfaceLow,
+          color: transaction.isCompleted
+              ? AppColors.surfaceHigh
+              : AppColors.surfaceLow,
           child: Row(
             children: [
               Container(
@@ -477,13 +498,13 @@ class _ActivityTile extends StatelessWidget {
                   transaction.isCompleted
                       ? Icons.check_circle_outline_rounded
                       : transaction.isFailed
-                          ? Icons.error_outline_rounded
-                          : Icons.north_east_rounded,
+                      ? Icons.error_outline_rounded
+                      : Icons.north_east_rounded,
                   color: transaction.isCompleted
                       ? AppColors.success
                       : transaction.isFailed
-                          ? AppColors.warning
-                          : AppColors.primary,
+                      ? AppColors.warning
+                      : AppColors.primary,
                 ),
               ),
               const SizedBox(width: 14),
@@ -491,14 +512,16 @@ class _ActivityTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(transaction.title, style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      transaction.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${transaction.status} • ${DateFormat('MMM d, h:mm a').format(transaction.createdAt)}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -507,20 +530,20 @@ class _ActivityTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                        .format(transaction.amount),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(color: amountColor),
+                    NumberFormat.currency(
+                      symbol: 'INR ',
+                      decimalDigits: 2,
+                    ).format(transaction.amount),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: amountColor),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     transaction.payoutStatus,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
