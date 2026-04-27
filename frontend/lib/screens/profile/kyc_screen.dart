@@ -51,10 +51,9 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(height: 12),
                   Text(
                     'We verify identity to prevent fraud, comply with financial regulations, and keep payment settlement secure.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -65,29 +64,37 @@ class _KycScreenState extends State<KycScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('What to expect', style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    'What to expect',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 10),
                   const _KycStep(
                     number: '1',
                     title: 'Submit verification details',
-                    subtitle: 'Complete the secure verification flow powered by Didit.',
+                    subtitle:
+                        'Complete the secure verification flow powered by Didit.',
                   ),
                   const _KycStep(
                     number: '2',
                     title: 'Compliance review',
-                    subtitle: 'Status can remain pending while checks complete.',
+                    subtitle:
+                        'Status can remain pending while checks complete.',
                   ),
                   const _KycStep(
                     number: '3',
                     title: 'Settlement access',
-                    subtitle: 'Verified users can complete bill-payment settlements to linked accounts.',
+                    subtitle:
+                        'Verified users can complete bill-payment settlements to linked accounts.',
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             GradientButton(
-              label: status == 'APPROVED' ? 'Re-run verification' : 'Start verification',
+              label: status == 'APPROVED'
+                  ? 'Re-run verification'
+                  : 'Start verification',
               icon: Icons.verified_user_outlined,
               isLoading: provider.isLoading,
               onPressed: () async {
@@ -100,7 +107,8 @@ class _KycScreenState extends State<KycScreen> {
                     content: Text(
                       approved
                           ? 'Identity verification approved.'
-                          : provider.error ?? 'Verification is still in progress.',
+                          : provider.error ??
+                                'Verification is still in progress.',
                     ),
                   ),
                 );
@@ -167,10 +175,9 @@ class _KycStep extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.textMuted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
                 ),
               ],
             ),

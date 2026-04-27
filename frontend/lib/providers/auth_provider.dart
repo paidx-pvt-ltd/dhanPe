@@ -18,7 +18,9 @@ class AuthProvider extends ChangeNotifier {
   String? _widgetTokenAuth;
 
   AuthProvider(this._authService, [HttpClient? httpClient])
-      : _httpClient = httpClient ?? (getIt.isRegistered<HttpClient>() ? getIt<HttpClient>() : null) {
+    : _httpClient =
+          httpClient ??
+          (getIt.isRegistered<HttpClient>() ? getIt<HttpClient>() : null) {
     checkAuthentication();
   }
 

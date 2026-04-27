@@ -78,7 +78,9 @@ void main() {
     getIt.registerSingleton<Msg91WidgetService>(_FakeMsg91WidgetService());
   });
 
-  testWidgets('unauthenticated app lands on the login screen', (WidgetTester tester) async {
+  testWidgets('unauthenticated app lands on the login screen', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       const MyApp(
         securityStatus: DeviceSecurityStatus(

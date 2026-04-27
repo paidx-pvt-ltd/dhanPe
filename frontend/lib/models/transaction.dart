@@ -241,11 +241,14 @@ class TransactionSummary {
   bool get isPaid => status == 'PAID';
   bool get isFailed => status == 'FAILED' || payoutStatus == 'FAILED';
   bool get isPending => !isPaid && !isFailed;
-  bool get isCompleted => lifecycleState == 'COMPLETED' || payoutStatus == 'SUCCESS';
+  bool get isCompleted =>
+      lifecycleState == 'COMPLETED' || payoutStatus == 'SUCCESS';
 
   String get title =>
       beneficiary?.title ??
-      (description?.trim().isNotEmpty == true ? description!.trim() : 'Transfer');
+      (description?.trim().isNotEmpty == true
+          ? description!.trim()
+          : 'Transfer');
 }
 
 class Transaction extends TransactionSummary {
@@ -296,10 +299,11 @@ class Transaction extends TransactionSummary {
         .whereType<Map<String, dynamic>>()
         .map(TransactionDispute.fromJson)
         .toList();
-    final reconciliation = (json['reconciliation'] as List<dynamic>? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .map(TransactionReconciliationItem.fromJson)
-        .toList();
+    final reconciliation =
+        (json['reconciliation'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(TransactionReconciliationItem.fromJson)
+            .toList();
 
     return Transaction(
       id: json['id'] as String,
@@ -327,8 +331,9 @@ class Transaction extends TransactionSummary {
           : null,
       latestRefundStatus: refunds.isNotEmpty ? refunds.last.status : null,
       latestDisputeStatus: disputes.isNotEmpty ? disputes.last.status : null,
-      openReconciliationCount:
-          reconciliation.where((item) => item.status == 'OPEN').length,
+      openReconciliationCount: reconciliation
+          .where((item) => item.status == 'OPEN')
+          .length,
       paymentId: json['paymentId'] as String?,
       paymentProvider: json['paymentProvider'] as String? ?? 'CASHFREE',
       platformFeeAmount: (json['platformFeeAmount'] as num?)?.toDouble() ?? 0,

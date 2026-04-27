@@ -52,7 +52,7 @@ class WebMsg91WidgetService implements Msg91WidgetService {
       _widgetId = widgetId;
       _tokenAuth = tokenAuth;
     } catch (error) {
-      // If we still get an "already rendered" error, we can safely ignore it 
+      // If we still get an "already rendered" error, we can safely ignore it
       // as it means the JS bridge is already alive.
       final errorStr = error.toString().toLowerCase();
       if (errorStr.contains('already rendered')) {
@@ -66,9 +66,7 @@ class WebMsg91WidgetService implements Msg91WidgetService {
   }
 
   @override
-  Future<void> sendOtp({
-    required String identifier,
-  }) async {
+  Future<void> sendOtp({required String identifier}) async {
     _assertInitialized();
     final completer = Completer<void>();
 
@@ -82,7 +80,9 @@ class WebMsg91WidgetService implements Msg91WidgetService {
         },
         (dynamic error) {
           if (!completer.isCompleted) {
-            completer.completeError(_normalizeError(error, fallback: 'Failed to send OTP'));
+            completer.completeError(
+              _normalizeError(error, fallback: 'Failed to send OTP'),
+            );
           }
         },
       ]);
@@ -94,9 +94,7 @@ class WebMsg91WidgetService implements Msg91WidgetService {
   }
 
   @override
-  Future<String> verifyOtp({
-    required String otp,
-  }) async {
+  Future<String> verifyOtp({required String otp}) async {
     _assertInitialized();
     final completer = Completer<String>();
 
@@ -113,7 +111,9 @@ class WebMsg91WidgetService implements Msg91WidgetService {
           if (accessToken == null || accessToken.isEmpty) {
             if (!completer.isCompleted) {
               completer.completeError(
-                AuthException('MSG91 verification succeeded but did not return an access token.'),
+                AuthException(
+                  'MSG91 verification succeeded but did not return an access token.',
+                ),
               );
             }
             return;
@@ -125,7 +125,9 @@ class WebMsg91WidgetService implements Msg91WidgetService {
         },
         (dynamic error) {
           if (!completer.isCompleted) {
-            completer.completeError(_normalizeError(error, fallback: 'Failed to verify OTP'));
+            completer.completeError(
+              _normalizeError(error, fallback: 'Failed to verify OTP'),
+            );
           }
         },
       ]);
@@ -150,7 +152,9 @@ class WebMsg91WidgetService implements Msg91WidgetService {
         },
         (dynamic error) {
           if (!completer.isCompleted) {
-            completer.completeError(_normalizeError(error, fallback: 'Failed to resend OTP'));
+            completer.completeError(
+              _normalizeError(error, fallback: 'Failed to resend OTP'),
+            );
           }
         },
       ]);
@@ -167,7 +171,9 @@ class WebMsg91WidgetService implements Msg91WidgetService {
   }
 
   Future<void> _loadScript() async {
-    final existing = html.document.querySelector('script[data-msg91-otp="true"]');
+    final existing = html.document.querySelector(
+      'script[data-msg91-otp="true"]',
+    );
     if (existing != null) {
       await _waitForGlobalMethod('initSendOTP');
       return;
@@ -230,7 +236,11 @@ class WebMsg91WidgetService implements Msg91WidgetService {
     return AuthException(message, code: code);
   }
 
-  dynamic _readNestedProperty(dynamic source, String parentKey, String childKey) {
+  dynamic _readNestedProperty(
+    dynamic source,
+    String parentKey,
+    String childKey,
+  ) {
     final parent = _readProperty(source, parentKey);
     return _readProperty(parent, childKey);
   }

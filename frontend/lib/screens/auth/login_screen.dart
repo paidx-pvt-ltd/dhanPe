@@ -15,7 +15,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSendingOtp = false;
@@ -41,7 +42,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isSendingOtp = true);
 
     try {
-      await authProvider.requestOtp(mobileNumber: _normalizedWidgetMobileNumber());
+      await authProvider.requestOtp(
+        mobileNumber: _normalizedWidgetMobileNumber(),
+      );
 
       if (!mounted) return;
       if (authProvider.error != null && authProvider.error!.isNotEmpty) {
@@ -60,7 +63,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   bool _validateMobileNumber() {
-    final normalized = _mobileController.text.replaceAll(RegExp(r'[^0-9+]'), '');
+    final normalized = _mobileController.text.replaceAll(
+      RegExp(r'[^0-9+]'),
+      '',
+    );
     if (normalized.length >= 10) return true;
     _showSnackBar('Enter a valid mobile number');
     return false;
@@ -75,9 +81,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -97,7 +103,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               child: Container(
                 width: 220,
                 height: 220,
-                decoration: AppTheme.glowingOrb(AppColors.primary, opacity: 0.18),
+                decoration: AppTheme.glowingOrb(
+                  AppColors.primary,
+                  opacity: 0.18,
+                ),
               ),
             ),
             Positioned(
@@ -106,19 +115,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               child: Container(
                 width: 200,
                 height: 200,
-                decoration: AppTheme.glowingOrb(AppColors.secondary, opacity: 0.13),
+                decoration: AppTheme.glowingOrb(
+                  AppColors.secondary,
+                  opacity: 0.13,
+                ),
               ),
             ),
-            const Positioned(
-              top: 0,
-              left: 0,
-              child: Msg91CaptchaHost(),
-            ),
+            const Positioned(top: 0, left: 0, child: Msg91CaptchaHost()),
             // Main content
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: isWide ? 480 : double.infinity),
+                  constraints: BoxConstraints(
+                    maxWidth: isWide ? 480 : double.infinity,
+                  ),
                   child: ListView(
                     padding: EdgeInsets.fromLTRB(
                       isWide ? 0 : 24,
@@ -164,10 +174,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       const SizedBox(height: 10),
                       Text(
                         'We will use a secure SMS widget to verify your number.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(color: AppColors.textMuted),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                       const SizedBox(height: 32),
                       // Form card
@@ -187,12 +196,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     keyboardType: TextInputType.phone,
                                     decoration: const InputDecoration(
                                       labelText: 'Mobile number',
-                                      prefixIcon: Icon(Icons.phone_iphone_rounded),
+                                      prefixIcon: Icon(
+                                        Icons.phone_iphone_rounded,
+                                      ),
                                       hintText: '98XXXXXXXX',
                                     ),
                                     validator: (value) {
                                       final normalized =
-                                          value?.replaceAll(RegExp(r'[^0-9+]'), '') ?? '';
+                                          value?.replaceAll(
+                                            RegExp(r'[^0-9+]'),
+                                            '',
+                                          ) ??
+                                          '';
                                       if (normalized.length < 10) {
                                         return 'Enter a valid mobile number';
                                       }
@@ -204,7 +219,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   GradientButton(
                                     label: 'Verify Mobile Number',
                                     icon: Icons.security_rounded,
-                                    isLoading: _isSendingOtp || authProvider.isLoading,
+                                    isLoading:
+                                        _isSendingOtp || authProvider.isLoading,
                                     onPressed: authProvider.isWidgetConfigured
                                         ? _handleLaunchWidget
                                         : null,
@@ -239,4 +255,3 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 }
-

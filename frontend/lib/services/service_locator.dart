@@ -25,25 +25,17 @@ void setupServiceLocator() {
     AuthService(httpClient.getDio(), storage),
   );
 
-  getIt.registerSingleton<Msg91WidgetService>(
-    createMsg91WidgetService(),
-  );
+  getIt.registerSingleton<Msg91WidgetService>(createMsg91WidgetService());
 
-  getIt.registerSingleton<CashfreeService>(
-    CashfreeService(),
-  );
+  getIt.registerSingleton<CashfreeService>(CashfreeService());
 
-  getIt.registerSingleton<UserService>(
-    UserService(httpClient.getDio()),
-  );
+  getIt.registerSingleton<UserService>(UserService(httpClient.getDio()));
 
   getIt.registerSingleton<BeneficiaryService>(
     BeneficiaryService(httpClient.getDio()),
   );
 
-  getIt.registerSingleton<PaymentService>(
-    PaymentService(httpClient.getDio()),
-  );
+  getIt.registerSingleton<PaymentService>(PaymentService(httpClient.getDio()));
 
   getIt.registerSingleton<TransactionService>(
     TransactionService(httpClient.getDio()),

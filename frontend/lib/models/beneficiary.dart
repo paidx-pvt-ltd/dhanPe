@@ -36,7 +36,9 @@ class Beneficiary {
       accountHolderName: json['accountHolderName'] as String? ?? '',
       accountNumberMask: json['accountNumberMask'] as String? ?? 'XXXXXX0000',
       ifsc: json['ifsc'] as String? ?? '',
-      isVerified: json['isVerified'] as bool? ?? ((json['status'] as String?) == 'VERIFIED'),
+      isVerified:
+          json['isVerified'] as bool? ??
+          ((json['status'] as String?) == 'VERIFIED'),
       status: json['status'] as String? ?? 'PENDING_VERIFICATION',
       providerStatus: json['providerStatus'] as String?,
       createdAt: DateTime.parse(createdAtValue),

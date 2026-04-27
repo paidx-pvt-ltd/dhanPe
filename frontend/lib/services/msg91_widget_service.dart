@@ -5,4 +5,5 @@ import 'msg91_widget_service_base.dart';
 
 export 'msg91_widget_service_base.dart';
 
-Msg91WidgetService createMsg91WidgetService() => impl.createMsg91WidgetService();
+Msg91WidgetService createMsg91WidgetService() =>
+    impl.createMsg91WidgetService();

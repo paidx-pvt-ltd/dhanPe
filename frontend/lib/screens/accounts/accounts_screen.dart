@@ -48,14 +48,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 children: [
                   Text(
                     'Verified payout lane',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    userProvider.user?.displayName.toUpperCase() ?? 'DHANPE USER',
+                    userProvider.user?.displayName.toUpperCase() ??
+                        'DHANPE USER',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 20),
@@ -66,27 +66,29 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     style: Theme.of(context).textTheme.displaySmall,
                   ),
                   const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        StatusBadge(
+                  Row(
+                    children: [
+                      StatusBadge(
                         label: userProvider.user?.isKycApproved == true
                             ? 'KYC Approved'
                             : 'KYC Pending',
                         color: userProvider.user?.isKycApproved == true
                             ? AppColors.success
                             : AppColors.warning,
-                        ),
-                        const SizedBox(width: 8),
-                        StatusBadge(
-                          label: userProvider.user?.panVerified == true ? 'PAN Verified' : 'PAN Pending',
-                          color: userProvider.user?.panVerified == true
-                              ? AppColors.success
-                              : AppColors.warning,
-                        ),
-                        const SizedBox(width: 8),
-                        StatusBadge(
-                          label: '$verified verified',
-                          color: AppColors.secondary,
+                      ),
+                      const SizedBox(width: 8),
+                      StatusBadge(
+                        label: userProvider.user?.panVerified == true
+                            ? 'PAN Verified'
+                            : 'PAN Pending',
+                        color: userProvider.user?.panVerified == true
+                            ? AppColors.success
+                            : AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      StatusBadge(
+                        label: '$verified verified',
+                        color: AppColors.secondary,
                       ),
                     ],
                   ),
@@ -134,14 +136,16 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('No saved beneficiaries', style: Theme.of(context).textTheme.titleLarge),
+                    Text(
+                      'No saved beneficiaries',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Add a bank account in Payments, verify it once, and reuse it for future transfers.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     GradientButton(
@@ -219,7 +223,9 @@ class _BeneficiaryTile extends StatelessWidget {
               ),
               child: Icon(
                 Icons.account_balance_rounded,
-                color: beneficiary.isVerified ? AppColors.secondary : AppColors.tertiary,
+                color: beneficiary.isVerified
+                    ? AppColors.secondary
+                    : AppColors.tertiary,
               ),
             ),
             const SizedBox(width: 14),
@@ -227,21 +233,25 @@ class _BeneficiaryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(beneficiary.label, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    beneficiary.label,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     '${beneficiary.accountNumberMask}  •  ${beneficiary.ifsc}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
             ),
             StatusBadge(
               label: beneficiary.isVerified ? 'Verified' : 'Pending',
-              color: beneficiary.isVerified ? AppColors.success : AppColors.warning,
+              color: beneficiary.isVerified
+                  ? AppColors.success
+                  : AppColors.warning,
             ),
           ],
         ),

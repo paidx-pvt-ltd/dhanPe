@@ -26,7 +26,7 @@ class UserProvider extends ChangeNotifier {
   Timer? _activeSessionPollingTimer;
   String? _activeKycSessionId;
   String? _activeKycVerificationUrl;
-  
+
   bool _hasBeneficiaries = true; // Default to true to avoid flash before load
 
   UserProvider(this._userService);
@@ -43,7 +43,7 @@ class UserProvider extends ChangeNotifier {
   OnboardingStep get nextRequiredStep {
     final currentUser = _user;
     if (currentUser == null) return OnboardingStep.mobileVerified;
-    
+
     // 1. Mobile Verification
     if (!currentUser.isMobileVerified) return OnboardingStep.mobileVerified;
 
@@ -134,10 +134,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> submitPan({
-    required String panNumber,
-    String? legalName,
-  }) async {
+  Future<bool> submitPan({required String panNumber, String? legalName}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();

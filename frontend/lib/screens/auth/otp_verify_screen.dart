@@ -8,10 +8,7 @@ import '../../widgets/legal_links.dart';
 import '../../widgets/kinetic_primitives.dart';
 
 class OtpVerifyScreen extends StatefulWidget {
-  const OtpVerifyScreen({
-    required this.mobileNumber,
-    super.key,
-  });
+  const OtpVerifyScreen({required this.mobileNumber, super.key});
 
   final String mobileNumber;
 
@@ -31,9 +28,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _handleVerify() async {
@@ -69,7 +66,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   Future<void> _handleRetry() async {
     setState(() => _isRetrying = true);
     try {
-      await context.read<AuthProvider>().requestOtp(mobileNumber: widget.mobileNumber);
+      await context.read<AuthProvider>().requestOtp(
+        mobileNumber: widget.mobileNumber,
+      );
       if (!mounted) return;
       _showSnackBar('OTP resent');
     } catch (e) {
@@ -91,7 +90,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: isWide ? 480 : double.infinity),
+              constraints: BoxConstraints(
+                maxWidth: isWide ? 480 : double.infinity,
+              ),
               child: ListView(
                 padding: EdgeInsets.fromLTRB(
                   isWide ? 0 : 24,
@@ -116,10 +117,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                   const SizedBox(height: 18),
                   Text(
                     'Enter the OTP sent to ${widget.mobileNumber}.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 28),
                   KineticPanel(
@@ -146,15 +146,21 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                         ),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
-                          onPressed: _isRetrying || _isVerifying ? null : _handleRetry,
+                          onPressed: _isRetrying || _isVerifying
+                              ? null
+                              : _handleRetry,
                           icon: _isRetrying
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : const Icon(Icons.refresh_rounded),
-                          label: Text(_isRetrying ? 'Resending...' : 'Resend OTP'),
+                          label: Text(
+                            _isRetrying ? 'Resending...' : 'Resend OTP',
+                          ),
                         ),
                       ],
                     ),
@@ -170,4 +176,3 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     );
   }
 }
-

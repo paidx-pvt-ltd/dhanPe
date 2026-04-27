@@ -61,7 +61,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     return Consumer3<UserProvider, BeneficiaryProvider, PaymentProvider>(
       builder: (context, userProvider, beneficiaryProvider, paymentProvider, _) {
-        final filteredBeneficiaries = beneficiaryProvider.beneficiaries.where((item) {
+        final filteredBeneficiaries = beneficiaryProvider.beneficiaries.where((
+          item,
+        ) {
           if (_query.isEmpty) {
             return true;
           }
@@ -71,7 +73,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           return haystack.contains(_query.toLowerCase());
         }).toList();
         final user = userProvider.user;
-        final canTransfer = user?.isKycApproved == true && _hasCompleteProfile(user);
+        final canTransfer =
+            user?.isKycApproved == true && _hasCompleteProfile(user);
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
@@ -98,9 +101,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.info_outline_rounded, color: AppColors.warning),
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.warning,
+                        ),
                         const SizedBox(width: 10),
-                        Text('Urgent attention', style: Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          'Urgent attention',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -108,10 +117,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       user?.isKycApproved == true
                           ? 'Finish your compliance profile before creating a bill payment.'
                           : 'Complete KYC and your profile details before creating a bill payment.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     GradientButton(
@@ -138,7 +146,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ),
                         Switch.adaptive(
                           value: _useManualForm,
-                          activeTrackColor: AppColors.secondary.withValues(alpha: 0.5),
+                          activeTrackColor: AppColors.secondary.withValues(
+                            alpha: 0.5,
+                          ),
                           activeThumbColor: AppColors.secondary,
                           onChanged: (value) {
                             setState(() {
@@ -155,25 +165,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       _useManualForm
                           ? 'Use one-off bank details'
                           : 'Pick a saved account to settle payment proceeds',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     if (user?.panVerified != true) ...[
                       const SizedBox(height: 8),
                       Text(
                         'PAN will be requested before the first transfer is submitted.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.warning),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.warning,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 18),
                     TextField(
                       controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Amount',
                         prefixIcon: Icon(Icons.currency_rupee_rounded),
@@ -210,7 +220,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: 'Account number',
-                          prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                          prefixIcon: Icon(
+                            Icons.account_balance_wallet_outlined,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -232,7 +244,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton(
-                        onPressed: beneficiaryProvider.isLoading ? null : _saveBeneficiary,
+                        onPressed: beneficiaryProvider.isLoading
+                            ? null
+                            : _saveBeneficiary,
                         child: const Text('Save beneficiary first'),
                       ),
                     ] else ...[
@@ -258,8 +272,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       label: 'Continue to checkout',
                       icon: Icons.arrow_outward_rounded,
                       isLoading: paymentProvider.isLoading,
-                      onPressed:
-                          canTransfer && _acceptedDisclosure ? _createTransfer : null,
+                      onPressed: canTransfer && _acceptedDisclosure
+                          ? _createTransfer
+                          : null,
                     ),
                   ],
                 ),
@@ -298,7 +313,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
               onActionTap: () => setState(() => _useManualForm = true),
             ),
             const SizedBox(height: 12),
-            if (beneficiaryProvider.isLoading && beneficiaryProvider.beneficiaries.isEmpty)
+            if (beneficiaryProvider.isLoading &&
+                beneficiaryProvider.beneficiaries.isEmpty)
               const _PaymentLoadingList()
             else if (filteredBeneficiaries.isEmpty)
               KineticPanel(
@@ -353,7 +369,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         _accountNumberController.text.trim().isEmpty ||
         _ifscController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fill account holder, account number, and IFSC first')),
+        const SnackBar(
+          content: Text('Fill account holder, account number, and IFSC first'),
+        ),
       );
       return;
     }
@@ -363,8 +381,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       accountHolderName: _accountHolderController.text.trim(),
       accountNumber: _accountNumberController.text.trim(),
       ifsc: _ifscController.text.trim().toUpperCase(),
-      bankName: _bankNameController.text.trim().isEmpty ? null : _bankNameController.text.trim(),
-      label: _labelController.text.trim().isEmpty ? null : _labelController.text.trim(),
+      bankName: _bankNameController.text.trim().isEmpty
+          ? null
+          : _bankNameController.text.trim(),
+      label: _labelController.text.trim().isEmpty
+          ? null
+          : _labelController.text.trim(),
     );
 
     if (!mounted) {
@@ -373,7 +395,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     if (beneficiary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.error ?? 'Could not save settlement account')),
+        SnackBar(
+          content: Text(provider.error ?? 'Could not save settlement account'),
+        ),
       );
       return;
     }
@@ -383,15 +407,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       _useManualForm = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved ${beneficiary.label}')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Saved ${beneficiary.label}')));
   }
 
   Future<void> _createTransfer() async {
     final amountText = _amountController.text.trim();
     final amount = double.tryParse(amountText);
-    
+
     if (amount == null || amount <= 0) {
       _showSnackBar('Enter a valid amount');
       return;
@@ -402,7 +426,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    if (_useManualForm && (_accountNumberController.text.isEmpty || _ifscController.text.isEmpty)) {
+    if (_useManualForm &&
+        (_accountNumberController.text.isEmpty ||
+            _ifscController.text.isEmpty)) {
       _showSnackBar('Complete bank details first');
       return;
     }
@@ -410,14 +436,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // 1. Detailed Confirmation Dialog (Fee breakdown + T+1)
     final fee = _estimateFee(amount);
     final total = amount + fee;
-    
+
     final confirmed = await _showDetailedConfirmation(
       context,
       amount: amount,
       fee: fee,
       total: total,
-      beneficiaryLabel: _useManualForm 
-          ? _accountHolderController.text 
+      beneficiaryLabel: _useManualForm
+          ? _accountHolderController.text
           : _selectedBeneficiary!.label,
     );
 
@@ -427,14 +453,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
     await paymentProvider.createPayment(
       amount: amount,
       beneficiaryId: !_useManualForm ? _selectedBeneficiary?.id : null,
-      accountHolderName: _useManualForm ? _accountHolderController.text.trim() : null,
-      bankAccountRef: _useManualForm ? _accountNumberController.text.trim() : null,
+      accountHolderName: _useManualForm
+          ? _accountHolderController.text.trim()
+          : null,
+      bankAccountRef: _useManualForm
+          ? _accountNumberController.text.trim()
+          : null,
       ifsc: _useManualForm ? _ifscController.text.trim().toUpperCase() : null,
       bankName: _useManualForm && _bankNameController.text.trim().isNotEmpty
           ? _bankNameController.text.trim()
           : null,
-      description: _descriptionController.text.trim().isEmpty 
-          ? null 
+      description: _descriptionController.text.trim().isEmpty
+          ? null
           : _descriptionController.text.trim(),
       useSandbox: Config.isCashfreeSandbox,
     );
@@ -450,14 +480,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
       await paymentProvider.createPayment(
         amount: amount,
         beneficiaryId: !_useManualForm ? _selectedBeneficiary?.id : null,
-        accountHolderName: _useManualForm ? _accountHolderController.text.trim() : null,
-        bankAccountRef: _useManualForm ? _accountNumberController.text.trim() : null,
+        accountHolderName: _useManualForm
+            ? _accountHolderController.text.trim()
+            : null,
+        bankAccountRef: _useManualForm
+            ? _accountNumberController.text.trim()
+            : null,
         ifsc: _useManualForm ? _ifscController.text.trim().toUpperCase() : null,
         bankName: _useManualForm && _bankNameController.text.trim().isNotEmpty
             ? _bankNameController.text.trim()
             : null,
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
         useSandbox: Config.isCashfreeSandbox,
       );
@@ -481,14 +515,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<bool> _promptForPan(BuildContext context) async {
     final panController = TextEditingController();
     final userProvider = context.read<UserProvider>();
-    final legalNameController = TextEditingController(text: userProvider.user?.displayName ?? '');
-    
+    final legalNameController = TextEditingController(
+      text: userProvider.user?.displayName ?? '',
+    );
+
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -497,12 +535,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Government regulations require a verified PAN before initiating your first transfer.'),
+              const Text(
+                'Government regulations require a verified PAN before initiating your first transfer.',
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: panController,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(labelText: 'PAN Number', hintText: 'ABCDE1234F'),
+                decoration: const InputDecoration(
+                  labelText: 'PAN Number',
+                  hintText: 'ABCDE1234F',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -557,16 +600,18 @@ class _QuickAmountChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: Theme.of(context).textTheme.labelMedium),
+          Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
           const SizedBox(height: 10),
           Text(subtitle, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 6),
           Text(
             'Tap to fill',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.success),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.success),
           ),
         ],
       ),
@@ -603,7 +648,9 @@ class _BeneficiaryRow extends StatelessWidget {
               ),
               child: Icon(
                 Icons.account_balance_rounded,
-                color: beneficiary.isVerified ? AppColors.secondary : AppColors.warning,
+                color: beneficiary.isVerified
+                    ? AppColors.secondary
+                    : AppColors.warning,
               ),
             ),
             const SizedBox(width: 14),
@@ -611,28 +658,31 @@ class _BeneficiaryRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Row(
+                  Row(
                     children: [
                       Flexible(
                         child: Text(
-                          beneficiary.label, 
+                          beneficiary.label,
                           style: Theme.of(context).textTheme.titleMedium,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (beneficiary.isVerified) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.verified_rounded, color: AppColors.secondary, size: 14),
+                        const Icon(
+                          Icons.verified_rounded,
+                          color: AppColors.secondary,
+                          size: 14,
+                        ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${beneficiary.accountNumberMask} • ${beneficiary.ifsc}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -642,7 +692,9 @@ class _BeneficiaryRow extends StatelessWidget {
             else
               StatusBadge(
                 label: beneficiary.isVerified ? 'VERIFIED BANK' : 'PENDING',
-                color: beneficiary.isVerified ? AppColors.success : AppColors.warning,
+                color: beneficiary.isVerified
+                    ? AppColors.success
+                    : AppColors.warning,
               ),
           ],
         ),
@@ -694,10 +746,9 @@ class _ComplianceDisclosureTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'DhanPe balances are settled as business utility payments. Estimated arrival: Next business day (T+1).',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppColors.textMuted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
           ),
           const SizedBox(height: 8),
           CheckboxListTile(
@@ -705,7 +756,10 @@ class _ComplianceDisclosureTile extends StatelessWidget {
             dense: true,
             contentPadding: EdgeInsets.zero,
             activeColor: AppColors.secondary,
-            title: const Text('I confirm this is for a valid business bill payment.', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            title: const Text(
+              'I confirm this is for a valid business bill payment.',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
             onChanged: onChanged,
           ),
         ],
@@ -722,57 +776,68 @@ Future<bool> _showDetailedConfirmation(
   required String beneficiaryLabel,
 }) async {
   final currency = NumberFormat.currency(symbol: '₹ ', decimalDigits: 2);
-  
+
   return await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Review Bill Payment'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            KineticPanel(
-              color: AppColors.surfaceHighest,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _confirmRow('Settling to', beneficiaryLabel),
-                  const Divider(height: 24),
-                  _confirmRow('Payment Amount', currency.format(amount)),
-                  _confirmRow('Convenience Fee', currency.format(fee)),
-                  const Divider(height: 24),
-                  _confirmRow('Total Payable', currency.format(total), isBold: true),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Review Bill Payment'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.timer_outlined, size: 16, color: AppColors.textMuted),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Express Settlement (T+1): Funds will reach the bank by next working day.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                KineticPanel(
+                  color: AppColors.surfaceHighest,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _confirmRow('Settling to', beneficiaryLabel),
+                      const Divider(height: 24),
+                      _confirmRow('Payment Amount', currency.format(amount)),
+                      _confirmRow('Convenience Fee', currency.format(fee)),
+                      const Divider(height: 24),
+                      _confirmRow(
+                        'Total Payable',
+                        currency.format(total),
+                        isBold: true,
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.timer_outlined,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Express Settlement (T+1): Funds will reach the bank by next working day.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Go Back'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Proceed to Pay'),
-          ),
-        ],
-      );
-    },
-  ) ?? false;
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Go Back'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Proceed to Pay'),
+              ),
+            ],
+          );
+        },
+      ) ??
+      false;
 }
 
 Widget _confirmRow(String label, String value, {bool isBold = false}) {
@@ -781,14 +846,17 @@ Widget _confirmRow(String label, String value, {bool isBold = false}) {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
         Text(
-          value, 
+          label,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+        ),
+        Text(
+          value,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
             fontSize: isBold ? 15 : 13,
             color: isBold ? AppColors.primary : AppColors.text,
-          )
+          ),
         ),
       ],
     ),

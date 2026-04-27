@@ -60,20 +60,16 @@ class SectionHeading extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   subtitle!,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.textMuted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
                 ),
               ],
             ],
           ),
         ),
         if (actionLabel != null)
-          TextButton(
-            onPressed: onActionTap,
-            child: Text(actionLabel!),
-          ),
+          TextButton(onPressed: onActionTap, child: Text(actionLabel!)),
       ],
     );
   }
@@ -99,10 +95,10 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: Theme.of(context)
-            .textTheme
-            .labelMedium
-            ?.copyWith(color: color, fontWeight: FontWeight.w800),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -141,7 +137,10 @@ class GradientButton extends StatelessWidget {
               ? const SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -234,7 +233,9 @@ class StepIndicator extends StatelessWidget {
             children: List.generate(steps.length, (index) {
               final isDone = index < currentStep;
               final isActive = index == currentStep;
-              final dotColor = isDone || isActive ? AppColors.primary : AppColors.outline;
+              final dotColor = isDone || isActive
+                  ? AppColors.primary
+                  : AppColors.outline;
 
               return Expanded(
                 child: Column(
@@ -250,8 +251,8 @@ class StepIndicator extends StatelessWidget {
                         color: isDone
                             ? AppColors.primary
                             : isActive
-                                ? AppColors.primary.withValues(alpha: 0.15)
-                                : AppColors.surfaceHighest,
+                            ? AppColors.primary.withValues(alpha: 0.15)
+                            : AppColors.surfaceHighest,
                         border: Border.all(
                           color: dotColor,
                           width: isActive ? 2 : 1,
@@ -259,18 +260,21 @@ class StepIndicator extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: isDone
-                          ? const Icon(Icons.check_rounded,
-                              size: 13, color: AppColors.background)
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 13,
+                              color: AppColors.background,
+                            )
                           : isActive
-                              ? Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.primary,
-                                  ),
-                                )
-                              : null,
+                          ? Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 5),
                     Text(
@@ -297,11 +301,7 @@ class StepIndicator extends StatelessWidget {
 }
 
 class ProfileAvatar extends StatelessWidget {
-  const ProfileAvatar({
-    super.key,
-    required this.label,
-    this.size = 44,
-  });
+  const ProfileAvatar({super.key, required this.label, this.size = 44});
 
   final String label;
   final double size;
@@ -318,7 +318,9 @@ class ProfileAvatar extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(color: Colors.white),
       ),
     );
   }

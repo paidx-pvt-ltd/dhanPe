@@ -30,7 +30,9 @@ class TransactionService {
       final response = await _dio.get('/transaction/$transactionId');
 
       if (response.statusCode == 200) {
-        return Transaction.fromJson(response.data['data'] as Map<String, dynamic>);
+        return Transaction.fromJson(
+          response.data['data'] as Map<String, dynamic>,
+        );
       }
 
       throw ApiError(

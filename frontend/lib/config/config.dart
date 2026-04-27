@@ -6,8 +6,12 @@ class Config {
 
   // API Configuration
   static const String _defaultLocalBaseUrl = 'http://127.0.0.1:3000/api';
-  static const String _defaultAndroidEmulatorBaseUrl = 'http://10.0.2.2:3000/api';
-  static const String _defaultProductionBaseUrl = 'https://project-szw1p.vercel.app/api';
+  static const String _defaultAndroidEmulatorBaseUrl =
+      'http://10.0.2.2:3000/api';
+  // Production backend (canonical): do not change unless you have a new production host.
+  // This should point to the live API used by the mobile app in production/testing.
+  static const String _defaultProductionBaseUrl =
+      'https://dhanpe-production.up.railway.app';
   static const String _baseUrlOverride = String.fromEnvironment(
     'DHANPE_API_BASE_URL',
     defaultValue: '',
@@ -71,8 +75,9 @@ class Config {
       return trimmed;
     }
 
-    final withoutTrailingSlash =
-        trimmed.endsWith('/') ? trimmed.substring(0, trimmed.length - 1) : trimmed;
+    final withoutTrailingSlash = trimmed.endsWith('/')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
 
     final parsed = Uri.tryParse(withoutTrailingSlash);
     if (parsed == null) {
@@ -100,7 +105,8 @@ class Config {
     'DHANPE_CASHFREE_ENV',
     defaultValue: 'sandbox',
   );
-  static bool get isCashfreeSandbox => _cashfreeEnvironment.toLowerCase() != 'production';
+  static bool get isCashfreeSandbox =>
+      _cashfreeEnvironment.toLowerCase() != 'production';
 
   // Storage Keys
   static const String accessTokenKey = 'access_token';

@@ -34,7 +34,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
 
   Future<void> _fetchTransaction() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = _transaction == null;
       _error = null;
@@ -64,7 +64,12 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
     if (_transaction == null) return;
 
     // Terminal states for DhanPe lifecycle
-    final terminalStates = {'COMPLETED', 'PAYMENT_FAILED', 'PAYOUT_FAILED', 'REFUNDED'};
+    final terminalStates = {
+      'COMPLETED',
+      'PAYMENT_FAILED',
+      'PAYOUT_FAILED',
+      'REFUNDED',
+    };
     if (terminalStates.contains(_transaction!.lifecycleState)) return;
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
@@ -132,10 +137,9 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _error!,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   GradientButton(
@@ -161,8 +165,8 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                             color: _transaction!.isFailed
                                 ? AppColors.warning
                                 : _transaction!.isCompleted
-                                    ? AppColors.success
-                                    : AppColors.primary,
+                                ? AppColors.success
+                                : AppColors.primary,
                           ),
                           const SizedBox(width: 8),
                           StatusBadge(
@@ -174,15 +178,20 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                             const SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                            .format(_transaction!.amount),
+                        NumberFormat.currency(
+                          symbol: 'INR ',
+                          decimalDigits: 2,
+                        ).format(_transaction!.amount),
                         style: Theme.of(context).textTheme.displayMedium,
                       ),
                       const SizedBox(height: 10),
@@ -193,10 +202,9 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                       const SizedBox(height: 6),
                       Text(
                         'Created ${DateFormat('MMM d, yyyy | h:mm a').format(_transaction!.createdAt)}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.textMuted),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -208,18 +216,31 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   color: AppColors.surfaceHigh,
                   child: Column(
                     children: [
-                      _DetailRow(label: 'Order ID', value: _transaction!.orderId),
-                      _DetailRow(label: 'Gateway', value: _transaction!.paymentProvider),
-                      _DetailRow(label: 'Lifecycle', value: _transaction!.lifecycleState),
+                      _DetailRow(
+                        label: 'Order ID',
+                        value: _transaction!.orderId,
+                      ),
+                      _DetailRow(
+                        label: 'Gateway',
+                        value: _transaction!.paymentProvider,
+                      ),
+                      _DetailRow(
+                        label: 'Lifecycle',
+                        value: _transaction!.lifecycleState,
+                      ),
                       _DetailRow(
                         label: 'Net settlement',
-                        value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                            .format(_transaction!.netPayoutAmount),
+                        value: NumberFormat.currency(
+                          symbol: 'INR ',
+                          decimalDigits: 2,
+                        ).format(_transaction!.netPayoutAmount),
                       ),
                       _DetailRow(
                         label: 'Platform fee',
-                        value: NumberFormat.currency(symbol: 'INR ', decimalDigits: 2)
-                            .format(_transaction!.platformFeeAmount),
+                        value: NumberFormat.currency(
+                          symbol: 'INR ',
+                          decimalDigits: 2,
+                        ).format(_transaction!.platformFeeAmount),
                       ),
                       if (_transaction!.beneficiary != null)
                         _DetailRow(
@@ -237,22 +258,22 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Settlement details', style: Theme.of(context).textTheme.titleLarge),
+                        Text(
+                          'Settlement details',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         const SizedBox(height: 8),
                         Text(
-                          _transaction!.payout!.providerStatus ?? _transaction!.payout!.status,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
+                          _transaction!.payout!.providerStatus ??
+                              _transaction!.payout!.status,
+                          style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(color: AppColors.textMuted),
                         ),
                         if (_transaction!.payout!.failureReason != null) ...[
                           const SizedBox(height: 8),
                           Text(
                             _transaction!.payout!.failureReason!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: AppColors.warning),
                           ),
                         ],
@@ -266,7 +287,10 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Refund updates', style: Theme.of(context).textTheme.titleLarge),
+                        Text(
+                          'Refund updates',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         const SizedBox(height: 10),
                         ..._transaction!.refunds.map(
                           (refund) => Padding(
@@ -290,13 +314,13 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
                   color: AppColors.surfaceLow,
                   child: Text(
                     'This operation is a bill payment settlement. Funds are processed via standard banking rails.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: AppColors.textMuted),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ),
-                if (_transaction!.isCompleted && _transaction!.refunds.isEmpty) ...[
+                if (_transaction!.isCompleted &&
+                    _transaction!.refunds.isEmpty) ...[
                   const SizedBox(height: 24),
                   Consumer<PaymentProvider>(
                     builder: (context, paymentProvider, _) {
@@ -327,9 +351,9 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
     if (!mounted) return;
 
     if (paymentProvider.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(paymentProvider.error!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(paymentProvider.error!)));
       return;
     }
 
@@ -366,7 +390,10 @@ class _FlowTimeline extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Transaction lifecycle', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Transaction lifecycle',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 14),
           for (var i = 0; i < labels.length; i++) ...[
             Row(
@@ -377,9 +404,13 @@ class _FlowTimeline extends StatelessWidget {
                   height: 20,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: i <= currentIndex ? AppColors.success : AppColors.surfaceHighest,
+                    color: i <= currentIndex
+                        ? AppColors.success
+                        : AppColors.surfaceHighest,
                     border: Border.all(
-                      color: i <= currentIndex ? AppColors.success : AppColors.outline,
+                      color: i <= currentIndex
+                          ? AppColors.success
+                          : AppColors.outline,
                       width: 1,
                     ),
                   ),
@@ -392,8 +423,12 @@ class _FlowTimeline extends StatelessWidget {
                   child: Text(
                     labels[i],
                     style: TextStyle(
-                      color: i <= currentIndex ? AppColors.text : AppColors.textMuted,
-                      fontWeight: i == currentIndex ? FontWeight.w700 : FontWeight.w400,
+                      color: i <= currentIndex
+                          ? AppColors.text
+                          : AppColors.textMuted,
+                      fontWeight: i == currentIndex
+                          ? FontWeight.w700
+                          : FontWeight.w400,
                     ),
                   ),
                 ),
@@ -405,17 +440,19 @@ class _FlowTimeline extends StatelessWidget {
                 child: Container(
                   width: 1,
                   height: 12,
-                  color: i < currentIndex ? AppColors.success : AppColors.outline,
+                  color: i < currentIndex
+                      ? AppColors.success
+                      : AppColors.outline,
                 ),
               ),
           ],
           const SizedBox(height: 16),
           Text(
             _edgeCaseHint(transaction),
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppColors.textMuted, fontStyle: FontStyle.italic),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textMuted,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
@@ -437,10 +474,7 @@ class _FlowTimeline extends StatelessWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
+  const _DetailRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -455,10 +489,9 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.textMuted),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
             ),
           ),
           const SizedBox(width: 16),
@@ -498,10 +531,9 @@ class _MiniStatusRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.textMuted),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               ),
             ],
           ),

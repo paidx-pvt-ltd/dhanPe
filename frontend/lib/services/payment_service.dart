@@ -18,7 +18,8 @@ class PaymentService {
   }) async {
     try {
       _ensureSensitiveTransport();
-      final hasBeneficiary = beneficiaryId != null && beneficiaryId.trim().isNotEmpty;
+      final hasBeneficiary =
+          beneficiaryId != null && beneficiaryId.trim().isNotEmpty;
       final response = await _dio.post(
         '/transfer',
         data: {
@@ -35,9 +36,7 @@ class PaymentService {
             },
         },
         options: Options(
-          headers: {
-            'x-idempotency-key': _buildIdempotencyKey(amount),
-          },
+          headers: {'x-idempotency-key': _buildIdempotencyKey(amount)},
         ),
       );
 
@@ -55,9 +54,7 @@ class PaymentService {
         message ??= data['message']?.toString();
       }
 
-      throw PaymentException(
-        message ?? 'Failed to create transfer',
-      );
+      throw PaymentException(message ?? 'Failed to create transfer');
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
@@ -96,7 +93,8 @@ class PaymentService {
         '/refund/$transactionId',
         data: {
           if (amount != null) 'amount': amount,
-          if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+          if (reason != null && reason.trim().isNotEmpty)
+            'reason': reason.trim(),
         },
       );
     } on DioException catch (e) {
@@ -105,9 +103,7 @@ class PaymentService {
     }
   }
 
-  String _buildIdempotencyKey(
-    double amount,
-  ) {
+  String _buildIdempotencyKey(double amount) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final entropy = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
     return 'transfer-$timestamp-$entropy-${amount.toStringAsFixed(2)}';
@@ -164,11 +160,14 @@ class PaymentService {
       throw PaymentException('Invalid backend URL configuration');
     }
 
-    final isLoopback = target.host == '127.0.0.1' ||
+    final isLoopback =
+        target.host == '127.0.0.1' ||
         target.host == 'localhost' ||
         target.host == '10.0.2.2';
     if (target.scheme != 'https' && !isLoopback) {
-      throw PaymentException('Insecure backend URL blocked for transfer operation');
+      throw PaymentException(
+        'Insecure backend URL blocked for transfer operation',
+      );
     }
   }
 }

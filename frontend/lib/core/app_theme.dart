@@ -34,11 +34,7 @@ class AppGradients {
   static const pageBackground = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [
-      Color(0xFF141427),
-      AppColors.background,
-      AppColors.background,
-    ],
+    colors: [Color(0xFF141427), AppColors.background, AppColors.background],
   );
 }
 
@@ -94,12 +90,17 @@ class AppTheme {
         labelStyle: _body(13, FontWeight.w700, AppColors.textMuted, 0.7),
         prefixIconColor: AppColors.textMuted,
         suffixIconColor: AppColors.textMuted,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         border: _inputBorder(AppColors.outline),
         enabledBorder: _inputBorder(AppColors.outline),
         focusedBorder: _inputBorder(AppColors.primary.withValues(alpha: 0.4)),
         errorBorder: _inputBorder(AppColors.warning.withValues(alpha: 0.5)),
-        focusedErrorBorder: _inputBorder(AppColors.warning.withValues(alpha: 0.7)),
+        focusedErrorBorder: _inputBorder(
+          AppColors.warning.withValues(alpha: 0.7),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
