@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/msg91_widget_service.dart';
-import '../../services/service_locator.dart';
 import '../../widgets/legal_links.dart';
 import '../../widgets/kinetic_primitives.dart';
 
@@ -23,16 +21,8 @@ class OtpVerifyScreen extends StatefulWidget {
 
 class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   final _otpController = TextEditingController();
-  late final Msg91WidgetService _msg91WidgetService;
-
   bool _isVerifying = false;
   bool _isRetrying = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _msg91WidgetService = getIt<Msg91WidgetService>();
-  }
 
   @override
   void dispose() {
@@ -56,10 +46,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     final authProvider = context.read<AuthProvider>();
     setState(() => _isVerifying = true);
     try {
-      final accessToken = await _msg91WidgetService.verifyOtp(otp: otp);
       await authProvider.loginWithOtp(
         mobileNumber: widget.mobileNumber,
-        accessToken: accessToken,
+        otp: otp,
       );
 
       if (!mounted) return;
@@ -80,7 +69,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   Future<void> _handleRetry() async {
     setState(() => _isRetrying = true);
     try {
-      await _msg91WidgetService.retryOtp();
+      await context.read<AuthProvider>().requestOtp(mobileNumber: widget.mobileNumber);
       if (!mounted) return;
       _showSnackBar('OTP resent');
     } catch (e) {

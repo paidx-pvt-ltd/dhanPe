@@ -7,6 +7,16 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
   bool _initialized = false;
   String? _lastReqId;
 
+  bool _looksLikeAccessToken(String value) {
+    final token = value.trim();
+    if (token.isEmpty) return false;
+    // JWT-like token (header.payload.signature)
+    if (token.split('.').length >= 3) return true;
+    // Many providers return long opaque tokens; guard against human-readable messages.
+    final isOpaque = RegExp(r'^[A-Za-z0-9=_\-]+$').hasMatch(token) && token.length >= 24;
+    return isOpaque;
+  }
+
   @override
   Future<void> initialize({
     required String widgetId,
@@ -77,6 +87,10 @@ class NativeMsg91WidgetService implements Msg91WidgetService {
         final token = response['token']?.toString() ?? response['accessToken']?.toString();
         if (token != null && token.isNotEmpty) {
           return token;
+        }
+        final messageToken = response['message']?.toString();
+        if (messageToken != null && _looksLikeAccessToken(messageToken)) {
+          return messageToken;
         }
         throw AuthException(
           'OTP verified, but MSG91 did not return an access token. Please tap "Resend OTP" and try again.',

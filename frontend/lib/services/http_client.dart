@@ -129,15 +129,15 @@ class HttpClient {
     }
  
     if (Config.enableLogging) {
-      final isExpectedWidgetConfig503 = err.response?.statusCode == 503 && isWidgetConfig;
- 
-      if (!isExpectedWidgetConfig503) {
-        debugPrint('Error type: ${err.type}');
-        debugPrint('Error: ${err.message}');
-        debugPrint('Response: ${err.response?.data}');
-        if (kIsWeb && err.response == null) {
-          debugPrint('Web request failed before response. Check CORS, HTTPS certificate, and API base URL.');
-        }
+      debugPrint('Error type: ${err.type}');
+      debugPrint('Error: ${err.message}');
+      if (isWidgetConfig) {
+        debugPrint('Widget-config request failed: ${err.requestOptions.baseUrl}${err.requestOptions.path}');
+        debugPrint('Widget-config status: ${err.response?.statusCode}');
+      }
+      debugPrint('Response: ${err.response?.data}');
+      if (kIsWeb && err.response == null) {
+        debugPrint('Web request failed before response. Check CORS, HTTPS certificate, and API base URL.');
       }
     }
  

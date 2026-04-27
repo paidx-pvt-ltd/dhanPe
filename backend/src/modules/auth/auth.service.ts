@@ -1,33 +1,40 @@
 import { AuthRepository } from './auth.repository.js';
-import { VerifyOtpDto } from './auth.schemas.js';
+import { SendOtpDto, VerifyOtpDto } from './auth.schemas.js';
 import { AuthenticationError, ValidationError } from '../../shared/errors.js';
 import { JwtService } from '../../utils/jwt.js';
 import { sha256 } from '../../utils/hash.js';
 import { logger } from '../../config/logger.js';
-import { Msg91WidgetService } from './msg91-widget.service.js';
+import { Msg91OtpService } from './msg91-otp.service.js';
 
 export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
-    private readonly msg91WidgetService: Msg91WidgetService
+    private readonly msg91OtpService: Msg91OtpService
   ) {}
 
   async getWidgetConfig() {
     return {
       success: true,
-      data: this.msg91WidgetService.getWidgetConfig(),
+      // Deprecated for platform login (we use backend-driven OTP).
+      // Kept for backward compatibility / web.
+      data: {},
+    };
+  }
+
+  async sendOtp(input: SendOtpDto) {
+    const mobileNumber = this.normalizeMobileNumber(input.mobileNumber);
+    const req = await this.msg91OtpService.sendOtp(mobileNumber.replace('+', ''));
+    return {
+      success: true,
+      data: {
+        reqId: req.reqId,
+      },
     };
   }
 
   async verifyOtp(input: VerifyOtpDto) {
-    const verified = await this.msg91WidgetService.verifyAccessToken(input.accessToken);
-    const mobileNumber = this.normalizeMobileNumber(verified.mobileNumber);
-    if (input.mobileNumber) {
-      const claimedMobileNumber = this.normalizeMobileNumber(input.mobileNumber);
-      if (claimedMobileNumber !== mobileNumber) {
-        throw new AuthenticationError('Verified mobile number does not match the supplied number');
-      }
-    }
+    const mobileNumber = this.normalizeMobileNumber(input.mobileNumber);
+    await this.msg91OtpService.verifyOtp(mobileNumber.replace('+', ''), input.otp);
 
     const user =
       (await this.authRepository.findByMobileNumber(mobileNumber)) ??

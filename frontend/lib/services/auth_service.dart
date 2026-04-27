@@ -9,10 +9,14 @@ class AuthService {
 
   AuthService(this._dio, this._storage);
 
-  Future<Map<String, dynamic>> getWidgetConfig() async {
+  Future<void> sendOtp({required String mobileNumber}) async {
     try {
-      final response = await _dio.get('/auth/widget-config');
-      return response.data['data'] as Map<String, dynamic>;
+      await _dio.post(
+        '/auth/send-otp',
+        data: {
+          'mobileNumber': mobileNumber,
+        },
+      );
     } on DioException catch (e) {
       _handleDioException(e);
       rethrow;
@@ -21,7 +25,7 @@ class AuthService {
 
   Future<Map<String, dynamic>> verifyOtp({
     required String mobileNumber,
-    required String accessToken,
+    required String otp,
   }) async {
     try {
       _ensureSensitiveTransport();
@@ -29,7 +33,7 @@ class AuthService {
         '/auth/verify-otp',
         data: {
           'mobileNumber': mobileNumber,
-          'accessToken': accessToken,
+          'otp': otp,
         },
       );
 
