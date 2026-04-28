@@ -53,8 +53,6 @@ Required:
 - `CASHFREE_WEBHOOK_SECRET`
 - `REDIS_URL`
 - `MSG91_AUTH_KEY`
-- `MSG91_WIDGET_ID`
-- `MSG91_WIDGET_TOKEN`
 
 Also parsed by config:
 
@@ -67,11 +65,10 @@ Also parsed by config:
 - `JWT_REFRESH_EXPIRY`
 - `OTP_EXPIRY_MINUTES`
 - `OTP_MAX_ATTEMPTS`
-- `MSG91_WIDGET_ENABLED`
-- `MSG91_AUTH_KEY`
-- `MSG91_WIDGET_ID`
-- `MSG91_WIDGET_TOKEN`
 - `MSG91_BASE_URL`
+- `MSG91_SANDBOX_ENABLED`
+- `MSG91_SANDBOX_OTP`
+- `MSG91_SANDBOX_ALLOW_PRODUCTION`
 - `CASHFREE_API_BASE_URL`
 - `CASHFREE_PAYOUT_BASE_URL`
 - `CASHFREE_WEBHOOK_SIGNATURE_HEADER`
@@ -109,6 +106,12 @@ Cashfree integration note:
 - `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` are used for PG orders/refunds.
 - `CASHFREE_PAYOUT_CLIENT_ID` / `CASHFREE_PAYOUT_CLIENT_SECRET` are used for payout beneficiary/transfers and payout webhook signature verification.
 
+MSG91 integration note:
+
+- Normal API mode requires `MSG91_AUTH_KEY` and uses MSG91's SendOTP API.
+- Temporary testing can use `MSG91_SANDBOX_ENABLED=true`, which skips MSG91 delivery and accepts `MSG91_SANDBOX_OTP`.
+- If `NODE_ENV` is `production` or `staging`, sandbox mode also requires `MSG91_SANDBOX_ALLOW_PRODUCTION=true`. Use this only for temporary testing and turn it off before real users.
+
 ## Current Routes
 
 Primary API routes:
@@ -119,7 +122,7 @@ Primary API routes:
 - `GET /healthz`
 - `GET /api/healthz`
 - `GET /docs/openapi.json`
-- `GET /api/auth/widget-config`
+- `POST /api/auth/send-otp`
 - `POST /api/auth/verify-otp`
 - `POST /api/auth/refresh`
 - `GET /api/users/profile`
@@ -224,10 +227,10 @@ Operational visibility and maintenance:
 
 ## Current Transfer Flow
 
-1. Frontend loads MSG91 widget configuration through `GET /api/auth/widget-config`.
-2. Frontend launches the MSG91 widget directly if available, or guides the user through a 3-step progressive login flow (Enter Number → Receive OTP → Verify).
-3. Frontend submits the MSG91 widget access token to `POST /api/auth/verify-otp`.
-4. Backend verifies that access token with MSG91, resolves the verified mobile number, and issues JWT tokens.
+1. Frontend submits a mobile number to `POST /api/auth/send-otp`.
+2. Backend normalizes the number, sends the OTP through MSG91's server-side OTP API, and returns success only after MSG91 accepts the request.
+3. Frontend collects the OTP and submits `{ mobileNumber, otp }` to `POST /api/auth/verify-otp`.
+4. Backend verifies the OTP with MSG91, creates or updates the verified user, and issues JWT tokens.
 5. Authenticated user updates or confirms profile data.
 6. Frontend requests a Didit session token through `POST /api/users/kyc/session`.
 7. Flutter launches the native Didit SDK with the returned `sessionToken`.

@@ -11,6 +11,7 @@ class AuthService {
 
   Future<void> sendOtp({required String mobileNumber}) async {
     try {
+      _ensureSensitiveTransport();
       await _dio.post('/auth/send-otp', data: {'mobileNumber': mobileNumber});
     } on DioException catch (e) {
       _handleDioException(e);

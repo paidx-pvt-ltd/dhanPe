@@ -5,8 +5,6 @@ const mobileNumberSchema = z
   .trim()
   .regex(/^\+?\d{10,15}$/, 'Mobile number must be a valid MSISDN');
 
-export const widgetConfigSchema = z.object({});
-
 export const sendOtpSchema = z.object({
   mobileNumber: mobileNumberSchema,
 });
@@ -20,7 +18,6 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-export type WidgetConfigDto = z.infer<typeof widgetConfigSchema>;
 export type SendOtpDto = z.infer<typeof sendOtpSchema>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;

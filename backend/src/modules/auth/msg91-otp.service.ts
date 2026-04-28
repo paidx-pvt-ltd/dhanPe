@@ -20,6 +20,10 @@ export class Msg91OtpService {
   }
 
   async sendOtp(mobileNumber: string): Promise<{ reqId: string }> {
+    if (config.msg91.sandboxEnabled) {
+      return { reqId: `sandbox-${mobileNumber}-${Date.now()}` };
+    }
+
     if (!config.msg91.authKey) {
       throw new ServiceUnavailableError('MSG91 OTP service is not configured');
     }
@@ -47,6 +51,18 @@ export class Msg91OtpService {
   }
 
   async verifyOtp(mobileNumber: string, otp: string): Promise<void> {
+    if (config.msg91.sandboxEnabled) {
+      if (otp === config.msg91.sandboxOtp) {
+        return;
+      }
+
+      throw new ExternalServiceError('OTP verification failed', {
+        provider: 'MSG91',
+        mode: 'sandbox',
+        mobileNumber,
+      });
+    }
+
     if (!config.msg91.authKey) {
       throw new ServiceUnavailableError('MSG91 OTP service is not configured');
     }

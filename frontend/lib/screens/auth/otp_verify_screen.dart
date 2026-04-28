@@ -43,13 +43,13 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
     final authProvider = context.read<AuthProvider>();
     setState(() => _isVerifying = true);
     try {
-      await authProvider.loginWithOtp(
+      final verified = await authProvider.loginWithOtp(
         mobileNumber: widget.mobileNumber,
         otp: otp,
       );
 
       if (!mounted) return;
-      if (authProvider.error != null && authProvider.error!.isNotEmpty) {
+      if (!verified && authProvider.error != null && authProvider.error!.isNotEmpty) {
         _showSnackBar(authProvider.error!);
         return;
       }
@@ -66,13 +66,13 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   Future<void> _handleRetry() async {
     setState(() => _isRetrying = true);
     try {
-      await context.read<AuthProvider>().requestOtp(
+      final authProvider = context.read<AuthProvider>();
+      final sent = await authProvider.requestOtp(
         mobileNumber: widget.mobileNumber,
       );
       if (!mounted) return;
-      final error = context.read<AuthProvider>().error;
-      if (error != null && error.isNotEmpty) {
-        _showSnackBar(error);
+      if (!sent && authProvider.error != null && authProvider.error!.isNotEmpty) {
+        _showSnackBar(authProvider.error!);
         return;
       }
       _showSnackBar('OTP resent');

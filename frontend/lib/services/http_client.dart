@@ -41,17 +41,14 @@ class HttpClient {
     }
 
     if (Config.enableLogging) {
-      final isWidgetConfig = options.path.contains('widget-config');
-      if (!isWidgetConfig) {
-        final safeHeaders = Map<String, dynamic>.from(options.headers);
-        if (safeHeaders.containsKey('Authorization')) {
-          safeHeaders['Authorization'] = 'Bearer [redacted]';
-        }
-
-        debugPrint('API ${options.method} ${options.path}');
-        debugPrint('Base URL: ${options.baseUrl}');
-        debugPrint('Headers: $safeHeaders');
+      final safeHeaders = Map<String, dynamic>.from(options.headers);
+      if (safeHeaders.containsKey('Authorization')) {
+        safeHeaders['Authorization'] = 'Bearer [redacted]';
       }
+
+      debugPrint('API ${options.method} ${options.path}');
+      debugPrint('Base URL: ${options.baseUrl}');
+      debugPrint('Headers: $safeHeaders');
     }
 
     handler.next(options);
@@ -77,8 +74,6 @@ class HttpClient {
     ErrorInterceptorHandler handler,
   ) async {
     final isRefreshRequest = err.requestOptions.path.contains('/auth/refresh');
-    final isWidgetConfig = err.requestOptions.path.contains('widget-config');
-
     if (err.response?.statusCode == 401 && !isRefreshRequest) {
       if (Config.enableLogging) {
         debugPrint(
@@ -166,12 +161,6 @@ class HttpClient {
     if (Config.enableLogging) {
       debugPrint('Error type: ${err.type}');
       debugPrint('Error: ${err.message}');
-      if (isWidgetConfig) {
-        debugPrint(
-          'Widget-config request failed: ${err.requestOptions.baseUrl}${err.requestOptions.path}',
-        );
-        debugPrint('Widget-config status: ${err.response?.statusCode}');
-      }
       debugPrint('Response: ${err.response?.data}');
       if (kIsWeb && err.response == null) {
         debugPrint(

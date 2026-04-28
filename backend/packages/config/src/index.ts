@@ -124,13 +124,10 @@ export const config = {
   },
   msg91: {
     authKey: process.env.MSG91_AUTH_KEY ?? '',
-    widgetId: process.env.MSG91_WIDGET_ID ?? '',
-    widgetToken: process.env.MSG91_WIDGET_TOKEN ?? '',
-    widgetEnabled: parseBoolean(
-      process.env.MSG91_WIDGET_ENABLED,
-      process.env.NODE_ENV === 'production'
-    ),
     baseUrl: process.env.MSG91_BASE_URL ?? 'https://api.msg91.com',
+    sandboxEnabled: parseBoolean(process.env.MSG91_SANDBOX_ENABLED, false),
+    sandboxOtp: process.env.MSG91_SANDBOX_OTP ?? '123456',
+    sandboxAllowProduction: parseBoolean(process.env.MSG91_SANDBOX_ALLOW_PRODUCTION, false),
   },
   reconciliation: {
     enabled: parseBoolean(process.env.RECONCILIATION_ENABLED, true),
@@ -149,6 +146,9 @@ export const validateConfig = (): void => {
     'CASHFREE_WEBHOOK_SECRET',
     'REDIS_URL',
   ];
+  if (!config.msg91.sandboxEnabled) {
+    required.push('MSG91_AUTH_KEY');
+  }
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
@@ -171,14 +171,14 @@ export const validateConfig = (): void => {
     throw new Error('Didit credentials must be real values, placeholder values are not allowed');
   }
 
-  if (config.msg91.widgetEnabled) {
-    const msg91Required = ['MSG91_AUTH_KEY', 'MSG91_WIDGET_ID', 'MSG91_WIDGET_TOKEN'];
-    const msg91Missing = msg91Required.filter((key) => !process.env[key]);
-    if (msg91Missing.length > 0) {
-      throw new Error(
-        `Missing required MSG91 widget environment variables: ${msg91Missing.join(', ')}`
-      );
-    }
+  if (isStrictSecretsEnv && config.msg91.sandboxEnabled && !config.msg91.sandboxAllowProduction) {
+    throw new Error(
+      'MSG91 sandbox mode is enabled in a strict environment. Set MSG91_SANDBOX_ALLOW_PRODUCTION=true only for temporary testing.'
+    );
+  }
+
+  if (!/^\d{4,9}$/.test(config.msg91.sandboxOtp)) {
+    throw new Error('MSG91_SANDBOX_OTP must be 4 to 9 digits');
   }
 
   // URL Format Validation

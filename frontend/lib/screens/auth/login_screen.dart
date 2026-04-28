@@ -6,7 +6,6 @@ import '../../core/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/legal_links.dart';
 import '../../widgets/kinetic_primitives.dart';
-import '../../widgets/msg91_captcha_host.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,19 +14,10 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSendingOtp = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().loadWidgetConfig();
-    });
-  }
 
   @override
   void dispose() {
@@ -35,25 +25,23 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  Future<void> _handleLaunchWidget() async {
+  Future<void> _handleRequestOtp() async {
     if (!_validateMobileNumber()) return;
 
     final authProvider = context.read<AuthProvider>();
     setState(() => _isSendingOtp = true);
 
     try {
-      await authProvider.requestOtp(
-        mobileNumber: _normalizedWidgetMobileNumber(),
+      final sent = await authProvider.requestOtp(
+        mobileNumber: _normalizedMobileNumber(),
       );
 
       if (!mounted) return;
-      if (authProvider.error != null && authProvider.error!.isNotEmpty) {
+      if (!sent && authProvider.error != null && authProvider.error!.isNotEmpty) {
         _showSnackBar(authProvider.error!);
         return;
       }
-      // Native SDK sends the OTP but does not automatically present UI.
-      // We route to our OTP screen to complete verification.
-      context.push('/login/otp', extra: _normalizedWidgetMobileNumber());
+      context.push('/login/otp', extra: _normalizedMobileNumber());
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
@@ -72,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen>
     return false;
   }
 
-  String _normalizedWidgetMobileNumber() {
+  String _normalizedMobileNumber() {
     final digits = _mobileController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.length == 10) {
       return '+91$digits';
@@ -121,7 +109,6 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ),
-            const Positioned(top: 0, left: 0, child: Msg91CaptchaHost()),
             // Main content
             SafeArea(
               child: Center(
@@ -173,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'We will use a secure SMS widget to verify your number.',
+                        'We will send a secure SMS OTP to verify your number.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppColors.textMuted,
                         ),
@@ -221,21 +208,8 @@ class _LoginScreenState extends State<LoginScreen>
                                     icon: Icons.security_rounded,
                                     isLoading:
                                         _isSendingOtp || authProvider.isLoading,
-                                    onPressed: authProvider.isWidgetConfigured
-                                        ? _handleLaunchWidget
-                                        : null,
+                                    onPressed: _handleRequestOtp,
                                   ),
-                                  if (!authProvider.isWidgetConfigured) ...[
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'OTP verification is temporarily unavailable.',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(color: AppColors.warning),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
                                 ],
                               );
                             },

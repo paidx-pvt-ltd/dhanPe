@@ -73,20 +73,19 @@ Supported compile-time keys:
 
 ## Current Flow
 
-1. Load MSG91 widget metadata through `GET /api/auth/widget-config`
-2. Complete mobile verification through the guided 3-step progressive login flow:
+1. Complete mobile verification through the backend-driven OTP flow:
    - **Step 1: Enter Number**: User provides their mobile number.
-   - **Step 2: Receive OTP**: Backend triggers OTP send (if configured).
+   - **Step 2: Receive OTP**: Backend triggers MSG91 OTP send through `POST /api/auth/send-otp`.
    - **Step 3: Verify**: User enters the received OTP.
-   *Note: If the MSG91 service is unconfigured, the flow gracefully disables Step 2 and provides a user-friendly hint.*
-3. Exchange the MSG91 widget access token through `POST /api/auth/verify-otp` (or verify internal OTP if using a different provider).
-4. Load profile with `/api/users/profile`
-5. Request a Didit session through `/api/users/kyc/session`
-6. Complete native identity verification in the Didit SDK
-7. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
-8. If transfer creation returns `PAN_REQUIRED`, collect PAN and submit it through `POST /api/users/pan`
-9. Create a bill payment request through `/api/transfer`
-10. Track lifecycle state through `/api/transaction/:id`
+   *Note: If MSG91 rejects delivery, the backend returns an error and the app stays on the number or OTP screen.*
+2. Verify `{ mobileNumber, otp }` through `POST /api/auth/verify-otp`.
+3. Load profile with `/api/users/profile`
+4. Request a Didit session through `/api/users/kyc/session`
+5. Complete native identity verification in the Didit SDK
+6. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
+7. If transfer creation returns `PAN_REQUIRED`, collect PAN and submit it through `POST /api/users/pan`
+8. Create a bill payment request through `/api/transfer`
+9. Track lifecycle state through `/api/transaction/:id`
 
 ## Structure
 
