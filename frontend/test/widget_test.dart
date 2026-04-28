@@ -10,7 +10,6 @@ import 'package:dhanpe/services/payment_service.dart';
 import 'package:dhanpe/services/service_locator.dart';
 import 'package:dhanpe/services/transaction_service.dart';
 import 'package:dhanpe/services/user_service.dart';
-import 'package:dhanpe/services/msg91_widget_service.dart';
 
 class _FakeAuthService extends AuthService {
   _FakeAuthService() : super(Dio(), const FlutterSecureStorage());
@@ -45,26 +44,6 @@ class _FakeTransactionService extends TransactionService {
   _FakeTransactionService() : super(Dio());
 }
 
-// ✅ ADDED: Fake Msg91 service
-class _FakeMsg91WidgetService implements Msg91WidgetService {
-  @override
-  Future<void> initialize({
-    required String widgetId,
-    required String tokenAuth,
-  }) async {}
-
-  @override
-  Future<void> sendOtp({required String identifier}) async {}
-
-  @override
-  Future<void> retryOtp() async {}
-
-  @override
-  Future<String> verifyOtp({required String otp}) async {
-    return 'fake-token';
-  }
-}
-
 void main() {
   setUp(() async {
     await getIt.reset();
@@ -74,8 +53,6 @@ void main() {
     getIt.registerSingleton<PaymentService>(_FakePaymentService());
     getIt.registerSingleton<TransactionService>(_FakeTransactionService());
 
-    // ✅ ADDED: Register Msg91 service
-    getIt.registerSingleton<Msg91WidgetService>(_FakeMsg91WidgetService());
   });
 
   testWidgets('unauthenticated app lands on the login screen', (
@@ -94,7 +71,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('We will use a secure SMS widget to verify your number.'),
+      find.text('We will send a secure SMS OTP to verify your number.'),
       findsOneWidget,
     );
     expect(find.text('Verify Mobile Number'), findsOneWidget);

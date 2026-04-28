@@ -12,15 +12,6 @@ export class AuthService {
     private readonly msg91OtpService: Msg91OtpService
   ) {}
 
-  async getWidgetConfig() {
-    return {
-      success: true,
-      // Deprecated for platform login (we use backend-driven OTP).
-      // Kept for backward compatibility / web.
-      data: {},
-    };
-  }
-
   async sendOtp(input: SendOtpDto) {
     const mobileNumber = this.normalizeMobileNumber(input.mobileNumber);
     const req = await this.msg91OtpService.sendOtp(mobileNumber.replace('+', ''));

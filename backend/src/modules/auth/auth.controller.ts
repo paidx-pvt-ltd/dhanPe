@@ -5,11 +5,6 @@ import { RefreshDto, SendOtpDto, VerifyOtpDto } from './auth.schemas.js';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  getWidgetConfig = async (_req: Request, res: Response): Promise<void> => {
-    const result = await this.authService.getWidgetConfig();
-    res.json(result);
-  };
-
   sendOtp = async (req: Request<unknown, unknown, SendOtpDto>, res: Response): Promise<void> => {
     const result = await this.authService.sendOtp(req.body);
     res.json(result);

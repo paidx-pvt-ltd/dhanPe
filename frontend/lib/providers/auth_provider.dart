@@ -14,8 +14,6 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isReady = false;
   String? _error;
-  String? _widgetId;
-  String? _widgetTokenAuth;
 
   AuthProvider(this._authService, [HttpClient? httpClient])
     : _httpClient =
@@ -31,13 +29,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isReady => _isReady;
   String? get error => _error;
-  String? get widgetId => _widgetId;
-  String? get widgetTokenAuth => _widgetTokenAuth;
-  bool get isWidgetConfigured =>
-      _widgetId != null &&
-      _widgetId!.isNotEmpty &&
-      _widgetTokenAuth != null &&
-      _widgetTokenAuth!.isNotEmpty;
 
   /// Check if user is authenticated and restore session
   Future<void> checkAuthentication() async {
@@ -98,25 +89,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadWidgetConfig() async {
-    try {
-      // Deprecated in backend-driven OTP flow.
-      _widgetId = 'backend-otp';
-      _widgetTokenAuth = 'backend-otp';
-    } catch (_) {
-      _widgetId = null;
-      _widgetTokenAuth = null;
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  Future<void> requestOtp({required String mobileNumber}) async {
+  Future<bool> requestOtp({required String mobileNumber}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       await _authService.sendOtp(mobileNumber: mobileNumber);
+      return true;
     } on ApiError catch (e) {
       _error = e.message;
     } on AuthException catch (e) {
@@ -127,9 +106,10 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+    return false;
   }
 
-  Future<void> loginWithOtp({
+  Future<bool> loginWithOtp({
     required String mobileNumber,
     required String otp,
   }) async {
@@ -147,6 +127,7 @@ class AuthProvider extends ChangeNotifier {
       await _httpClient?.setAuthToken(_accessToken!);
       _user = User.fromJson(result['user']);
       _error = null;
+      return true;
     } on ApiError catch (e) {
       _error = e.message;
     } on AuthException catch (e) {
@@ -157,6 +138,7 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+    return false;
   }
 
   /// Logout

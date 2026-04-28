@@ -5,6 +5,8 @@ import { ExternalServiceError, ServiceUnavailableError } from '../../shared/erro
 type Msg91OtpResponse = {
   type?: string;
   message?: string;
+  code?: string | number;
+  error?: string;
 };
 
 export class Msg91OtpService {
@@ -18,6 +20,10 @@ export class Msg91OtpService {
   }
 
   async sendOtp(mobileNumber: string): Promise<{ reqId: string }> {
+    if (config.msg91.sandboxEnabled) {
+      return { reqId: `sandbox-${mobileNumber}-${Date.now()}` };
+    }
+
     if (!config.msg91.authKey) {
       throw new ServiceUnavailableError('MSG91 OTP service is not configured');
     }
@@ -35,16 +41,28 @@ export class Msg91OtpService {
         return { reqId: data.message };
       }
 
-      throw new ExternalServiceError('Failed to send OTP via MSG91', data);
+      throw this.toMsg91Error('Failed to send OTP via MSG91', data);
     } catch (error) {
-      if (error instanceof ExternalServiceError) {
+      if (error instanceof ExternalServiceError || error instanceof ServiceUnavailableError) {
         throw error;
       }
-      throw new ExternalServiceError('Failed to send OTP via MSG91', error);
+      throw this.toMsg91Error('Failed to send OTP via MSG91', error);
     }
   }
 
   async verifyOtp(mobileNumber: string, otp: string): Promise<void> {
+    if (config.msg91.sandboxEnabled) {
+      if (otp === config.msg91.sandboxOtp) {
+        return;
+      }
+
+      throw new ExternalServiceError('OTP verification failed', {
+        provider: 'MSG91',
+        mode: 'sandbox',
+        mobileNumber,
+      });
+    }
+
     if (!config.msg91.authKey) {
       throw new ServiceUnavailableError('MSG91 OTP service is not configured');
     }
@@ -62,12 +80,73 @@ export class Msg91OtpService {
         return;
       }
 
-      throw new ExternalServiceError('OTP verification failed', data);
+      throw this.toMsg91Error('OTP verification failed', data);
     } catch (error) {
-      if (error instanceof ExternalServiceError) {
+      if (error instanceof ExternalServiceError || error instanceof ServiceUnavailableError) {
         throw error;
       }
-      throw new ExternalServiceError('OTP verification failed', error);
+      throw this.toMsg91Error('OTP verification failed', error);
     }
+  }
+
+  private toMsg91Error(message: string, error: unknown) {
+    const details = this.toSafeDetails(error);
+    if (this.isIpWhitelistFailure(details)) {
+      return new ServiceUnavailableError('OTP delivery is temporarily unavailable', {
+        provider: 'MSG91',
+        reason: 'IP_NOT_WHITELISTED',
+        action:
+          'Whitelist the backend outbound IP in MSG91 API Security, or disable API Security for this authkey.',
+        details,
+      });
+    }
+
+    return new ExternalServiceError(message, {
+      provider: 'MSG91',
+      details,
+    });
+  }
+
+  private toSafeDetails(error: unknown): unknown {
+    if (axios.isAxiosError(error)) {
+      return {
+        status: error.response?.status,
+        data: error.response?.data as unknown,
+        code: error.code,
+        message: error.message,
+      };
+    }
+
+    if (error instanceof Error) {
+      return {
+        name: error.name,
+        message: error.message,
+      };
+    }
+
+    return error;
+  }
+
+  private isIpWhitelistFailure(details: unknown): boolean {
+    if (details == null) {
+      return false;
+    }
+
+    if (typeof details === 'string' || typeof details === 'number') {
+      return details.toString().includes('418');
+    }
+
+    if (typeof details !== 'object') {
+      return false;
+    }
+
+    return Object.values(details as Record<string, unknown>).some((value) => {
+      if (typeof value === 'string' || typeof value === 'number') {
+        const normalized = value.toString().toLowerCase();
+        return normalized === '418' || normalized.includes('ip not whitelisted');
+      }
+
+      return this.isIpWhitelistFailure(value);
+    });
   }
 }
