@@ -70,6 +70,11 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
         mobileNumber: widget.mobileNumber,
       );
       if (!mounted) return;
+      final error = context.read<AuthProvider>().error;
+      if (error != null && error.isNotEmpty) {
+        _showSnackBar(error);
+        return;
+      }
       _showSnackBar('OTP resent');
     } catch (e) {
       if (!mounted) return;
