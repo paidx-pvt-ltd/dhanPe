@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import 'express-async-errors';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -88,6 +88,26 @@ app.use('/api/webhook/cashfree', parseWebhookBody, webhookRoutes);
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
+// Handle malformed JSON bodies (body-parser throws a SyntaxError / entity.parse.failed).
+// Convert to a friendly 400 response instead of returning a 500 from the generic error handler.
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  // body-parser sets err.type === 'entity.parse.failed' for JSON parse errors
+  // and the error instance is typically a SyntaxError.
+  const maybeErr = err as { type?: string } | undefined;
+  if (maybeErr?.type === 'entity.parse.failed') {
+    logger.warn({ err }, 'Malformed JSON body received');
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Malformed JSON body',
+      },
+    });
+    return;
+  }
+
+  next(err as any);
+});
 app.use('/webhook/didit', diditWebhookRoutes);
 app.use('/api/webhook/didit', diditWebhookRoutes);
 
