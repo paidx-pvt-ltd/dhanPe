@@ -1,5 +1,6 @@
 import { PanInvalidError } from '../../shared/errors.js';
 import { CashfreeClient } from '../payment/cashfree.client.js';
+import { config } from '../../config/index.js';
 
 export class PanVerificationService {
   constructor(private readonly cashfreeClient: CashfreeClient) {}
@@ -8,6 +9,23 @@ export class PanVerificationService {
     const normalizedPan = panNumber.trim().toUpperCase();
     if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(normalizedPan)) {
       throw new PanInvalidError('PAN format is invalid');
+    }
+
+    // Return mock response for sandbox mode since PAN verification may not be available
+    if (config.cashfree.baseUrl.includes('sandbox')) {
+      return {
+        panNumber: normalizedPan,
+        panName: legalName?.trim() || 'Test User',
+        panVerified: true,
+        verificationMetadata: {
+          valid: true,
+          name: legalName?.trim() || 'Test User',
+          pan: normalizedPan,
+          status: 'VERIFIED',
+          referenceId: `sandbox-${normalizedPan}-${Date.now()}`,
+          raw: { sandbox: true },
+        },
+      };
     }
 
     const result = await this.cashfreeClient.verifyPan({
