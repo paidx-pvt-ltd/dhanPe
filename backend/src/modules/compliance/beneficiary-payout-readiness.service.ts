@@ -44,7 +44,9 @@ export class BeneficiaryPayoutReadinessService {
     const ifsc = rawDetails?.ifsc?.toString().trim() ?? beneficiary.ifsc?.trim();
 
     if (!accountHolderName || !accountNumber || !ifsc) {
-      throw new ValidationError('Beneficiary is missing bank details required for payout registration');
+      throw new ValidationError(
+        'Beneficiary is missing bank details required for payout registration'
+      );
     }
 
     return {

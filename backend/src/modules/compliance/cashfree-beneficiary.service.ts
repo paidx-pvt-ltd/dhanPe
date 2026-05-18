@@ -19,8 +19,7 @@ export class CashfreeBeneficiaryService {
       input.user.phoneNumber?.replace(/\D/g, '') ??
       input.user.mobileNumber.replace(/\D/g, '').slice(-10);
     const contactEmail =
-      input.user.email?.trim() ||
-      `user+${input.user.id.slice(-8)}@users.dhanpe.local`;
+      input.user.email?.trim() || `user+${input.user.id.slice(-8)}@users.dhanpe.local`;
 
     if (config.cashfree.payoutBaseUrl.includes('sandbox')) {
       logger.info(

@@ -16,11 +16,7 @@ import {
 import { asHandler } from '../../shared/http.js';
 
 const repository = new AuthRepository(prisma);
-const service = new AuthService(
-  repository,
-  new Msg91OtpService(),
-  new Msg91WidgetService()
-);
+const service = new AuthService(repository, new Msg91OtpService(), new Msg91WidgetService());
 const controller = new AuthController(service);
 
 export const authRoutes = Router();

@@ -46,15 +46,12 @@ export class RiskService {
       });
     }
 
-    const [
-      recentBeneficiaryChanges,
-      recentFailedPayouts,
-      distinctSessionDevices,
-    ] = await Promise.all([
-      this.riskRepository.countRecentBeneficiaryChanges(userId, signalWindowStart),
-      this.riskRepository.countRecentFailedPayouts(userId, signalWindowStart),
-      this.riskRepository.countDistinctSessionDevices(userId, signalWindowStart),
-    ]);
+    const [recentBeneficiaryChanges, recentFailedPayouts, distinctSessionDevices] =
+      await Promise.all([
+        this.riskRepository.countRecentBeneficiaryChanges(userId, signalWindowStart),
+        this.riskRepository.countRecentFailedPayouts(userId, signalWindowStart),
+        this.riskRepository.countDistinctSessionDevices(userId, signalWindowStart),
+      ]);
 
     const riskSignals = {
       repeatedBeneficiaryChanges: recentBeneficiaryChanges >= 3,
@@ -74,7 +71,10 @@ export class RiskService {
     }
 
     if (riskSignals.repeatedPayoutFailures) {
-      throw new RiskRejectedError('Repeated payout failures detected for this account', riskSignals);
+      throw new RiskRejectedError(
+        'Repeated payout failures detected for this account',
+        riskSignals
+      );
     }
 
     if (riskSignals.suspiciousDevicePattern) {

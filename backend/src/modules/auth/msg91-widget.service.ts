@@ -67,7 +67,9 @@ export class Msg91WidgetService {
         const embeddedMobile = accessToken.replace('sandbox-widget-', '');
         const normalizedEmbedded = this.normalizeMobileNumber(embeddedMobile);
         if (normalizedEmbedded !== expectedMobile) {
-          throw new AuthenticationError('Sandbox widget token does not match the submitted mobile number');
+          throw new AuthenticationError(
+            'Sandbox widget token does not match the submitted mobile number'
+          );
         }
 
         return {

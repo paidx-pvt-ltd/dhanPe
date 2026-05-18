@@ -139,7 +139,10 @@ export const config = {
       process.env.COMPLIANCE_SELF_TRANSFER_THRESHOLD,
       0.88
     ),
-    selfTransferTokenThreshold: parseNumber(process.env.COMPLIANCE_SELF_TRANSFER_TOKEN_THRESHOLD, 0.8),
+    selfTransferTokenThreshold: parseNumber(
+      process.env.COMPLIANCE_SELF_TRANSFER_TOKEN_THRESHOLD,
+      0.8
+    ),
   },
   reconciliation: {
     enabled: parseBoolean(process.env.RECONCILIATION_ENABLED, true),
