@@ -47,4 +47,10 @@ export class UserRepository {
       data,
     });
   }
+
+  countBeneficiaries(userId: string): Promise<number> {
+    return this.db.beneficiary.count({
+      where: { userId },
+    });
+  }
 }

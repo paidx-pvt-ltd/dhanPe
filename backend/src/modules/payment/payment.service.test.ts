@@ -25,6 +25,9 @@ describe('PaymentService', () => {
   const beneficiaryValidationService = {
     validateBankAccount: vi.fn(),
   };
+  const cashfreeBeneficiaryService = {
+    registerPayoutBeneficiary: vi.fn(),
+  };
   const transactionStateService = {
     transitionTransactionState: vi.fn(),
   };
@@ -39,6 +42,7 @@ describe('PaymentService', () => {
     transactionStateService as never,
     cashfreeClient as never,
     beneficiaryValidationService as never,
+    cashfreeBeneficiaryService as never,
     db as never
   );
 
@@ -71,23 +75,36 @@ describe('PaymentService', () => {
     db.$transaction.mockImplementation(async (handler: (tx: unknown) => Promise<unknown>) =>
       handler({})
     );
+    cashfreeBeneficiaryService.registerPayoutBeneficiary.mockResolvedValue('bene_beneficiary_1');
     paymentRepository.createBeneficiary.mockResolvedValue({
       id: 'beneficiary_1',
-      accountHolderName: 'Test User',
+      accountHolderName: 'Vendor Payee',
       accountNumber: '1234567890',
       accountNumberMask: 'XXXXXX7890',
       ifsc: 'HDFC0001234',
-      isVerified: true,
-      status: 'VERIFIED',
+      isVerified: false,
+      status: 'PENDING_VERIFICATION',
+      providerBeneficiaryId: null,
+      rawDetails: {
+        accountHolderName: 'Vendor Payee',
+        accountNumber: '1234567890',
+        ifsc: 'HDFC0001234',
+      },
     });
     paymentRepository.updateBeneficiary.mockResolvedValue({
       id: 'beneficiary_1',
-      accountHolderName: 'Test User',
+      accountHolderName: 'Vendor Payee',
       accountNumber: '1234567890',
       accountNumberMask: 'XXXXXX7890',
       ifsc: 'HDFC0001234',
       isVerified: true,
       status: 'VERIFIED',
+      providerBeneficiaryId: 'bene_beneficiary_1',
+      rawDetails: {
+        accountHolderName: 'Vendor Payee',
+        accountNumber: '1234567890',
+        ifsc: 'HDFC0001234',
+      },
     });
     paymentRepository.createTransaction.mockResolvedValue({
       id: 'txn_1',
@@ -102,7 +119,7 @@ describe('PaymentService', () => {
     beneficiaryValidationService.validateBankAccount.mockResolvedValue({
       accountNumber: '1234567890',
       ifsc: 'HDFC0001234',
-      accountHolderName: 'Test User',
+      accountHolderName: 'Vendor Payee',
       isVerified: true,
       verificationMetadata: { referenceId: 'bank_val_1' },
     });
@@ -113,7 +130,7 @@ describe('PaymentService', () => {
         amount: 5000,
         description: 'Wallet transfer',
         bankAccount: {
-          accountHolderName: 'Test User',
+          accountHolderName: 'Vendor Payee',
           accountNumber: '1234567890',
           ifsc: 'HDFC0001234',
         },
@@ -127,7 +144,13 @@ describe('PaymentService', () => {
       status: TransactionStatus;
     };
 
-    expect(riskService.evaluateTransfer).toHaveBeenCalledWith('user_1', 5000);
+    expect(riskService.evaluateTransfer).toHaveBeenCalledWith(
+      'user_1',
+      5000,
+      expect.objectContaining({
+        beneficiaryId: 'beneficiary_1',
+      })
+    );
     expect(paymentRepository.createTransaction).toHaveBeenCalledWith(
       {},
       expect.objectContaining({

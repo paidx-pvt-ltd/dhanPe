@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../core/exceptions.dart';
 import '../models/kyc_session.dart';
+import '../models/onboarding_status.dart';
 import '../models/user.dart';
 
 class UserService {
@@ -101,6 +102,38 @@ class UserService {
       throw ApiError(
         type: ApiException.unknownError,
         message: 'Failed to sync identity verification status',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<OnboardingStatus> getOnboardingStatus() async {
+    try {
+      final response = await _dio.get('/users/onboarding');
+      if (response.statusCode == 200) {
+        return OnboardingStatus.fromJson(response.data['data'] as Map<String, dynamic>);
+      }
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Failed to load onboarding status',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<KycSession> createPanFallbackSession() async {
+    try {
+      final response = await _dio.post('/users/pan/fallback');
+      if (response.statusCode == 201) {
+        return KycSession.fromJson(response.data['data'] as Map<String, dynamic>);
+      }
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Failed to start PAN document verification',
       );
     } on DioException catch (e) {
       _handleDioException(e);

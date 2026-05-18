@@ -1,3 +1,5 @@
+import { config } from '../../config/index.js';
+
 const honorifics = new Set(['mr', 'mrs', 'ms', 'dr', 'shri', 'smt']);
 
 const normalizeName = (value: string): string =>
@@ -46,13 +48,29 @@ export const isSelfTransfer = (userPanName: string, beneficiaryName: string): bo
     return true;
   }
 
-  const panTokens = new Set(normalizedPanName.split(' '));
-  const beneficiaryTokens = new Set(normalizedBeneficiaryName.split(' '));
-  const overlappingTokens = [...panTokens].filter((token) => beneficiaryTokens.has(token)).length;
-  const tokenSimilarity =
-    overlappingTokens / Math.max(panTokens.size || 1, beneficiaryTokens.size || 1);
+  const panTokens = normalizedPanName.split(' ').filter(Boolean);
+  const beneficiaryTokens = normalizedBeneficiaryName.split(' ').filter(Boolean);
+  const overlappingTokens = panTokens.filter((token) =>
+    beneficiaryTokens.some((candidate) => {
+      if (token === candidate) {
+        return true;
+      }
 
-  if (tokenSimilarity >= 0.8) {
+      if (token.length === 1) {
+        return candidate.startsWith(token);
+      }
+
+      if (candidate.length === 1) {
+        return token.startsWith(candidate);
+      }
+
+      return false;
+    })
+  ).length;
+  const tokenSimilarity =
+    overlappingTokens / Math.max(panTokens.length || 1, beneficiaryTokens.length || 1);
+
+  if (tokenSimilarity >= config.compliance.selfTransferTokenThreshold) {
     return true;
   }
 
@@ -60,5 +78,5 @@ export const isSelfTransfer = (userPanName: string, beneficiaryName: string): bo
   const similarity =
     1 - distance / Math.max(normalizedPanName.length, normalizedBeneficiaryName.length);
 
-  return similarity >= 0.88;
+  return similarity >= config.compliance.selfTransferSimilarityThreshold;
 };

@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validation.js';
 import { asHandler } from '../../shared/http.js';
 import { BeneficiaryValidationService } from '../compliance/beneficiary-validation.service.js';
+import { CashfreeBeneficiaryService } from '../compliance/cashfree-beneficiary.service.js';
 import { fintechRuntime } from '../fintech/fintech.runtime.js';
 import { BeneficiaryController } from './beneficiary.controller.js';
 import { createBeneficiarySchema } from './beneficiary.schemas.js';
@@ -13,6 +14,7 @@ const beneficiaryController = new BeneficiaryController(
   new BeneficiaryService(
     fintechRuntime.paymentRepository,
     new BeneficiaryValidationService(fintechRuntime.cashfreeClient),
+    new CashfreeBeneficiaryService(fintechRuntime.cashfreeClient),
     prisma
   )
 );

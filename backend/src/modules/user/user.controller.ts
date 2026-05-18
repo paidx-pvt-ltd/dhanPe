@@ -25,4 +25,14 @@ export class UserController {
     const result = await this.userService.submitPan(req.userId!, req.body);
     res.status(201).json({ success: true, data: result });
   };
+
+  getOnboarding = async (req: Request, res: Response): Promise<void> => {
+    const result = await this.userService.getOnboardingStatus(req.userId!);
+    res.json({ success: true, data: result });
+  };
+
+  createPanFallback = async (req: Request, res: Response): Promise<void> => {
+    const result = await this.userService.createPanFallbackSession(req.userId!);
+    res.status(201).json({ success: true, data: result });
+  };
 }

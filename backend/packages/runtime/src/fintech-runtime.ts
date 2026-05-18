@@ -1,6 +1,7 @@
 import { prisma } from '../../db/src/index.js';
 import { QueueDispatcher } from './queue-dispatcher.js';
 import { BeneficiaryValidationService } from '../../../src/modules/compliance/beneficiary-validation.service.js';
+import { CashfreeBeneficiaryService } from '../../../src/modules/compliance/cashfree-beneficiary.service.js';
 import { DisputeRepository } from '../../../src/modules/dispute/dispute.repository.js';
 import { DisputeService } from '../../../src/modules/dispute/dispute.service.js';
 import { LedgerRepository } from '../../../src/modules/ledger/ledger.repository.js';
@@ -32,6 +33,7 @@ export const createFintechRuntime = (dispatcher: QueueDispatcher) => {
   const cashfreeClient = new CashfreeClient();
   const diditClient = new DiditClient();
   const beneficiaryValidationService = new BeneficiaryValidationService(cashfreeClient);
+  const cashfreeBeneficiaryService = new CashfreeBeneficiaryService(cashfreeClient);
   const paymentRepository = new PaymentRepository(prisma);
   const riskRepository = new RiskRepository(prisma);
   const riskService = new RiskService(riskRepository);
@@ -49,6 +51,7 @@ export const createFintechRuntime = (dispatcher: QueueDispatcher) => {
     transactionStateService,
     cashfreeClient,
     beneficiaryValidationService,
+    cashfreeBeneficiaryService,
     prisma
   );
   const disputeRepository = new DisputeRepository(prisma);

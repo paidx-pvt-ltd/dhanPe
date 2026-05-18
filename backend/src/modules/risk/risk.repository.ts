@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, TransactionStatus } from '@prisma/client';
+import { PayoutStatus, Prisma, PrismaClient, TransactionStatus } from '@prisma/client';
 import { toDecimal } from '../../utils/decimal.js';
 
 export class RiskRepository {
@@ -35,6 +35,58 @@ export class RiskRepository {
     });
   }
 
+  countRecentBeneficiaryChanges(userId: string, since: Date): Promise<number> {
+    return this.db.beneficiary.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: since,
+        },
+      },
+    });
+  }
+
+  countRecentFailedPayouts(userId: string, since: Date): Promise<number> {
+    return this.db.payout.count({
+      where: {
+        status: PayoutStatus.FAILED,
+        createdAt: {
+          gte: since,
+        },
+        transaction: {
+          userId,
+        },
+      },
+    });
+  }
+
+  countDistinctSessionDevices(userId: string, since: Date): Promise<number> {
+    return this.db.refreshToken
+      .findMany({
+        where: {
+          userId,
+          createdAt: {
+            gte: since,
+          },
+        },
+        select: {
+          deviceInfo: true,
+        },
+      })
+      .then((tokens) => {
+        const fingerprints = new Set<string>();
+        for (const token of tokens) {
+          const deviceInfo =
+            typeof token.deviceInfo === 'object' && token.deviceInfo !== null
+              ? (token.deviceInfo as Record<string, unknown>)
+              : {};
+          const fingerprint = `${deviceInfo.ip ?? 'unknown'}|${deviceInfo.userAgent ?? 'unknown'}`;
+          fingerprints.add(fingerprint);
+        }
+        return fingerprints.size;
+      });
+  }
+
   upsertRiskProfile(
     userId: string,
     data: {
@@ -43,6 +95,7 @@ export class RiskRepository {
       lastTxnAt: Date;
       lastTxnAmount: Prisma.Decimal;
       velocityFlag: boolean;
+      riskSignals?: Prisma.InputJsonValue;
     }
   ) {
     return this.db.riskProfile.upsert({

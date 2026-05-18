@@ -500,7 +500,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (!mounted) return;
 
     if (paymentProvider.currentPayment == null) {
-      _showSnackBar(paymentProvider.error ?? 'Payment creation failed');
+      final message = switch (paymentProvider.errorCode) {
+        'SELF_TRANSFER_NOT_ALLOWED' =>
+          'This beneficiary appears to match your verified PAN name. Self-transfers are not allowed.',
+        'RISK_REJECTED' =>
+          paymentProvider.error ?? 'Transfer blocked by risk controls.',
+        _ => paymentProvider.error ?? 'Payment creation failed',
+      };
+      _showSnackBar(message);
       return;
     }
 

@@ -15,8 +15,12 @@ import {
   BeneficiaryInvalidError,
   NotFoundError,
   PanRequiredError,
+  SelfTransferNotAllowedError,
   ValidationError,
 } from '../../shared/errors.js';
+import { BeneficiaryPayoutReadinessService } from '../compliance/beneficiary-payout-readiness.service.js';
+import { CashfreeBeneficiaryService } from '../compliance/cashfree-beneficiary.service.js';
+import { isSelfTransfer } from '../compliance/self-transfer.util.js';
 import { sha256 } from '../../utils/hash.js';
 import { RiskService } from '../risk/risk.service.js';
 import { TransactionStateService } from '../transaction/transaction-state.service.js';
@@ -25,16 +29,29 @@ import { CashfreeClient } from './cashfree.client.js';
 import { BankAccountDto, CreateTransferDto } from './payment.schemas.js';
 
 export class PaymentService {
+  private readonly payoutReadinessService: BeneficiaryPayoutReadinessService;
+
   constructor(
     private readonly paymentRepository: PaymentRepository,
     private readonly riskService: RiskService,
     private readonly transactionStateService: TransactionStateService,
     private readonly cashfreeClient: CashfreeClient,
     private readonly beneficiaryValidationService: BeneficiaryValidationService,
+    private readonly cashfreeBeneficiaryService: CashfreeBeneficiaryService,
     private readonly db: PrismaClient
-  ) {}
+  ) {
+    this.payoutReadinessService = new BeneficiaryPayoutReadinessService(
+      paymentRepository,
+      cashfreeBeneficiaryService
+    );
+  }
 
-  async createTransfer(userId: string, input: CreateTransferDto, idempotencyKey?: string) {
+  async createTransfer(
+    userId: string,
+    input: CreateTransferDto,
+    idempotencyKey?: string,
+    requestContext: { ip?: string; userAgent?: string } = {}
+  ) {
     const user = await this.paymentRepository.findUser(userId);
     if (!user || !user.isActive) {
       throw new NotFoundError('User');
@@ -62,14 +79,37 @@ export class PaymentService {
       }
     }
 
-    await this.riskService.evaluateTransfer(userId, input.amount);
-
     const pricing = this.calculatePricing(input.amount);
     const merchantOrderId = `txn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const { beneficiary, bankAccount } = await this.resolveTransferInstrument(userId, input);
+    const { beneficiary: resolvedBeneficiary, bankAccount } = await this.resolveTransferInstrument(
+      userId,
+      input
+    );
+    const beneficiary = await this.payoutReadinessService.ensureReady(user, resolvedBeneficiary);
     if (!beneficiary.isVerified || beneficiary.status !== 'VERIFIED') {
       throw new BeneficiaryInvalidError('Beneficiary must be verified before transfer');
     }
+    if (!beneficiary.providerBeneficiaryId) {
+      throw new BeneficiaryInvalidError(
+        'Beneficiary is not registered for payouts. Try saving the account again.'
+      );
+    }
+
+    if (user.panName && isSelfTransfer(user.panName, beneficiary.accountHolderName)) {
+      throw new SelfTransferNotAllowedError(
+        'Transfer blocked because beneficiary name matches verified PAN holder',
+        {
+          userPanName: user.panName,
+          beneficiaryName: beneficiary.accountHolderName,
+        }
+      );
+    }
+
+    await this.riskService.evaluateTransfer(userId, input.amount, {
+      ip: requestContext.ip,
+      userAgent: requestContext.userAgent,
+      beneficiaryId: beneficiary.id,
+    });
 
     const transaction = await this.db.$transaction((tx) =>
       this.paymentRepository.createTransaction(tx, {
@@ -212,7 +252,7 @@ export class PaymentService {
     );
 
     if (existing) {
-      return existing;
+      return this.payoutReadinessService.ensureReady(user, existing);
     }
 
     const validated = await this.beneficiaryValidationService.validateBankAccount({
@@ -225,30 +265,37 @@ export class PaymentService {
     const beneficiary = await this.db.$transaction((tx) =>
       this.paymentRepository.createBeneficiary(tx, {
         userId,
-        status: 'VERIFIED',
+        status: 'PENDING_VERIFICATION',
         accountHolderName: validated.accountHolderName,
         accountNumber: validated.accountNumber,
         accountNumberMask: this.maskAccountNumber(bankAccount.accountNumber),
         accountNumberHash,
         ifsc: validated.ifsc,
-        isVerified: true,
+        isVerified: false,
         label: bankAccount.bankName ?? validated.accountHolderName,
-        rawDetails: bankAccount as unknown as Prisma.InputJsonValue,
-        providerStatus: 'VERIFIED',
+        rawDetails: {
+          accountHolderName: validated.accountHolderName,
+          accountNumber: validated.accountNumber,
+          ifsc: validated.ifsc,
+          bankName: bankAccount.bankName,
+        } as unknown as Prisma.InputJsonValue,
         verificationMetadata: validated.verificationMetadata as unknown as Prisma.InputJsonValue,
       })
     );
+
+    const registered = await this.payoutReadinessService.ensureReady(user, beneficiary);
 
     logger.info(
       {
         userId,
         beneficiaryId: beneficiary.id,
         accountNumberMask: beneficiary.accountNumberMask,
+        providerBeneficiaryId: registered.providerBeneficiaryId,
       },
       'Inline beneficiary validated during transfer'
     );
 
-    return beneficiary;
+    return registered;
   }
 
   private maskBankAccount(input: BankAccountDto) {

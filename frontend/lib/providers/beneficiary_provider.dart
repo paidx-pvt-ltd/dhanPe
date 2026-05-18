@@ -59,7 +59,7 @@ class BeneficiaryProvider extends ChangeNotifier {
       ];
       return beneficiary;
     } on ApiError catch (error) {
-      _error = error.message;
+      _error = _messageForBeneficiaryError(error);
     } catch (_) {
       _error = 'Failed to save beneficiary';
     } finally {
@@ -68,5 +68,18 @@ class BeneficiaryProvider extends ChangeNotifier {
     }
 
     return null;
+  }
+
+  String _messageForBeneficiaryError(ApiError error) {
+    switch (error.code) {
+      case 'SELF_TRANSFER_NOT_ALLOWED':
+        return 'This account appears to belong to you. Self-transfers are blocked for compliance.';
+      case 'PAN_REQUIRED':
+        return 'Verify your PAN before adding a beneficiary.';
+      case 'BENEFICIARY_INVALID':
+        return error.message;
+      default:
+        return error.message;
+    }
   }
 }

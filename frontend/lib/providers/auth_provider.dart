@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../core/exceptions.dart';
+import '../models/onboarding_status.dart';
 import '../services/auth_service.dart';
 import '../services/http_client.dart';
 import '../services/service_locator.dart';
@@ -87,6 +88,47 @@ class AuthProvider extends ChangeNotifier {
       _isReady = true;
       notifyListeners();
     }
+  }
+
+  Future<Msg91WidgetConfig?> loadWidgetConfig() async {
+    try {
+      return await _authService.getWidgetConfig();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> verifyWidget({
+    required String mobileNumber,
+    required String accessToken,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await _authService.verifyWidget(
+        mobileNumber: mobileNumber,
+        accessToken: accessToken,
+      );
+
+      _accessToken = result['accessToken'];
+      await _httpClient?.setAuthToken(_accessToken!);
+      _user = User.fromJson(result['user']);
+      _error = null;
+      return true;
+    } on ApiError catch (e) {
+      _error = e.message;
+    } on AuthException catch (e) {
+      _error = e.message;
+    } catch (e) {
+      _error = 'Widget verification failed: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+
+    return false;
   }
 
   Future<bool> requestOtp({required String mobileNumber}) async {

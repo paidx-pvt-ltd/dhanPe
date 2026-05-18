@@ -9,8 +9,19 @@ describe('UserService', () => {
   const panVerificationService = {
     verifyPan: vi.fn(),
   };
+  const onboardingService = {
+    resolve: vi.fn(),
+  };
+  const diditService = {
+    createSession: vi.fn(),
+  };
 
-  const service = new UserService(userRepository as never, panVerificationService as never);
+  const service = new UserService(
+    userRepository as never,
+    panVerificationService as never,
+    onboardingService as never,
+    diditService as never
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();

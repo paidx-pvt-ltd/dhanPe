@@ -125,9 +125,21 @@ export const config = {
   msg91: {
     authKey: process.env.MSG91_AUTH_KEY ?? '',
     baseUrl: process.env.MSG91_BASE_URL ?? 'https://api.msg91.com',
+    widgetId: process.env.MSG91_WIDGET_ID ?? '',
+    widgetToken: process.env.MSG91_WIDGET_TOKEN ?? '',
+    widgetEnabled: parseBoolean(process.env.MSG91_WIDGET_ENABLED, true),
+    widgetVerifyBaseUrl:
+      process.env.MSG91_WIDGET_VERIFY_BASE_URL ?? 'https://control.msg91.com/api/v5',
     sandboxEnabled: parseBoolean(process.env.MSG91_SANDBOX_ENABLED, false),
     sandboxOtp: process.env.MSG91_SANDBOX_OTP ?? '123456',
     sandboxAllowProduction: parseBoolean(process.env.MSG91_SANDBOX_ALLOW_PRODUCTION, false),
+  },
+  compliance: {
+    selfTransferSimilarityThreshold: parseNumber(
+      process.env.COMPLIANCE_SELF_TRANSFER_THRESHOLD,
+      0.88
+    ),
+    selfTransferTokenThreshold: parseNumber(process.env.COMPLIANCE_SELF_TRANSFER_TOKEN_THRESHOLD, 0.8),
   },
   reconciliation: {
     enabled: parseBoolean(process.env.RECONCILIATION_ENABLED, true),

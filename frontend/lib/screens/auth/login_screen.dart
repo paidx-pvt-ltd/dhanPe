@@ -3,9 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/exceptions.dart';
+import '../../models/onboarding_status.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/legal_links.dart';
 import '../../widgets/kinetic_primitives.dart';
+import 'widget_verify_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +21,20 @@ class _LoginScreenState extends State<LoginScreen> {
   final _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isSendingOtp = false;
+  bool _otpServiceUnavailable = false;
+  Msg91WidgetConfig? _widgetConfig;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWidgetConfig());
+  }
+
+  Future<void> _loadWidgetConfig() async {
+    final config = await context.read<AuthProvider>().loadWidgetConfig();
+    if (!mounted) return;
+    setState(() => _widgetConfig = config);
+  }
 
   @override
   void dispose() {
@@ -29,19 +46,48 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_validateMobileNumber()) return;
 
     final authProvider = context.read<AuthProvider>();
-    setState(() => _isSendingOtp = true);
+    final mobileNumber = _normalizedMobileNumber();
+    setState(() {
+      _isSendingOtp = true;
+      _otpServiceUnavailable = false;
+    });
 
     try {
-      final sent = await authProvider.requestOtp(
-        mobileNumber: _normalizedMobileNumber(),
-      );
-
+      final config = _widgetConfig ?? await authProvider.loadWidgetConfig();
       if (!mounted) return;
-      if (!sent && authProvider.error != null && authProvider.error!.isNotEmpty) {
-        _showSnackBar(authProvider.error!);
+
+      if (config?.widgetEnabled == true &&
+          config?.widgetId != null &&
+          config?.widgetToken != null) {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => WidgetVerifyScreen(
+              mobileNumber: mobileNumber,
+              widgetConfig: config!,
+            ),
+          ),
+        );
         return;
       }
-      context.push('/login/otp', extra: _normalizedMobileNumber());
+
+      final sent = await authProvider.requestOtp(mobileNumber: mobileNumber);
+
+      if (!mounted) return;
+      if (!sent) {
+        final unavailable = authProvider.error?.contains('unavailable') == true;
+        setState(() => _otpServiceUnavailable = unavailable);
+        if (authProvider.error != null && authProvider.error!.isNotEmpty) {
+          _showSnackBar(authProvider.error!);
+        }
+        return;
+      }
+      context.push('/login/otp', extra: mobileNumber);
+    } on ApiError catch (error) {
+      if (!mounted) return;
+      setState(
+        () => _otpServiceUnavailable = error.code == 'SERVICE_UNAVAILABLE',
+      );
+      _showSnackBar(error.message);
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
@@ -203,12 +249,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   const SizedBox(height: 24),
                                   // Launch Widget Button
+                                  if (_otpServiceUnavailable)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: Text(
+                                        'OTP delivery is temporarily unavailable. Check MSG91 configuration or try again later.',
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: AppColors.warning,
+                                        ),
+                                      ),
+                                    ),
                                   GradientButton(
                                     label: 'Verify Mobile Number',
                                     icon: Icons.security_rounded,
                                     isLoading:
                                         _isSendingOtp || authProvider.isLoading,
-                                    onPressed: _handleRequestOtp,
+                                    onPressed:
+                                        _otpServiceUnavailable ? null : _handleRequestOtp,
                                   ),
                                 ],
                               );

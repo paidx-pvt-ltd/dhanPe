@@ -12,7 +12,11 @@ export class PaymentController {
     const result = await this.paymentService.createTransfer(
       req.userId!,
       req.body,
-      req.header('x-idempotency-key') ?? undefined
+      req.header('x-idempotency-key') ?? undefined,
+      {
+        ip: req.ip,
+        userAgent: req.get('user-agent') ?? undefined,
+      }
     );
 
     res.status(201).json({
