@@ -53,6 +53,8 @@ Required:
 - `CASHFREE_WEBHOOK_SECRET`
 - `REDIS_URL`
 - `MSG91_AUTH_KEY`
+- `MSG91_WIDGET_ID`
+- `MSG91_WIDGET_TOKEN`
 
 Also parsed by config:
 
@@ -66,6 +68,8 @@ Also parsed by config:
 - `OTP_EXPIRY_MINUTES`
 - `OTP_MAX_ATTEMPTS`
 - `MSG91_BASE_URL`
+- `MSG91_WIDGET_ENABLED`
+- `MSG91_WIDGET_VERIFY_BASE_URL`
 - `MSG91_SANDBOX_ENABLED`
 - `MSG91_SANDBOX_OTP`
 - `MSG91_SANDBOX_ALLOW_PRODUCTION`
@@ -81,6 +85,8 @@ Also parsed by config:
 - `RISK_MAX_DAILY_VOLUME`
 - `RISK_VELOCITY_WINDOW_MINUTES`
 - `RISK_VELOCITY_MAX_TRANSACTIONS`
+- `COMPLIANCE_SELF_TRANSFER_THRESHOLD`
+- `COMPLIANCE_SELF_TRANSFER_TOKEN_THRESHOLD`
 - `LOG_LEVEL`
 - `PAYOUT_QUEUE_CONCURRENCY`
 - `WEBHOOK_QUEUE_CONCURRENCY`
@@ -101,6 +107,19 @@ Also parsed by config:
 
 Use `backend/.env.development` as the local template. Production secrets should come from the host environment, not git.
 
+The root `docker-compose.yml` also requires a local `POSTGRES_PASSWORD` environment variable before starting PostgreSQL:
+
+```bash
+POSTGRES_PASSWORD=change-me-for-local-dev docker compose up -d
+```
+
+PowerShell:
+
+```powershell
+$env:POSTGRES_PASSWORD = 'change-me-for-local-dev'
+docker compose up -d
+```
+
 Cashfree integration note:
 
 - `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` are used for PG orders/refunds.
@@ -109,6 +128,8 @@ Cashfree integration note:
 MSG91 integration note:
 
 - Normal API mode requires `MSG91_AUTH_KEY` and uses MSG91's SendOTP API.
+- Widget mode uses `GET /api/auth/widget-config` and `POST /api/auth/verify-widget`.
+- Widget mode requires `MSG91_WIDGET_ID` and `MSG91_WIDGET_TOKEN`; the backend verifies the returned access token server-side with `MSG91_AUTH_KEY`.
 - Temporary testing can use `MSG91_SANDBOX_ENABLED=true`, which skips MSG91 delivery and accepts `MSG91_SANDBOX_OTP`.
 - If `NODE_ENV` is `production` or `staging`, sandbox mode also requires `MSG91_SANDBOX_ALLOW_PRODUCTION=true`. Use this only for temporary testing and turn it off before real users.
 
@@ -122,12 +143,16 @@ Primary API routes:
 - `GET /healthz`
 - `GET /api/healthz`
 - `GET /docs/openapi.json`
+- `GET /api/auth/widget-config`
+- `POST /api/auth/verify-widget`
 - `POST /api/auth/send-otp`
 - `POST /api/auth/verify-otp`
 - `POST /api/auth/refresh`
+- `GET /api/users/onboarding`
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
 - `POST /api/users/pan`
+- `POST /api/users/pan/fallback`
 - `GET /api/users/beneficiaries`
 - `POST /api/users/beneficiaries`
 - `POST /api/users/kyc/session`
@@ -159,6 +184,7 @@ Notes:
 - Cashfree payout webhook is `POST /api/webhook/cashfree/payout`.
 - Didit session creation is `POST /api/users/kyc/session`.
 - Didit status sync is `POST /api/users/kyc/session/:sessionId/sync`.
+- PAN fallback document verification is `POST /api/users/pan/fallback`.
 - Didit webhook is `POST /api/webhook/didit`.
 - Reconciliation routes are admin-only and require a user with `isAdmin=true`.
 - Dispute routes are admin-only and cover both first-party disputes and downstream chargebacks.
@@ -176,6 +202,9 @@ Current enforced controls:
 - velocity cap (count in rolling window) via:
   - `RISK_VELOCITY_WINDOW_MINUTES`
   - `RISK_VELOCITY_MAX_TRANSACTIONS`
+- repeated beneficiary changes in the last 24 hours
+- repeated payout failures in the last 24 hours
+- suspicious distinct session/device count in the last 24 hours
 
 On breach, the API returns `422` with code `RISK_REJECTED`.
 On pass, the backend updates `RiskProfile` with:
@@ -185,6 +214,7 @@ On pass, the backend updates `RiskProfile` with:
 - `lastTxnAt`
 - `lastTxnAmount`
 - `velocityFlag`
+- `riskSignals`
 
 Implementation references:
 
@@ -227,23 +257,25 @@ Operational visibility and maintenance:
 
 ## Current Transfer Flow
 
-1. Frontend submits a mobile number to `POST /api/auth/send-otp`.
-2. Backend normalizes the number, sends the OTP through MSG91's server-side OTP API, and returns success only after MSG91 accepts the request.
-3. Frontend collects the OTP and submits `{ mobileNumber, otp }` to `POST /api/auth/verify-otp`.
-4. Backend verifies the OTP with MSG91, creates or updates the verified user, and issues JWT tokens.
-5. Authenticated user updates or confirms profile data.
-6. Frontend requests a Didit session token through `POST /api/users/kyc/session`.
-7. Flutter launches the native Didit SDK with the returned `sessionToken`.
-8. Frontend syncs the final SDK session through `POST /api/users/kyc/session/:sessionId/sync`.
-9. On the first transfer attempt, frontend collects PAN if backend returns `PAN_REQUIRED`, then submits it through `POST /api/users/pan`.
-10. User can register or reuse a beneficiary through `GET/POST /api/users/beneficiaries`; backend validates the bank account and blocks self-transfers.
-11. Backend only allows `POST /api/transfer` after mobile verification, KYC approval, PAN verification, beneficiary verification, and risk checks.
-12. Cashfree payment webhook updates the payment lifecycle through `POST /api/webhook/cashfree`.
-13. Cashfree payment webhooks enqueue payout execution work and return immediately.
-14. The worker submits payouts, handles webhook jobs, performs manual sync jobs, and updates the database idempotently.
-15. Refunds are created through `POST /api/refund/:transactionId` and synced through `POST /api/refund/:refundId/sync`.
-16. Admin operators can open and work dispute or chargeback cases through `/api/disputes/*`.
-17. Scheduled or manual reconciliation runs on the worker and stores findings for admin review.
+1. Frontend loads public widget settings from `GET /api/auth/widget-config`.
+2. If widget mode is enabled, the app completes MSG91 widget verification and submits `{ mobileNumber, accessToken }` to `POST /api/auth/verify-widget`.
+3. If widget mode is unavailable or the user chooses SMS fallback, frontend submits the mobile number to `POST /api/auth/send-otp`.
+4. Backend normalizes the number, sends the OTP through MSG91's server-side OTP API, and returns success only after MSG91 accepts the request.
+5. Frontend collects the OTP and submits `{ mobileNumber, otp }` to `POST /api/auth/verify-otp`.
+6. Backend verifies the widget token or OTP with MSG91, creates or updates the verified user, and issues JWT tokens.
+7. Authenticated user loads onboarding status from `GET /api/users/onboarding` and updates or confirms profile data.
+8. Frontend requests a Didit session token through `POST /api/users/kyc/session`.
+9. Flutter launches the native Didit SDK with the returned `sessionToken`.
+10. Frontend syncs the final SDK session through `POST /api/users/kyc/session/:sessionId/sync`.
+11. Frontend collects PAN and submits it through `POST /api/users/pan`; failed PAN API verification can offer `POST /api/users/pan/fallback`.
+12. User can register or reuse a beneficiary through `GET/POST /api/users/beneficiaries`; backend validates the bank account, registers it for payouts, and blocks self-transfers.
+13. Backend only allows `POST /api/transfer` after mobile verification, KYC approval, PAN verification, profile completion, beneficiary verification, payout registration, and risk checks.
+14. Cashfree payment webhook updates the payment lifecycle through `POST /api/webhook/cashfree`.
+15. Cashfree payment webhooks enqueue payout execution work and return immediately.
+16. The worker submits payouts, handles webhook jobs, performs manual sync jobs, and updates the database idempotently.
+17. Refunds are created through `POST /api/refund/:transactionId` and synced through `POST /api/refund/:refundId/sync`.
+18. Admin operators can open and work dispute or chargeback cases through `/api/disputes/*`.
+19. Scheduled or manual reconciliation runs on the worker and stores findings for admin review.
 
 ## Railway Deployment
 

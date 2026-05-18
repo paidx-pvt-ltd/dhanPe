@@ -136,6 +136,13 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                         TextFormField(
                           controller: _otpController,
                           keyboardType: TextInputType.number,
+                          obscureText: true,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          enableInteractiveSelection: false,
+                          enableIMEPersonalizedLearning: false,
+                          smartDashesType: SmartDashesType.disabled,
+                          smartQuotesType: SmartQuotesType.disabled,
                           decoration: const InputDecoration(
                             labelText: 'OTP',
                             prefixIcon: Icon(Icons.password_rounded),

@@ -1,0 +1,989 @@
+{
+ "reportCreationDate": "2026-05-18T21:42:54.810315214+05:30",
+ "reportType": "Improved Project Report",
+ "header": {
+  "tenantId": "7ccf8d04-b5aa-4e5e-8bfb-7c10e9d074c8",
+  "timezone": "Asia/Calcutta",
+  "severityDistribution": [
+   {
+    "level": "Critical",
+    "value": 3
+   },
+   {
+    "level": "High",
+    "value": 23
+   },
+   {
+    "level": "Medium",
+    "value": 42
+   }
+  ]
+ },
+ "projectsOverview": {
+  "numberOfProjects": 1,
+  "projectsList": [
+   {
+    "projectName": "manual-financeapp",
+    "projectId": "89aee6b6-5e7d-40d0-b0fc-10a06702ffb0",
+    "projectLink": "https://ind.ast.checkmarx.net/projects/89aee6b6-5e7d-40d0-b0fc-10a06702ffb0/overview",
+    "projectApplications": [
+     "dhruv-demo"
+    ],
+    "projectTags": [
+     "dhruv-demo"
+    ],
+    "severityDistribution": [
+     {
+      "level": "Critical",
+      "value": 3
+     },
+     {
+      "level": "High",
+      "value": 23
+     },
+     {
+      "level": "Medium",
+      "value": 42
+     }
+    ],
+    "projectBranchesOverview": [
+     {
+      "branchName": "develop",
+      "BranchURL": "https://ind.ast.checkmarx.net/projects/89aee6b6-5e7d-40d0-b0fc-10a06702ffb0/overview?branch=develop",
+      "severityDistribution": [
+       {
+        "level": "Critical",
+        "value": 3
+       },
+       {
+        "level": "High",
+        "value": 22
+       },
+       {
+        "level": "Medium",
+        "value": 34
+       }
+      ],
+      "oldestVulnerability": {
+       "oldestVulnerability": "Cxdca8e59f-8bfe",
+       "oldestVulnerabilityScanner": "SCA",
+       "oldestVulnerabilityAge": 47
+      },
+      "lastScan": {
+       "lastScanDate": "2026-05-18T21:14:15.33+05:30",
+       "lastScanId": "a97a6c5f-e7c2-43cd-8243-80143375d1b5",
+       "lastScanType": "Full",
+       "scanners": [
+        "SAST",
+        "IaC",
+        "SCA",
+        "N/A",
+        "CON",
+        "SCD"
+       ],
+       "loc": 30051,
+       "sourceOrigin": "zip",
+       "tags": [
+        ""
+       ],
+       "preset": "All-All"
+      },
+      "policies": null
+     },
+     {
+      "branchName": "main",
+      "BranchURL": "https://ind.ast.checkmarx.net/projects/89aee6b6-5e7d-40d0-b0fc-10a06702ffb0/overview?branch=main",
+      "severityDistribution": [
+       {
+        "level": "Critical",
+        "value": 0
+       },
+       {
+        "level": "High",
+        "value": 1
+       },
+       {
+        "level": "Medium",
+        "value": 8
+       }
+      ],
+      "oldestVulnerability": {
+       "oldestVulnerability": "Cxdca8e59f-8bfe",
+       "oldestVulnerabilityScanner": "SCA",
+       "oldestVulnerabilityAge": 47
+      },
+      "lastScan": {
+       "lastScanDate": "2026-04-10T03:27:02.808+05:30",
+       "lastScanId": "05b343a0-bdbf-4253-b29c-895b0453a5fb",
+       "lastScanType": "Full",
+       "scanners": [
+        "SAST",
+        "IaC",
+        "SCA",
+        "N/A",
+        "CON",
+        "SCD"
+       ],
+       "loc": 27640,
+       "sourceOrigin": "zip",
+       "tags": [
+        ""
+       ],
+       "preset": "All-All"
+      },
+      "policies": null
+     }
+    ]
+   }
+  ]
+ },
+ "bySeverity": {
+  "totalResults": 68,
+  "severitiesBreakdown": [
+   {
+    "level": "Critical",
+    "value": 3,
+    "percentage": 4.41,
+    "density": {
+     "value": 0.05
+    }
+   },
+   {
+    "level": "High",
+    "value": 23,
+    "percentage": 33.82,
+    "density": {
+     "value": 0.4
+    }
+   },
+   {
+    "level": "Medium",
+    "value": 42,
+    "percentage": 61.76,
+    "density": {
+     "value": 0.73
+    }
+   }
+  ]
+ },
+ "resolvedBySeverity": {
+  "totalResults": 614,
+  "severityDistribution": [
+   {
+    "level": "Critical",
+    "value": 16,
+    "percentage": 2.61
+   },
+   {
+    "level": "High",
+    "value": 222,
+    "percentage": 36.16
+   },
+   {
+    "level": "Medium",
+    "value": 376,
+    "percentage": 61.24
+   }
+  ]
+ },
+ "byState": {
+  "totalResults": 68,
+  "stateDistribution": [
+   {
+    "state": "To Verify",
+    "value": 68,
+    "percentage": 100,
+    "density": {
+     "value": 1.18
+    }
+   },
+   {
+    "state": "Confirmed",
+    "value": 0,
+    "percentage": 0,
+    "density": {
+     "value": 0
+    }
+   },
+   {
+    "state": "Urgent",
+    "value": 0,
+    "percentage": 0,
+    "density": {
+     "value": 0
+    }
+   }
+  ]
+ },
+ "byStatus": {
+  "totalResults": 68,
+  "newResultsOverview": {
+   "numberOfResults": 0,
+   "percentage": 0
+  },
+  "recurrentResultsOverview": {
+   "numberOfResults": 68,
+   "percentage": 100
+  }
+ },
+ "byScanner": {
+  "totalResults": 68,
+  "scannersDistribution": [
+   {
+    "scannerName": "SAST",
+    "numberOfResults": 19,
+    "percentage": 27.94
+   },
+   {
+    "scannerName": "IaC",
+    "numberOfResults": 7,
+    "percentage": 10.29
+   },
+   {
+    "scannerName": "SCA",
+    "numberOfResults": 11,
+    "percentage": 16.18
+   },
+   {
+    "scannerName": "CON",
+    "numberOfResults": 31,
+    "percentage": 45.59
+   },
+   {
+    "scannerName": "SCD",
+    "numberOfResults": 0,
+    "percentage": 0
+   }
+  ]
+ },
+ "languageOverview": [
+  {
+   "languageName": "dart",
+   "totalResults": 19,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 0
+    },
+    {
+     "level": "Medium",
+     "value": 19
+    }
+   ]
+  },
+  {
+   "languageName": "Npm-axios-1.14.0",
+   "totalResults": 7,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 1
+    },
+    {
+     "level": "High",
+     "value": 3
+    },
+    {
+     "level": "Medium",
+     "value": 3
+    }
+   ]
+  },
+  {
+   "languageName": "Npm-inflight-1.0.6",
+   "totalResults": 2,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 2
+    },
+    {
+     "level": "Medium",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "languageName": "Npm-uuid-11.1.0",
+   "totalResults": 1,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 1
+    },
+    {
+     "level": "Medium",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "languageName": "Npm-follow-redirects-1.15.11",
+   "totalResults": 1,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 0
+    },
+    {
+     "level": "Medium",
+     "value": 1
+    }
+   ]
+  },
+  {
+   "languageName": "Common",
+   "totalResults": 1,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 1
+    },
+    {
+     "level": "Medium",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "languageName": "DockerCompose",
+   "totalResults": 6,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 0
+    },
+    {
+     "level": "Medium",
+     "value": 6
+    }
+   ]
+  },
+  {
+   "languageName": "docker-compose.yml#-#postgres:15-alpine#-#go:1.24.6",
+   "totalResults": 31,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 2
+    },
+    {
+     "level": "High",
+     "value": 16
+    },
+    {
+     "level": "Medium",
+     "value": 13
+    }
+   ]
+  }
+ ],
+ "resultsOverview": [
+  {
+   "name": "dart",
+   "totalResults": 19,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 0
+    },
+    {
+     "level": "Medium",
+     "value": 19
+    }
+   ],
+   "engine": "SAST",
+   "type": "Language"
+  },
+  {
+   "name": "Npm-axios-1.14.0",
+   "totalResults": 7,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 1
+    },
+    {
+     "level": "High",
+     "value": 3
+    },
+    {
+     "level": "Medium",
+     "value": 3
+    }
+   ],
+   "engine": "SCA",
+   "type": "Package"
+  },
+  {
+   "name": "Npm-inflight-1.0.6",
+   "totalResults": 2,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 2
+    },
+    {
+     "level": "Medium",
+     "value": 0
+    }
+   ],
+   "engine": "SCA",
+   "type": "Package"
+  },
+  {
+   "name": "Npm-uuid-11.1.0",
+   "totalResults": 1,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 1
+    },
+    {
+     "level": "Medium",
+     "value": 0
+    }
+   ],
+   "engine": "SCA",
+   "type": "Package"
+  },
+  {
+   "name": "Npm-follow-redirects-1.15.11",
+   "totalResults": 1,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 0
+    },
+    {
+     "level": "Medium",
+     "value": 1
+    }
+   ],
+   "engine": "SCA",
+   "type": "Package"
+  },
+  {
+   "name": "Common",
+   "totalResults": 1,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 1
+    },
+    {
+     "level": "Medium",
+     "value": 0
+    }
+   ],
+   "engine": "IaC Security",
+   "type": "Technology"
+  },
+  {
+   "name": "DockerCompose",
+   "totalResults": 6,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 0
+    },
+    {
+     "level": "High",
+     "value": 0
+    },
+    {
+     "level": "Medium",
+     "value": 6
+    }
+   ],
+   "engine": "IaC Security",
+   "type": "Technology"
+  },
+  {
+   "name": "docker-compose.yml#-#postgres:15-alpine#-#go:1.24.6",
+   "totalResults": 31,
+   "severityBreakdown": [
+    {
+     "level": "Critical",
+     "value": 2
+    },
+    {
+     "level": "High",
+     "value": 16
+    },
+    {
+     "level": "Medium",
+     "value": 13
+    }
+   ],
+   "engine": "Container Security",
+   "type": "ImageAndPackage"
+  }
+ ],
+ "topTenVulnerableFiles": [
+  {
+   "fileName": "/frontend/lib/screens/profile/profile_screen.dart",
+   "totalCount": 10,
+   "severityDistribution": [
+    {
+     "level": "Medium",
+     "value": 10
+    }
+   ]
+  },
+  {
+   "fileName": "/frontend/lib/screens/auth/login_screen.dart",
+   "totalCount": 6,
+   "severityDistribution": [
+    {
+     "level": "Medium",
+     "value": 6
+    }
+   ]
+  },
+  {
+   "fileName": "/frontend/lib/screens/auth/otp_verify_screen.dart",
+   "totalCount": 3,
+   "severityDistribution": [
+    {
+     "level": "Medium",
+     "value": 3
+    }
+   ]
+  }
+ ],
+ "topTenVulnerabilityType": {
+  "vulnerabilitiesList": [
+   {
+    "vulnerabilityType": "CVE-2026-42043",
+    "total": 1,
+    "scanner": "SCA",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 1
+     },
+     {
+      "level": "High",
+      "value": 0
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "postgres:15-alpine | CVE-2025-68121",
+    "total": 1,
+    "scanner": "CON",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 1
+     },
+     {
+      "level": "High",
+      "value": 0
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "postgres:15-alpine | CVE-2026-27143",
+    "total": 1,
+    "scanner": "CON",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 1
+     },
+     {
+      "level": "High",
+      "value": 0
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "Cxdca8e59f-8bfe",
+    "total": 2,
+    "scanner": "SCA",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 2
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "CVE-2026-41907",
+    "total": 1,
+    "scanner": "SCA",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 1
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "CVE-2026-42033",
+    "total": 1,
+    "scanner": "SCA",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 1
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "CVE-2026-42035",
+    "total": 1,
+    "scanner": "SCA",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 1
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "CVE-2026-42038",
+    "total": 1,
+    "scanner": "SCA",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 1
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "Passwords And Secrets - Generic Password",
+    "total": 1,
+    "scanner": "IaC",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 1
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "vulnerabilityType": "postgres:15-alpine | CVE-2025-58187",
+    "total": 1,
+    "scanner": "CON",
+    "vulnerabilitySeverities": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 1
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   }
+  ]
+ },
+ "topTenOldestVulnerabilities": [
+  {
+   "vulnerabilityType": "Cxdca8e59f-8bfe",
+   "age": 47,
+   "level": "High",
+   "scanner": "SCA"
+  },
+  {
+   "vulnerabilityType": "Autocorrection_Keystroke_Logging",
+   "age": 39,
+   "level": "Medium",
+   "scanner": "SAST"
+  },
+  {
+   "vulnerabilityType": "Pasteboard_Leakage",
+   "age": 39,
+   "level": "Medium",
+   "scanner": "SAST"
+  },
+  {
+   "vulnerabilityType": "Third_Party_Keyboards_On_Sensitive_Field",
+   "age": 39,
+   "level": "Medium",
+   "scanner": "SAST"
+  },
+  {
+   "vulnerabilityType": "CVE-2025-62718",
+   "age": 38,
+   "level": "Medium",
+   "scanner": "SCA"
+  },
+  {
+   "vulnerabilityType": "postgres:15-alpine | CVE-2025-68121",
+   "age": 37,
+   "level": "Critical",
+   "scanner": "CON"
+  },
+  {
+   "vulnerabilityType": "Passwords And Secrets - Generic Password",
+   "age": 37,
+   "level": "High",
+   "scanner": "IaC"
+  },
+  {
+   "vulnerabilityType": "postgres:15-alpine | CVE-2025-58187",
+   "age": 37,
+   "level": "High",
+   "scanner": "CON"
+  },
+  {
+   "vulnerabilityType": "postgres:15-alpine | CVE-2025-58188",
+   "age": 37,
+   "level": "High",
+   "scanner": "CON"
+  },
+  {
+   "vulnerabilityType": "postgres:15-alpine | CVE-2025-61723",
+   "age": 37,
+   "level": "High",
+   "scanner": "CON"
+  }
+ ],
+ "resultsDistributionByStatus": {
+  "statusDistribution": [
+   {
+    "label": "New",
+    "total": 0,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 0
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "label": "Recurrent",
+    "total": 68,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 3
+     },
+     {
+      "level": "High",
+      "value": 23
+     },
+     {
+      "level": "Medium",
+      "value": 42
+     }
+    ]
+   },
+   {
+    "label": "Total",
+    "total": 68,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 3
+     },
+     {
+      "level": "High",
+      "value": 23
+     },
+     {
+      "level": "Medium",
+      "value": 42
+     }
+    ]
+   }
+  ]
+ },
+ "resultsDistributionByState": {
+  "statesDistribution": [
+   {
+    "label": "To Verify",
+    "total": 68,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 3
+     },
+     {
+      "level": "High",
+      "value": 23
+     },
+     {
+      "level": "Medium",
+      "value": 42
+     }
+    ]
+   },
+   {
+    "label": "Confirmed",
+    "total": 0,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 0
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "label": "Urgent",
+    "total": 0,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 0
+     },
+     {
+      "level": "High",
+      "value": 0
+     },
+     {
+      "level": "Medium",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "label": "Total",
+    "total": 68,
+    "severityBreakdown": [
+     {
+      "level": "Critical",
+      "value": 3
+     },
+     {
+      "level": "High",
+      "value": 23
+     },
+     {
+      "level": "Medium",
+      "value": 42
+     }
+    ]
+   }
+  ]
+ }
+}

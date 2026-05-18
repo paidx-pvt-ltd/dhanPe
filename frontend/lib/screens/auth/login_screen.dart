@@ -227,6 +227,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   TextFormField(
                                     controller: _mobileController,
                                     keyboardType: TextInputType.phone,
+                                    obscureText: true,
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    enableInteractiveSelection: false,
+                                    enableIMEPersonalizedLearning: false,
+                                    smartDashesType: SmartDashesType.disabled,
+                                    smartQuotesType: SmartQuotesType.disabled,
                                     decoration: const InputDecoration(
                                       labelText: 'Mobile number',
                                       prefixIcon: Icon(

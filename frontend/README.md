@@ -73,19 +73,22 @@ Supported compile-time keys:
 
 ## Current Flow
 
-1. Complete mobile verification through the backend-driven OTP flow:
+1. Load mobile auth settings from `GET /api/auth/widget-config`.
+2. When MSG91 widget mode is enabled, complete widget verification and submit `{ mobileNumber, accessToken }` through `POST /api/auth/verify-widget`.
+3. When widget mode is unavailable, or when the user selects SMS fallback, use the backend-driven OTP flow:
    - **Step 1: Enter Number**: User provides their mobile number.
    - **Step 2: Receive OTP**: Backend triggers MSG91 OTP send through `POST /api/auth/send-otp`.
    - **Step 3: Verify**: User enters the received OTP.
    *Note: If MSG91 rejects delivery, the backend returns an error and the app stays on the number or OTP screen.*
-2. Verify `{ mobileNumber, otp }` through `POST /api/auth/verify-otp`.
-3. Load profile with `/api/users/profile`
-4. Request a Didit session through `/api/users/kyc/session`
-5. Complete native identity verification in the Didit SDK
-6. Sync the final session through `/api/users/kyc/session/:sessionId/sync`
-7. If transfer creation returns `PAN_REQUIRED`, collect PAN and submit it through `POST /api/users/pan`
-8. Create a bill payment request through `/api/transfer`
-9. Track lifecycle state through `/api/transaction/:id`
+4. Verify `{ mobileNumber, otp }` through `POST /api/auth/verify-otp`.
+5. Load profile with `/api/users/profile` and onboarding state with `/api/users/onboarding`.
+6. Request a Didit session through `/api/users/kyc/session`.
+7. Complete native identity verification in the Didit SDK.
+8. Sync the final session through `/api/users/kyc/session/:sessionId/sync`.
+9. Collect PAN and submit it through `POST /api/users/pan`; failed PAN API verification can offer the Didit document fallback through `POST /api/users/pan/fallback`.
+10. Register or reuse a payout-ready beneficiary through `/api/users/beneficiaries`.
+11. Create a bill payment request through `/api/transfer`.
+12. Track lifecycle state through `/api/transaction/:id`.
 
 ## Structure
 
@@ -105,6 +108,8 @@ Important files:
 - `lib/config/config.dart`: API target resolution
 - `lib/core/app_theme.dart`: shared Everyday Utility design tokens/theme
 - `lib/screens/dashboard/dashboard_screen.dart`: redesigned dashboard
+- `lib/screens/auth/widget_verify_screen.dart`: MSG91 widget verification bridge
+- `lib/screens/onboarding/pan_screen.dart`: PAN verification and fallback entry point
 - `lib/screens/payment/payment_screen.dart`: payment creation + compliance disclosure and confirmation
 - `lib/screens/payment/payment_status_screen.dart`: settlement lifecycle timeline and edge-state messaging
 - `lib/screens/profile/kyc_screen.dart`: KYC status and verification guidance
@@ -125,6 +130,7 @@ Trust and policy elements surfaced in app:
 
 - KYC status and verification prompts
 - PAN verification state and just-in-time PAN collection
+- PAN document fallback through Didit when direct PAN API verification is unavailable
 - secure payment indicators
 - transaction status timeline updates
 - legal links available from auth and settings/profile surfaces
