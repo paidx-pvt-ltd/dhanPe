@@ -18,6 +18,12 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+export const verifyWidgetSchema = z.object({
+  mobileNumber: mobileNumberSchema,
+  accessToken: z.string().trim().min(10),
+});
+
 export type SendOtpDto = z.infer<typeof sendOtpSchema>;
 export type VerifyOtpDto = z.infer<typeof verifyOtpSchema>;
 export type RefreshDto = z.infer<typeof refreshSchema>;
+export type VerifyWidgetDto = z.infer<typeof verifyWidgetSchema>;

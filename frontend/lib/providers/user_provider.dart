@@ -3,14 +3,16 @@ import 'dart:async';
 import 'package:didit_sdk/sdk_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/kyc_session.dart';
+import '../models/onboarding_status.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 import '../core/exceptions.dart';
 
 enum OnboardingStep {
   mobileVerified,
-  kycRequired,
   panRequired,
+  profileRequired,
+  kycRequired,
   beneficiaryRequired,
   onboardingComplete,
 }
@@ -28,6 +30,7 @@ class UserProvider extends ChangeNotifier {
   String? _activeKycVerificationUrl;
 
   bool _hasBeneficiaries = true; // Default to true to avoid flash before load
+  OnboardingStatus? _onboardingStatus;
 
   UserProvider(this._userService);
 
@@ -39,24 +42,31 @@ class UserProvider extends ChangeNotifier {
   String? get activeKycVerificationUrl => _activeKycVerificationUrl;
   bool get hasActiveHostedKyc =>
       _activeKycVerificationUrl != null && _activeKycSessionId != null;
+  OnboardingStatus? get onboardingStatus => _onboardingStatus;
 
   OnboardingStep get nextRequiredStep {
     final currentUser = _user;
     if (currentUser == null) return OnboardingStep.mobileVerified;
 
-    // 1. Mobile Verification
     if (!currentUser.isMobileVerified) return OnboardingStep.mobileVerified;
-
-    // 2. KYC Verification
-    if (currentUser.kycStatus != 'APPROVED') return OnboardingStep.kycRequired;
-
-    // 3. PAN Verification
     if (!currentUser.panVerified) return OnboardingStep.panRequired;
-
-    // 4. Beneficiary Setup
+    if (!_hasCompleteProfile(currentUser)) return OnboardingStep.profileRequired;
+    if (currentUser.kycStatus != 'APPROVED') return OnboardingStep.kycRequired;
     if (!_hasBeneficiaries) return OnboardingStep.beneficiaryRequired;
 
     return OnboardingStep.onboardingComplete;
+  }
+
+  bool _hasCompleteProfile(User user) {
+    return [
+      user.firstName,
+      user.lastName,
+      user.phoneNumber,
+      user.addressLine1,
+      user.city,
+      user.state,
+      user.postalCode,
+    ].every((value) => value != null && value.trim().isNotEmpty);
   }
 
   /// Load user profile
@@ -68,6 +78,7 @@ class UserProvider extends ChangeNotifier {
     try {
       _user = await _userService.getProfile();
       _balance = _user?.balance ?? 0;
+      await _loadOnboardingStatus();
       _syncKycPolling();
     } on ApiError catch (e) {
       _error = e.message;
@@ -134,6 +145,56 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadOnboardingStatus() async {
+    try {
+      _onboardingStatus = await _userService.getOnboardingStatus();
+    } catch (_) {
+      _onboardingStatus = null;
+    }
+  }
+
+  Future<bool> startPanFallbackVerification() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final session = await _userService.createPanFallbackSession();
+      _trackActiveKycSession(session);
+      if (kIsWeb && session.verificationUrl != null) {
+        final launched = await _openHostedVerification();
+        if (!launched) {
+          _error = 'Could not open document verification in the browser.';
+          return false;
+        }
+        _beginActiveSessionPolling();
+        return false;
+      }
+
+      final result = await DiditSdk.startVerification(session.sessionToken);
+      switch (result) {
+        case VerificationCompleted(:final session):
+          return _syncAndResolveKycStatus(
+            sessionId: session.sessionId,
+            fallbackStatusMessage: 'Document verification is being reviewed.',
+          );
+        case VerificationCancelled():
+        case VerificationFailed():
+          _error = 'Document verification did not complete.';
+          return false;
+      }
+    } on ApiError catch (e) {
+      _error = e.message;
+      return false;
+    } catch (_) {
+      _error = 'Failed to start PAN document verification';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> submitPan({required String panNumber, String? legalName}) async {
     _isLoading = true;
     _error = null;
@@ -145,10 +206,14 @@ class UserProvider extends ChangeNotifier {
         legalName: legalName,
       );
       _balance = _user?.balance ?? 0;
+      await _loadOnboardingStatus();
       _syncKycPolling();
       return true;
     } on ApiError catch (e) {
       _error = e.message;
+      if (e.code == 'PAN_INVALID') {
+        return false;
+      }
       return false;
     } catch (_) {
       _error = 'Failed to verify PAN';
@@ -273,6 +338,7 @@ class UserProvider extends ChangeNotifier {
     _activeKycSessionId = null;
     _activeKycVerificationUrl = null;
     _hasBeneficiaries = true;
+    _onboardingStatus = null;
     notifyListeners();
   }
 

@@ -17,6 +17,7 @@ import 'screens/payment/payment_screen.dart';
 import 'screens/payment/payment_status_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/profile/kyc_screen.dart';
+import 'screens/onboarding/pan_screen.dart';
 import 'screens/transactions/transactions_screen.dart';
 import 'services/device_security_service.dart';
 import 'services/service_locator.dart';
@@ -133,6 +134,10 @@ class _AppRouterState extends State<_AppRouter> {
             GoRoute(
               path: '/kyc',
               builder: (context, state) => const KycScreen(),
+            ),
+            GoRoute(
+              path: '/pan',
+              builder: (context, state) => const PanScreen(),
             ),
             GoRoute(
               path: '/transfers',

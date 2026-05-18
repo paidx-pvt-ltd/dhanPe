@@ -40,8 +40,8 @@ export class SelfTransferNotAllowedError extends AppError {
 }
 
 export class AuthenticationError extends AppError {
-  constructor(message = 'Authentication required') {
-    super(401, message, 'AUTHENTICATION_ERROR');
+  constructor(message = 'Authentication required', details?: unknown) {
+    super(401, message, 'AUTHENTICATION_ERROR', details);
   }
 }
 

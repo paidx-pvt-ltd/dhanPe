@@ -300,19 +300,26 @@ class _OnboardingGuidanceCard extends StatelessWidget {
         color = AppColors.warning;
         onTap = () => context.go('/login');
         break;
+      case OnboardingStep.panRequired:
+        title = 'PAN Verification';
+        subtitle = 'Verify your PAN to establish your financial identity.';
+        icon = Icons.badge_outlined;
+        color = AppColors.tertiary;
+        onTap = () => context.go('/pan');
+        break;
+      case OnboardingStep.profileRequired:
+        title = 'Complete Profile';
+        subtitle = 'Add your address and contact details for compliance.';
+        icon = Icons.person_outline_rounded;
+        color = AppColors.primary;
+        onTap = () => context.go('/profile');
+        break;
       case OnboardingStep.kycRequired:
         title = 'Identity Verification';
         subtitle = 'Complete KYC to unlock full settlement features.';
         icon = Icons.face_retouching_natural_rounded;
         color = AppColors.primary;
         onTap = () => context.go('/kyc');
-        break;
-      case OnboardingStep.panRequired:
-        title = 'PAN Verification';
-        subtitle = 'Government regulations require PAN for bill payments.';
-        icon = Icons.badge_outlined;
-        color = AppColors.tertiary;
-        onTap = () => context.go('/profile');
         break;
       case OnboardingStep.beneficiaryRequired:
         title = 'Add Beneficiary';

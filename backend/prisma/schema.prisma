@@ -261,6 +261,7 @@ model RiskProfile {
   lastTxnAt      DateTime?
   lastTxnAmount  Decimal?  @db.Decimal(18, 2)
   velocityFlag   Boolean   @default(false)
+  riskSignals    Json?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }

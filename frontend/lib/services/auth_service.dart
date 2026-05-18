@@ -2,12 +2,69 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/config.dart';
 import '../core/exceptions.dart';
+import '../models/onboarding_status.dart';
 
 class AuthService {
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
   AuthService(this._dio, this._storage);
+
+  Future<Msg91WidgetConfig> getWidgetConfig() async {
+    try {
+      final response = await _dio.get('/auth/widget-config');
+      if (response.statusCode == 200) {
+        return Msg91WidgetConfig.fromJson(
+          response.data['data'] as Map<String, dynamic>,
+        );
+      }
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: 'Failed to load authentication configuration',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyWidget({
+    required String mobileNumber,
+    required String accessToken,
+  }) async {
+    try {
+      _ensureSensitiveTransport();
+      final response = await _dio.post(
+        '/auth/verify-widget',
+        data: {
+          'mobileNumber': mobileNumber,
+          'accessToken': accessToken,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await _storeTokens(
+          response.data['accessToken'],
+          response.data['refreshToken'],
+        );
+        return response.data as Map<String, dynamic>;
+      }
+
+      throw ApiError(
+        type: ApiException.unknownError,
+        message: response.data['message'] ?? 'Authentication failed',
+      );
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw AuthException(
+        'Session storage failed. Clear browser site data and try again.',
+      );
+    }
+  }
 
   Future<void> sendOtp({required String mobileNumber}) async {
     try {
@@ -183,6 +240,14 @@ class AuthService {
             e.response?.data['error']?['message']?.toString() ??
             'Validation error',
         code: e.response?.data['error']?['code']?.toString(),
+      );
+    } else if (e.response?.statusCode == 503) {
+      throw ApiError(
+        type: ApiException.serverError,
+        message:
+            e.response?.data['error']?['message']?.toString() ??
+            'OTP service is temporarily unavailable',
+        code: e.response?.data['error']?['code']?.toString() ?? 'SERVICE_UNAVAILABLE',
       );
     } else {
       throw ApiError(
