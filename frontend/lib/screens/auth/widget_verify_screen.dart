@@ -64,13 +64,27 @@ class _WidgetVerifyScreenState extends State<WidgetVerifyScreen> {
     <p>Complete OTP verification using MSG91.</p>
     <script src="https://verify.msg91.com/otp-provider.js"></script>
     <script>
+      function accessTokenFrom(data) {
+        if (typeof data === 'string') {
+          return data;
+        }
+
+        if (data && typeof data === 'object') {
+          return data['access-token'] || data.accessToken || data.access_token || data.token || '';
+        }
+
+        return '';
+      }
+
       const configuration = {
         widgetId: $escapedWidgetId,
         tokenAuth: $escapedToken,
         identifier: ${jsonEncode(widget.mobileNumber.replaceAll('+', ''))},
-        exposeMethods: true,
         success: (data) => {
-          DhanPeAuth.postMessage(JSON.stringify({ type: 'success', token: data }));
+          DhanPeAuth.postMessage(JSON.stringify({
+            type: 'success',
+            token: accessTokenFrom(data)
+          }));
         },
         failure: (error) => {
           DhanPeAuth.postMessage(JSON.stringify({ type: 'failure', message: String(error) }));
