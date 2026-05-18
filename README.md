@@ -30,6 +30,13 @@ DhanPe is a fintech application for compliant, bill-payment-based fund flows wit
 1. **Spin up local infrastructure (Docker required)**:
 
 ```bash
+POSTGRES_PASSWORD=change-me-for-local-dev docker compose up -d
+```
+
+PowerShell:
+
+```powershell
+$env:POSTGRES_PASSWORD = 'change-me-for-local-dev'
 docker compose up -d
 ```
 
@@ -88,6 +95,7 @@ Notes:
   - `MSG91_AUTH_KEY`: Primary Auth Key
   - `MSG91_WIDGET_ID`: Widget ID from OTP section
   - `MSG91_WIDGET_TOKEN`: Widget Token for verification bridge
+  - Optional widget controls: `MSG91_WIDGET_ENABLED`, `MSG91_WIDGET_VERIFY_BASE_URL`
 
 ## Transaction Lifecycle (Strict State Machine)
 
@@ -124,6 +132,9 @@ Transitions are validated and audited server-side.
 - max transaction amount
 - daily volume limits
 - velocity checks
+- recent beneficiary change signals
+- recent payout failure signals
+- distinct session/device signals
 
 Violations return `422` with code `RISK_REJECTED`.
 
@@ -162,6 +173,8 @@ Scheduled reconciliation is controlled by backend config (`RECONCILIATION_ENABLE
 ### Auth
 
 - `GET /api/auth/widget-config`
+- `POST /api/auth/verify-widget`
+- `POST /api/auth/send-otp`
 - `POST /api/auth/verify-otp`
 - `POST /api/auth/refresh`
 
@@ -169,7 +182,9 @@ Scheduled reconciliation is controlled by backend config (`RECONCILIATION_ENABLE
 
 - `GET /api/users/profile`
 - `PATCH /api/users/profile`
+- `GET /api/users/onboarding`
 - `POST /api/users/pan`
+- `POST /api/users/pan/fallback`
 - `GET /api/users/beneficiaries`
 - `POST /api/users/beneficiaries`
 

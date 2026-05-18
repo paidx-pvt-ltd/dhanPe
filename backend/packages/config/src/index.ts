@@ -250,6 +250,8 @@ export const validateConfig = (): void => {
     } as SignOptions);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown JWT config error';
-    throw new Error(`Invalid JWT configuration: ${message}`);
+    const configError = new Error(`Invalid JWT configuration: ${message}`);
+    (configError as Error & { cause?: unknown }).cause = error;
+    throw configError;
   }
 };

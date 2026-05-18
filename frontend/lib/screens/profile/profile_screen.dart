@@ -175,6 +175,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      obscureText: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      enableInteractiveSelection: false,
+                      enableIMEPersonalizedLearning: false,
+                      smartDashesType: SmartDashesType.disabled,
+                      smartQuotesType: SmartQuotesType.disabled,
                       decoration: const InputDecoration(
                         labelText: 'Phone number',
                         prefixIcon: Icon(Icons.phone_iphone_rounded),
