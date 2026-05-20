@@ -1,6 +1,6 @@
 import express from 'express';
 import supertest from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError, ServiceUnavailableError, ValidationError } from '../shared/errors.js';
 import { WebhookController } from '../modules/webhook/webhook.controller.js';
 import { asHandler } from '../shared/http.js';

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotFoundError, PanInvalidError } from '../../shared/errors.js';
+import { PanInvalidError } from '../../shared/errors.js';
 import { UserService } from './user.service.js';
 
 describe('UserService', () => {

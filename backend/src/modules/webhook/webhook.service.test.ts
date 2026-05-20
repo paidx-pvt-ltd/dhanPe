@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  LedgerEntryType,
-  Prisma,
-  TransactionLifecycleState,
-  TransactionStatus,
-} from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { config } from '../../config/index.js';
 import { createHmac, createHmacBase64 } from '../../utils/hash.js';
 import { NotFoundError, ValidationError } from '../../shared/errors.js';

@@ -4,7 +4,6 @@ import { config } from '../../config/index.js';
 import { DiditService } from './didit.service.js';
 import { createHmac } from '../../utils/hash.js';
 import {
-  AuthenticationError,
   NotFoundError,
   ServiceUnavailableError,
   ValidationError,

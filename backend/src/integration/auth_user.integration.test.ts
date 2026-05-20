@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import supertest from 'supertest';
 import { describeIfDatabaseIntegration } from './integration-test-utils.js';
 
