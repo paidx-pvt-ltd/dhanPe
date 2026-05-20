@@ -60,9 +60,13 @@ describe('errorHandler', () => {
 
     const error = new ExternalServiceError('Failed to verify widget token', axiosError);
     const json = vi.fn();
-    const status = vi.fn(() => ({ json } as unknown as Response));
+    const status = vi.fn(() => ({ json }) as unknown as Response);
     const res = { status, json } as unknown as Response;
-    const req = { path: '/api/auth/verify-widget', method: 'POST', userId: 'user-123' } as unknown as Request;
+    const req = {
+      path: '/api/auth/verify-widget',
+      method: 'POST',
+      userId: 'user-123',
+    } as unknown as Request;
     const next = vi.fn() as unknown as NextFunction;
 
     const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => undefined);

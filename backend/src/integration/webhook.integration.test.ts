@@ -19,41 +19,45 @@ const createTestApp = (webhookService: any, enqueueWebhookJob: any) => {
   app.post('/api/webhook/cashfree', rawParser, asHandler(controller.cashfree));
   app.post('/api/webhook/cashfree/payout', rawParser, asHandler(controller.cashfreePayout));
 
-  app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const maybeErr = err as { type?: string } | undefined;
-    if (maybeErr?.type === 'entity.parse.failed') {
-      res.status(400).json({
+  app.use(
+    (err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const maybeErr = err as { type?: string } | undefined;
+      if (maybeErr?.type === 'entity.parse.failed') {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Malformed JSON body',
+          },
+        });
+        return;
+      }
+      next(err as any);
+    }
+  );
+
+  app.use(
+    (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      if (err instanceof AppError) {
+        res.status(err.statusCode).json({
+          success: false,
+          error: {
+            code: err.code,
+            message: err.message,
+          },
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Malformed JSON body',
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Internal server error',
         },
       });
-      return;
     }
-    next(err as any);
-  });
-
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    if (err instanceof AppError) {
-      res.status(err.statusCode).json({
-        success: false,
-        error: {
-          code: err.code,
-          message: err.message,
-        },
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Internal server error',
-      },
-    });
-  });
+  );
 
   return app;
 };
@@ -61,7 +65,10 @@ const createTestApp = (webhookService: any, enqueueWebhookJob: any) => {
 describe('Webhook route integration', () => {
   let app: express.Express;
   let enqueueWebhookJob: ReturnType<typeof vi.fn>;
-  let webhookService: { verifySignature: ReturnType<typeof vi.fn>; verifyPayoutSignature: ReturnType<typeof vi.fn> };
+  let webhookService: {
+    verifySignature: ReturnType<typeof vi.fn>;
+    verifyPayoutSignature: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     enqueueWebhookJob = vi.fn(async () => {});

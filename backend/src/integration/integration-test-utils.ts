@@ -8,10 +8,7 @@ const missingIntegrationEnv = (): string[] =>
 const formatSkipMessage = (missing: string[]) =>
   [`Integration suite skipped`, `Missing required env: ${missing.join(', ')}`].join(' | ');
 
-export const describeIfDatabaseIntegration = (
-  title: string,
-  callback: () => void
-) => {
+export const describeIfDatabaseIntegration = (title: string, callback: () => void) => {
   const missingEnv = missingIntegrationEnv();
   if (missingEnv.length === 0) {
     return describe(title, callback);

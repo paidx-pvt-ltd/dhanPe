@@ -89,9 +89,7 @@ describe('WebhookService', () => {
     const timestamp = '1700000000';
     const signature = createHmac(`${timestamp}.${rawBody}`, config.cashfree.webhookSecret);
 
-    expect(() =>
-      service.verifySignature(rawBody, signature, timestamp)
-    ).not.toThrow();
+    expect(() => service.verifySignature(rawBody, signature, timestamp)).not.toThrow();
   });
 
   it('rejects invalid Cashfree webhook signatures', () => {
@@ -103,11 +101,12 @@ describe('WebhookService', () => {
   it('validates Cashfree payout webhook signatures', () => {
     const rawBody = JSON.stringify({ transfer_id: 'txn_1' });
     const timestamp = '1700000000';
-    const signature = createHmacBase64(`${timestamp}${rawBody}`, config.cashfree.payoutClientSecret);
+    const signature = createHmacBase64(
+      `${timestamp}${rawBody}`,
+      config.cashfree.payoutClientSecret
+    );
 
-    expect(() =>
-      service.verifyPayoutSignature(rawBody, signature, timestamp)
-    ).not.toThrow();
+    expect(() => service.verifyPayoutSignature(rawBody, signature, timestamp)).not.toThrow();
   });
 
   it('rejects payout webhook signatures when missing headers', () => {

@@ -3,11 +3,7 @@ import { KYCStatus } from '@prisma/client';
 import { config } from '../../config/index.js';
 import { DiditService } from './didit.service.js';
 import { createHmac } from '../../utils/hash.js';
-import {
-  NotFoundError,
-  ServiceUnavailableError,
-  ValidationError,
-} from '../../shared/errors.js';
+import { NotFoundError, ServiceUnavailableError, ValidationError } from '../../shared/errors.js';
 
 type WebhookHeaders = Record<string, string | undefined>;
 
@@ -161,10 +157,7 @@ describe('DiditService', () => {
 
   it('throws when Didit webhook timestamp is missing', () => {
     expect(() =>
-      service.verifyWebhookSignature(
-        { session_id: 'session_1', status: 'approved' },
-        {}
-      )
+      service.verifyWebhookSignature({ session_id: 'session_1', status: 'approved' }, {})
     ).toThrow(ValidationError);
   });
 
@@ -181,12 +174,8 @@ describe('DiditService', () => {
   });
 
   it('reports test webhooks when headers or metadata indicate a test', () => {
-    expect(
-      service.isTestWebhook({ 'x-didit-test-webhook': 'true' }, {})
-    ).toBe(true);
-    expect(
-      service.isTestWebhook({}, { metadata: { test_webhook: true } })
-    ).toBe(true);
+    expect(service.isTestWebhook({ 'x-didit-test-webhook': 'true' }, {})).toBe(true);
+    expect(service.isTestWebhook({}, { metadata: { test_webhook: true } })).toBe(true);
     expect(service.isTestWebhook({}, {})).toBe(false);
   });
 
@@ -229,7 +218,11 @@ describe('DiditService', () => {
 
   it('fails if Didit configuration is missing', () => {
     config.didit.apiKey = '';
-    const badService = new DiditService(diditRepository as never, diditClient as never, db as never);
+    const badService = new DiditService(
+      diditRepository as never,
+      diditClient as never,
+      db as never
+    );
 
     expect(badService.createSession('user_1')).rejects.toThrow(ServiceUnavailableError);
   });
