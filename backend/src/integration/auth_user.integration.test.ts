@@ -16,7 +16,7 @@ const configureTestEnvironment = () => {
   process.env.CASHFREE_CLIENT_ID = process.env.CASHFREE_CLIENT_ID ?? 'test-cashfree-client';
   process.env.CASHFREE_CLIENT_SECRET = process.env.CASHFREE_CLIENT_SECRET ?? 'test-cashfree-secret';
   process.env.CASHFREE_WEBHOOK_SECRET =
-    process.env.CASHFREE_WEBHOOK_SECRET ?? 'test-webhook-secret';
+  process.env.CASHFREE_WEBHOOK_SECRET ?? 'test-webhook-secret';
   process.env.MSG91_WIDGET_ENABLED = '1';
   process.env.MSG91_SANDBOX_ENABLED = '1';
   process.env.MSG91_WIDGET_ID = process.env.MSG91_WIDGET_ID ?? 'test-widget-id';
