@@ -117,26 +117,28 @@ describe('DiditService', () => {
   });
 
   it('validates Didit webhook signature with v2 signing', () => {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
     const payload = {
       session_id: 'session_1',
       status: 'approved',
-      timestamp: 1700000000,
+      timestamp,
     };
     const signature = createSortedJsonSignature(payload, config.didit.webhookSecret);
 
     expect(() =>
       service.verifyWebhookSignature(payload, {
-        'x-timestamp': '1700000000',
+        'x-timestamp': timestamp,
         'x-signature-v2': signature,
       } as WebhookHeaders)
     ).not.toThrow();
   });
 
   it('validates Didit webhook signature with simple signing', () => {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
     const payload = {
       session_id: 'session_1',
       status: 'approved',
-      timestamp: '1700000000',
+      timestamp,
       webhook_type: 'status.updated',
     };
     const signature = createSimpleSignature(
@@ -149,7 +151,7 @@ describe('DiditService', () => {
 
     expect(() =>
       service.verifyWebhookSignature(payload, {
-        'x-timestamp': '1700000000',
+        'x-timestamp': timestamp,
         'x-signature-simple': signature,
       } as WebhookHeaders)
     ).not.toThrow();
@@ -182,9 +184,32 @@ describe('DiditService', () => {
   it('rejects an event with missing session data', async () => {
     diditRepository.findWebhookEventByEventId.mockResolvedValue(null);
     diditRepository.createWebhookEvent.mockResolvedValue({ id: 'event_1' });
-    db.$transaction.mockImplementation(async (handler) => handler({}));
 
-    await expect(service.processWebhook({})).rejects.toThrow(ValidationError);
+    diditClient.getSession.mockResolvedValue({
+      session_id: 'session_1',
+      status: 'approved',
+      vendor_data: undefined,
+    });
+
+    db.$transaction.mockImplementation(async (handler) =>
+      handler({
+        user: {
+          update: vi.fn(),
+        },
+        diditWebhookEvent: {
+          update: vi.fn(),
+        },
+      })
+    );
+
+    await expect(
+      service.processWebhook({
+        session_id: 'session_1',
+        status: 'approved',
+        timestamp: Date.now(),
+      })
+    ).rejects.toThrow(ValidationError);
+
     expect(diditRepository.markWebhookProcessed).toHaveBeenCalledWith(
       expect.anything(),
       'event_1',
@@ -204,7 +229,7 @@ describe('DiditService', () => {
         session_id: 'session_1',
         status: 'approved',
         vendor_data: 'user_1',
-        timestamp: 1700000000,
+        timestamp: Math.floor(Date.now() / 1000),
       })
     ).rejects.toThrow(NotFoundError);
 
@@ -216,7 +241,7 @@ describe('DiditService', () => {
     );
   });
 
-  it('fails if Didit configuration is missing', () => {
+  it('fails if Didit configuration is missing', async () => {
     config.didit.apiKey = '';
     const badService = new DiditService(
       diditRepository as never,
@@ -224,6 +249,8 @@ describe('DiditService', () => {
       db as never
     );
 
-    expect(badService.createSession('user_1')).rejects.toThrow(ServiceUnavailableError);
+    await expect(
+      badService.createSession('user_1')
+    ).rejects.toThrow(ServiceUnavailableError);
   });
 });
