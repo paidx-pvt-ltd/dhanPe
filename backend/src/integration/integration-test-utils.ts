@@ -1,3 +1,5 @@
+import { describe } from 'vitest';
+
 const REQUIRED_INTEGRATION_ENV = ['DATABASE_URL', 'DIRECT_URL'];
 
 const missingIntegrationEnv = (): string[] =>

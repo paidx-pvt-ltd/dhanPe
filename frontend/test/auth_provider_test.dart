@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dhanpe/core/exceptions.dart';
 import 'package:dhanpe/models/onboarding_status.dart';
-import 'package:dhanpe/models/user.dart';
 import 'package:dhanpe/providers/auth_provider.dart';
 import 'package:dhanpe/services/auth_service.dart';
 

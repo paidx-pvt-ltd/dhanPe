@@ -145,7 +145,7 @@ describe('DiditService', () => {
       webhook_type: 'status.updated',
     };
     const signature = createSimpleSignature(
-      payload.timestamp as String,
+      payload.timestamp as string,
       payload.session_id as string,
       payload.status as string,
       payload.webhook_type as string,

@@ -1,8 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:dhanpe/core/exceptions.dart';
 import 'package:dhanpe/main.dart';
 import 'package:dhanpe/models/user.dart';
@@ -13,6 +11,7 @@ import 'package:dhanpe/services/device_security_service.dart';
 import 'package:dhanpe/services/payment_service.dart';
 import 'package:dhanpe/services/service_locator.dart';
 import 'package:dhanpe/services/transaction_service.dart';
+import 'package:dhanpe/models/onboarding_status.dart';
 import 'package:dhanpe/services/user_service.dart';
 
 class _AuthenticatedAuthService extends AuthService {
@@ -104,27 +103,27 @@ class _FakeUserService extends UserService {
   }
 
   @override
-  Future<Map<String, dynamic>> getOnboardingStatus() async {
-    return {
-      'currentStep': 'PAN_VERIFICATION',
-      'steps': [
-        {
-          'id': 'MOBILE_VERIFICATION',
-          'label': 'Mobile verification',
-          'completed': true,
-          'required': true,
-        },
-        {
-          'id': 'PAN_VERIFICATION',
-          'label': 'PAN verification',
-          'completed': false,
-          'required': true,
-        },
+  Future<OnboardingStatus> getOnboardingStatus() async {
+    return const OnboardingStatus(
+      currentStep: 'PAN_VERIFICATION',
+      steps: [
+        OnboardingStepStatus(
+          id: 'MOBILE_VERIFICATION',
+          label: 'Mobile verification',
+          completed: true,
+          required: true,
+        ),
+        OnboardingStepStatus(
+          id: 'PAN_VERIFICATION',
+          label: 'PAN verification',
+          completed: false,
+          required: true,
+        ),
       ],
-      'canAddBeneficiary': false,
-      'canTransfer': false,
-      'panFallbackAvailable': true,
-    };
+      canAddBeneficiary: false,
+      canTransfer: false,
+      panFallbackAvailable: true,
+    );
   }
 }
 

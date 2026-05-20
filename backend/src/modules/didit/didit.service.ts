@@ -21,6 +21,7 @@ type DiditWebhookPayload = {
   workflow_id?: string;
   webhook_type?: string;
   event_type?: string;
+  metadata?: { test_webhook?: boolean };
   data?: Record<string, unknown>;
 };
 

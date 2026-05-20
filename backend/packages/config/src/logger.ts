@@ -1,4 +1,4 @@
-import pino, { type DestinationStream } from 'pino';
+import { pino, type DestinationStream } from 'pino';
 import { config } from './index.js';
 
 const isDev = config.server.env !== 'production';
