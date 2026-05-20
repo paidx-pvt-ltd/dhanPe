@@ -18,7 +18,9 @@
     "format": "prettier --write \"{src,apps,packages}/**/*.ts\"",
     "format:check": "prettier --check \"{src,apps,packages}/**/*.ts\"",
     "test": "vitest",
-    "test:coverage": "vitest --coverage",
+    "test:ci": "vitest run --passWithNoTests false",
+    "test:integration": "vitest run src/integration --passWithNoTests false",
+    "test:coverage": "vitest run --coverage --passWithNoTests false",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "tsx src/db/seed.ts"

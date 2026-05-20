@@ -96,20 +96,37 @@ jobs:
           npx prisma migrate deploy
           npx prisma generate
 
-      - name: Run tests
+      - name: Run unit and service tests
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
           DIRECT_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
           NODE_ENV: test
-        run: npm run test
+          CI: true
+        run: npm run test:ci
+
+      - name: Run integration tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
+          DIRECT_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
+          NODE_ENV: test
+          CI: true
+        run: npm run test:integration
 
       - name: Coverage
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
           DIRECT_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
+          CI: true
         run: npm run test:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
 
       - name: Build
         working-directory: backend

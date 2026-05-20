@@ -1,3 +1,31 @@
+import type { AxiosError } from 'axios';
+
+const isAxiosError = (error: unknown): error is AxiosError =>
+  typeof error === 'object' &&
+  error !== null &&
+  'isAxiosError' in error &&
+  (error as AxiosError).isAxiosError === true;
+
+const sanitizeAxiosErrorDetails = (error: AxiosError) => ({
+  message: error.message,
+  code: error.code,
+  status: error.response?.status,
+  statusText: error.response?.statusText,
+  responseData: error.response?.data,
+});
+
+const sanitizeErrorDetails = (details: unknown) => {
+  if (isAxiosError(details)) {
+    return sanitizeAxiosErrorDetails(details);
+  }
+
+  if (details instanceof Error) {
+    return { message: details.message, name: details.name };
+  }
+
+  return details;
+};
+
 export class AppError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -71,7 +99,7 @@ export class RiskRejectedError extends AppError {
 
 export class ExternalServiceError extends AppError {
   constructor(message: string, details?: unknown) {
-    super(502, message, 'EXTERNAL_SERVICE_ERROR', details);
+    super(502, message, 'EXTERNAL_SERVICE_ERROR', sanitizeErrorDetails(details));
   }
 }
 

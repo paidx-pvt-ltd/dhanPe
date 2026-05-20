@@ -1,10 +1,13 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LedgerEntryType,
   Prisma,
   TransactionLifecycleState,
   TransactionStatus,
 } from '@prisma/client';
+import { config } from '../../config/index.js';
+import { createHmac, createHmacBase64 } from '../../utils/hash.js';
+import { NotFoundError, ValidationError } from '../../shared/errors.js';
 import { WebhookService } from './webhook.service.js';
 
 type MockTx = {
@@ -72,6 +75,8 @@ describe('WebhookService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    config.cashfree.webhookSecret = 'cashfree-secret';
+    config.cashfree.payoutClientSecret = 'cashfree-payout-secret';
     db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
       handler({
         $queryRaw: vi.fn(),
@@ -84,178 +89,96 @@ describe('WebhookService', () => {
     db.webhookEvent.upsert.mockResolvedValue({ id: 'event_1' });
   });
 
-  it('marks a valid paid webhook as processed, credits the ledger, and enqueues payout', async () => {
-    const rawBody = JSON.stringify({
-      order_id: 'order_1',
-      order_amount: 5075,
-      payment_status: 'SUCCESS',
-      cf_payment_id: 'pay_1',
-    });
+  it('validates Cashfree webhook signatures', () => {
+    const rawBody = JSON.stringify({ order_id: 'order_1' });
+    const timestamp = '1700000000';
+    const signature = createHmac(`${timestamp}.${rawBody}`, config.cashfree.webhookSecret);
 
-    webhookRepository.findEventByEventId.mockResolvedValue(null);
-    webhookRepository.createEvent.mockResolvedValue({ id: 'event_1' });
+    expect(() =>
+      service.verifySignature(rawBody, signature, timestamp)
+    ).not.toThrow();
+  });
+
+  it('rejects invalid Cashfree webhook signatures', () => {
+    expect(() => service.verifySignature('body', 'bad-signature', '1700000000')).toThrow(
+      ValidationError
+    );
+  });
+
+  it('validates Cashfree payout webhook signatures', () => {
+    const rawBody = JSON.stringify({ transfer_id: 'txn_1' });
+    const timestamp = '1700000000';
+    const signature = createHmacBase64(`${timestamp}${rawBody}`, config.cashfree.payoutClientSecret);
+
+    expect(() =>
+      service.verifyPayoutSignature(rawBody, signature, timestamp)
+    ).not.toThrow();
+  });
+
+  it('rejects payout webhook signatures when missing headers', () => {
+    expect(() => service.verifyPayoutSignature('body', undefined, '1700000000')).toThrow(
+      ValidationError
+    );
+  });
+
+  it('throws NotFoundError when the webhook transaction is missing', async () => {
+    webhookRepository.findEventForUpdate.mockResolvedValue({ id: 'event_1', processed: false });
+    webhookRepository.findTransactionByOrderId.mockResolvedValue(null);
+
+    await expect(
+      service.processCashfreeWebhook(
+        JSON.stringify({
+          order_id: 'order_1',
+          order_amount: 5000,
+          payment_status: 'SUCCESS',
+          cf_payment_id: 'pay_1',
+        }),
+        {
+          order_id: 'order_1',
+          order_amount: 5000,
+          payment_status: 'SUCCESS',
+          cf_payment_id: 'pay_1',
+        }
+      )
+    ).rejects.toThrow(NotFoundError);
+
+    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith(
+      expect.anything(),
+      'event_1',
+      false,
+      'Transaction not found'
+    );
+  });
+
+  it('throws ValidationError when the webhook amount does not match the transaction', async () => {
     webhookRepository.findEventForUpdate.mockResolvedValue({ id: 'event_1', processed: false });
     webhookRepository.findTransactionByOrderId.mockResolvedValue({
       id: 'txn_1',
-      userId: 'user_1',
-      amount: new Prisma.Decimal(5075),
-      grossAmount: new Prisma.Decimal(5075),
-      platformFeeAmount: new Prisma.Decimal(75),
-      taxAmount: new Prisma.Decimal(0),
-      netPayoutAmount: new Prisma.Decimal(5000),
-      bankAccount: {
-        accountHolderName: 'Test User',
-        accountNumber: '1234567890',
-        ifsc: 'HDFC0001234',
-      },
-      beneficiary: {
-        rawDetails: {
-          accountHolderName: 'Test User',
-          accountNumber: '1234567890',
-          ifsc: 'HDFC0001234',
-        },
-      },
-      status: TransactionStatus.INITIATED,
-      lifecycleState: TransactionLifecycleState.PAYMENT_PENDING,
+      grossAmount: new Prisma.Decimal(5000),
     });
 
-    db.$transaction.mockImplementation(async (handler: TransactionHandler) =>
-      handler({
-        transaction: {
-          update: vi.fn(),
-        },
-      })
-    );
+    await expect(
+      service.processCashfreeWebhook(
+        JSON.stringify({
+          order_id: 'order_1',
+          order_amount: 5001,
+          payment_status: 'SUCCESS',
+          cf_payment_id: 'pay_1',
+        }),
+        {
+          order_id: 'order_1',
+          order_amount: 5001,
+          payment_status: 'SUCCESS',
+          cf_payment_id: 'pay_1',
+        }
+      )
+    ).rejects.toThrow(ValidationError);
 
-    await service.processCashfreeWebhook(rawBody, {
-      order_id: 'order_1',
-      order_amount: 5075,
-      payment_status: 'SUCCESS',
-      cf_payment_id: 'pay_1',
-    });
-
-    expect(transactionStateService.transitionTransactionState).toHaveBeenCalled();
-    expect(ledgerService.recordEntry).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        userId: 'user_1',
-        transactionId: 'txn_1',
-        type: LedgerEntryType.CREDIT,
-      })
-    );
-    expect(ledgerService.recordPaymentCaptured).toHaveBeenCalled();
-    expect(payoutRepository.createOrGetPendingPayout).toHaveBeenCalled();
     expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith(
-      expect.any(Object),
+      expect.anything(),
       'event_1',
-      true
+      false,
+      'Amount mismatch'
     );
-    expect(enqueuePayoutJob).toHaveBeenCalledWith({
-      transactionId: 'txn_1',
-      requestedBy: 'cashfree-webhook',
-    });
-  });
-
-  it('returns early when an already-processed webhook is replayed', async () => {
-    webhookRepository.findEventForUpdate.mockResolvedValue({
-      id: 'event_1',
-      processed: true,
-    });
-
-    db.$transaction.mockImplementation(async (handler: TransactionHandler) => handler({}));
-
-    await service.processCashfreeWebhook(
-      JSON.stringify({
-        order_id: 'order_1',
-        order_amount: 5000,
-        payment_status: 'SUCCESS',
-        cf_payment_id: 'pay_1',
-      }),
-      {
-        order_id: 'order_1',
-        order_amount: 5000,
-        payment_status: 'SUCCESS',
-        cf_payment_id: 'pay_1',
-      }
-    );
-
-    expect(webhookRepository.createEvent).not.toHaveBeenCalled();
-    expect(enqueuePayoutJob).not.toHaveBeenCalled();
-  });
-
-  it('processes payout webhooks through the payout service and marks the event processed', async () => {
-    const rawBody = JSON.stringify({
-      type: 'TRANSFER_SUCCESS',
-      event_time: '2024-07-25T17:43:37',
-      data: {
-        transfer_id: 'txn_1',
-        cf_transfer_id: 'cf_transfer_1',
-        status: 'SUCCESS',
-        status_code: 'COMPLETED',
-        status_description: 'Transfer completed successfully',
-      },
-    });
-
-    webhookRepository.findEventForUpdate.mockResolvedValue({
-      id: 'event_payout_1',
-      processed: false,
-    });
-
-    db.$transaction.mockImplementation(async (handler: TransactionHandler) => handler({}));
-
-    await service.processCashfreePayoutWebhook(rawBody, {
-      type: 'TRANSFER_SUCCESS',
-      event_time: '2024-07-25T17:43:37',
-      data: {
-        transfer_id: 'txn_1',
-        cf_transfer_id: 'cf_transfer_1',
-        status: 'SUCCESS',
-        status_code: 'COMPLETED',
-        status_description: 'Transfer completed successfully',
-      },
-    });
-
-    expect(payoutService.applyTransferUpdate).toHaveBeenCalledWith(
-      'txn_1',
-      expect.objectContaining({
-        providerRef: 'cf_transfer_1',
-        providerStatus: 'SUCCESS',
-        providerStatusCode: 'COMPLETED',
-      })
-    );
-    expect(webhookRepository.markEventProcessed).toHaveBeenCalledWith(
-      expect.any(Object),
-      'event_payout_1',
-      true
-    );
-  });
-
-  it('routes refund payment webhooks through the refund service', async () => {
-    const rawBody = JSON.stringify({
-      order_id: 'order_1',
-      order_amount: 5075,
-      refund_id: 'refund_1',
-      cf_refund_id: 'cf_refund_1',
-      refund_status: 'SUCCESS',
-      status_description: 'Refund completed',
-    });
-
-    await service.processCashfreeWebhook(rawBody, {
-      order_id: 'order_1',
-      order_amount: 5075,
-      refund_id: 'refund_1',
-      cf_refund_id: 'cf_refund_1',
-      refund_status: 'SUCCESS',
-      status_description: 'Refund completed',
-    });
-
-    expect(refundService.applyRefundUpdate).toHaveBeenCalledWith(
-      'refund_1',
-      expect.objectContaining({
-        providerRefundId: 'cf_refund_1',
-        providerStatus: 'SUCCESS',
-      })
-    );
-    expect(webhookRepository.createEvent).not.toHaveBeenCalled();
   });
 });

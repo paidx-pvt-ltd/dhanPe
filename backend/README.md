@@ -120,6 +120,24 @@ $env:POSTGRES_PASSWORD = 'change-me-for-local-dev'
 docker compose up -d
 ```
 
+## Integration test workflow
+
+The backend includes DB-backed integration tests under `backend/src/integration`.
+
+- Local runs require a valid `DATABASE_URL` and `DIRECT_URL`.
+- Use `npm run test:integration` to exercise integrations without watch mode.
+- On GitHub Actions, the workflow sets `CI=true` and fails if the integration suite is missing required DB environment variables or if zero integration tests are executed.
+- If you want to run database-backed integration tests locally, set `DATABASE_URL` and `DIRECT_URL` before invoking the command.
+
+Example local command:
+
+```bash
+cd backend
+DATABASE_URL="postgresql://postgres:password@localhost:5432/dhanpe_test" \
+DIRECT_URL="postgresql://postgres:password@localhost:5432/dhanpe_test" \
+npm run test:integration
+```
+
 Cashfree integration note:
 
 - `CASHFREE_CLIENT_ID` / `CASHFREE_CLIENT_SECRET` are used for PG orders/refunds.
