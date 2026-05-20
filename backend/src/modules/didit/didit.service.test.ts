@@ -249,8 +249,6 @@ describe('DiditService', () => {
       db as never
     );
 
-    await expect(
-      badService.createSession('user_1')
-    ).rejects.toThrow(ServiceUnavailableError);
+    await expect(badService.createSession('user_1')).rejects.toThrow(ServiceUnavailableError);
   });
 });
