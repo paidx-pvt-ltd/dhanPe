@@ -4,9 +4,9 @@ on:
   pull_request:
     branches: [develop, staging, main]
     paths:
-      - 'backend/**'
-      - '.github/workflows/01-backend-ci.yml'
-      - '.github/workflows/03-deploy-vercel.yml'
+      - "backend/**"
+      - ".github/workflows/01-backend-ci.yml"
+      - ".github/workflows/03-deploy-vercel.yml"
 
   workflow_dispatch:
 
@@ -21,6 +21,7 @@ concurrency:
 jobs:
   security-scan:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
@@ -33,11 +34,12 @@ jobs:
           cx_client_id: dhruv-integrations
           cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
           project_name: manual-financeapp
-          #additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1" --async
+          # additional_params: --threshold "sast-critical=1; sast-high=1; sca-critical=1; iac-security-critical=1" --async
           additional_params: --async
 
   quality-check:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:15
@@ -49,6 +51,16 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -96,20 +108,37 @@ jobs:
           npx prisma migrate deploy
           npx prisma generate
 
-      - name: Run tests
+      - name: Run unit and service tests
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
           DIRECT_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
           NODE_ENV: test
-        run: npm run test
+          CI: true
+        run: npm run test:ci
+
+      - name: Run integration tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
+          DIRECT_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
+          NODE_ENV: test
+          CI: true
+        run: npm run test:integration
 
       - name: Coverage
         working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
           DIRECT_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/dhanpe_test
+          CI: true
         run: npm run test:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
 
       - name: Build
         working-directory: backend

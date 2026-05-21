@@ -1,4 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import crypto from 'crypto';
 import { config } from '../config/index.js';
 import { AuthenticationError } from '../shared/errors.js';
 
@@ -17,6 +18,7 @@ export class JwtService {
   static signRefreshToken(payload: JwtPayload): string {
     return jwt.sign(payload, config.jwt.refreshSecret, {
       expiresIn: config.jwt.refreshExpiry,
+      jwtid: crypto.randomUUID(),
     } as SignOptions);
   }
 

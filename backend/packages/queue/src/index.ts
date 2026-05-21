@@ -1,5 +1,5 @@
 import { JobsOptions, Processor, Queue, QueueEvents, Worker } from 'bullmq';
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 import { config } from '../../config/src/index.js';
 import {
   DeadLetterJob,
@@ -46,15 +46,15 @@ const queueConcurrency = {
 export const DLQ_SUFFIX = 'dlq';
 export const getDlqName = (queueName: QueueName): string => `${queueName}-${DLQ_SUFFIX}`;
 
-export const createRedisConnection = (connectionName: string): IORedis =>
-  new IORedis(config.redis.url, {
+export const createRedisConnection = (connectionName: string): Redis =>
+  new Redis(config.redis.url, {
     ...redisOptions,
     connectionName,
   });
 
 export const createQueue = <TQueueName extends QueueName>(
   queueName: TQueueName,
-  connection: IORedis
+  connection: Redis
 ): Queue<QueuePayloadMap[TQueueName]> =>
   new Queue<QueuePayloadMap[TQueueName]>(queueName, {
     connection,
@@ -62,7 +62,7 @@ export const createQueue = <TQueueName extends QueueName>(
     defaultJobOptions,
   });
 
-export const createDlq = (queueName: QueueName, connection: IORedis): Queue<DeadLetterJob> =>
+export const createDlq = (queueName: QueueName, connection: Redis): Queue<DeadLetterJob> =>
   new Queue<DeadLetterJob>(getDlqName(queueName), {
     connection,
     prefix: config.queue.prefix,
@@ -72,7 +72,7 @@ export const createDlq = (queueName: QueueName, connection: IORedis): Queue<Dead
     },
   });
 
-export const createQueueEvents = (queueName: QueueName, connection: IORedis): QueueEvents =>
+export const createQueueEvents = (queueName: QueueName, connection: Redis): QueueEvents =>
   new QueueEvents(queueName, {
     connection,
     prefix: config.queue.prefix,
@@ -80,7 +80,7 @@ export const createQueueEvents = (queueName: QueueName, connection: IORedis): Qu
 
 export const createWorker = <TQueueName extends QueueName>(
   queueName: TQueueName,
-  connection: IORedis,
+  connection: Redis,
   processor: Processor<QueuePayloadMap[TQueueName]>
 ): Worker<QueuePayloadMap[TQueueName]> =>
   new Worker<QueuePayloadMap[TQueueName]>(queueName, processor, {

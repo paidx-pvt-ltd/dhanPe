@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
+import { ZodError } from 'zod';
 import { WebhookService } from './webhook.service.js';
 import { cashfreePayoutWebhookSchema, cashfreeWebhookSchema } from './webhook.schemas.js';
 import { config } from '../../config/index.js';
+import { ValidationError } from '../../shared/errors.js';
 import { WebhookJob } from '../../../packages/types/src/index.js';
 
 export class WebhookController {
@@ -19,7 +21,17 @@ export class WebhookController {
     const timestamp = req.header(config.cashfree.webhookTimestampHeader) ?? undefined;
 
     this.webhookService.verifySignature(rawBody, signature, timestamp);
-    const payload = cashfreeWebhookSchema.parse(JSON.parse(rawBody));
+
+    let payload;
+    try {
+      payload = cashfreeWebhookSchema.parse(JSON.parse(rawBody));
+    } catch (error) {
+      if (error instanceof SyntaxError || error instanceof ZodError) {
+        throw new ValidationError('Invalid webhook payload');
+      }
+      throw error;
+    }
+
     const eventId = payload.refund_id
       ? `refund:${payload.refund_id}:${payload.refund_status ?? 'unknown'}`
       : (payload.cf_payment_id ??
@@ -47,7 +59,17 @@ export class WebhookController {
       undefined;
 
     this.webhookService.verifyPayoutSignature(rawBody, signature, timestamp);
-    const payload = cashfreePayoutWebhookSchema.parse(JSON.parse(rawBody));
+
+    let payload;
+    try {
+      payload = cashfreePayoutWebhookSchema.parse(JSON.parse(rawBody));
+    } catch (error) {
+      if (error instanceof SyntaxError || error instanceof ZodError) {
+        throw new ValidationError('Invalid webhook payload');
+      }
+      throw error;
+    }
+
     const eventId = `${payload.type}:${payload.data.transfer_id}:${payload.data.cf_transfer_id ?? 'na'}:${payload.event_time ?? 'na'}`;
 
     await this.enqueueWebhookJob({
