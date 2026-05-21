@@ -138,8 +138,10 @@ describeIfDatabaseIntegration('Auth and user integration', () => {
     expect(accessToken).toBeTruthy();
 
     const onboardingResponse = await request
-      .get('/api/users/onboarding')
-      .set('Authorization', `Bearer ${accessToken}`);
+    .get('/api/users/onboarding')
+    .set('Authorization', `Bearer ${accessToken}`);
+    
+    console.log(JSON.stringify(onboardingResponse.body, null, 2));
 
     expect(onboardingResponse.status).toBe(200);
     expect(onboardingResponse.body.success).toBe(true);
