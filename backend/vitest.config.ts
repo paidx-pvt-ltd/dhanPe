@@ -11,13 +11,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        'coverage/',
-        '**/*.test.ts',
-        '**/*.spec.ts',
-      ],
+      exclude: ['node_modules/', 'dist/', 'coverage/', '**/*.test.ts', '**/*.spec.ts'],
       lines: 70,
       functions: 70,
       branches: 70,

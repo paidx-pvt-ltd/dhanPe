@@ -145,8 +145,8 @@ describeIfDatabaseIntegration('Auth and user integration', () => {
 
     expect(onboardingResponse.status).toBe(200);
     expect(onboardingResponse.body.success).toBe(true);
-    expect(onboardingResponse.body.currentStep).toBe('PAN_VERIFICATION');
-    expect(onboardingResponse.body.panFallbackAvailable).toBe(true);
-    expect(onboardingResponse.body.canAddBeneficiary).toBe(false);
+    expect(onboardingResponse.body.data.currentStep).toBe('PAN_VERIFICATION');
+    expect(onboardingResponse.body.data.panFallbackAvailable).toBe(true);
+    expect(onboardingResponse.body.data.canAddBeneficiary).toBe(false);
   });
 });
